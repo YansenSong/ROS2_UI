@@ -18,7 +18,6 @@ start robot program
 The UI converts those blocks into a robot plan, then sends ROS commands through
 rosbridge when you press `Run`.
 
-![Complete Blockly page with workspace, program templates, run history, backend programs, named locations, plan checks, and generated plan](../../../../docs/assets/programs/blockly.png)
 
 ## Contents
 
@@ -913,9 +912,7 @@ If the plan contains direct motion, docking, undocking, emergency stop, or
 validation warnings, the page asks for confirmation before running. Confirm only
 after checking that the robot area is clear.
 
-![Plan Checks panel showing configured speed limits and a "Ready. No validation warnings." result](../../../../docs/assets/programs/planchecks.png)
 
-![Generated Plan panel listing queued steps built from the connected blocks](../../../../docs/assets/programs/generatedplan.png)
 
 The `Stop` button calls the same emergency stop behavior used by the
 `emergency stop` block: it publishes zero velocity and cancels navigation.
@@ -979,7 +976,6 @@ locations as a fallback.
 
 The `Named Locations` panel in the right sidebar lets you manage locations:
 
-![Named Locations panel showing location name, saved locations, x, y, yaw, save, and delete controls](../../../../docs/assets/programs/named-location.png)
 
 | Control       | Meaning                                               |
 | ------------- | ----------------------------------------------------- |
@@ -1198,7 +1194,6 @@ The `Program Templates` panel in the right sidebar loads ready-made Blockly
 programs into the workspace. Templates are useful for first-time users, demos,
 and quick robot checks.
 
-![Program Templates panel showing template selection and Load Template button](../../../../docs/assets/programs/program-templates.png)
 
 Loading a template clears the current workspace and replaces it with the
 selected example. Save your current program first if you want to keep it.
@@ -1243,7 +1238,6 @@ can't run anything or invent an action type outside the normal blocks, see
 You must say the wake word "Monsieur" before your command (see
 [Wake word](#wake-word)); speech before it is ignored.
 
-![Voice Command panel showing the wake word requirement and voice-to-plan flow](../../../../docs/assets/programs/voicecommand.png)
 
 ### Voice Command requirements
 
@@ -1692,30 +1686,6 @@ bash scripts/run_ui_backend.sh
    "Monsieur"** — the recognizer likely misheard it as something else (e.g.
    "monsewer"). Speak it more clearly and pause briefly after it, then try
    again.
-
-### Category images do not appear in the README
-
-The screenshots used in this guide are stored in:
-
-```text
-docs/assets/programs/blockly.png
-docs/assets/programs/program-templates.png
-docs/assets/programs/runhistory.png
-docs/assets/programs/named-location.png
-docs/assets/programs/planchecks.png
-docs/assets/programs/generatedplan.png
-docs/assets/programs/voicecommand.png
-```
-
-There isn't a dedicated screenshot for each individual toolbox category
-(Program/Navigation/Motion/Docking/Robot State), the toolbar's Save/Load/
-Import/Export/Reset row, or the Backend Programs panel specifically — those
-are all visible within `blockly.png`, the full-page screenshot near the top
-of this guide, just not cropped out separately.
-
-If an image does not render in a Markdown viewer, confirm the file exists at
-that path and that you are viewing the README from the repository root or a
-viewer that supports relative image paths with spaces in filenames.
 
 ## Safety notes
 

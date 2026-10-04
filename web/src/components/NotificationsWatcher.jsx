@@ -12,21 +12,19 @@ const NAV_TERMINAL_LABELS = {
 const notify = (title, body) => {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   try {
-    // Fire-and-forget — nothing needs to hold a reference to the instance.
+    // 即发即弃；无需保留此实例的引用。
     const notification = new Notification(title, { body });
     return notification;
   } catch {
-    // Some platforms (e.g. Android Chrome) only allow notifications via a
-    // service worker and throw on the plain constructor — non-fatal, just skip.
+    // 部分平台（例如 Android Chrome）只允许通过 service worker 显示通知，直接构造时会抛出异常。
+    // 这不是致命错误，跳过通知即可。
   }
 };
 
 /**
- * Headless, always-mounted (in AppLayout) watcher that pings the operator
- * via the browser Notification API on key events — nav goal completion,
- * docking finishing/failing, and battery dropping below a threshold — so
- * they don't have to keep this tab focused on any particular page. Gated
- * on config.notificationsEnabled (Config page), off by default.
+ * 无界面、始终挂载于 AppLayout 的监听器，在导航目标完成、对接结束/失败或电量低于阈值等关键事件发生时，
+ * 通过浏览器 Notification API 提醒操作员，使其无需一直将此标签页停留在特定页面。由 Config 页的
+ * config.notificationsEnabled 控制，默认关闭。
  */
 const NotificationsWatcher = () => {
   const ros = useRos();
@@ -75,8 +73,7 @@ const NotificationsWatcher = () => {
           notify("OpenAMR", `Battery at ${Math.round(data)}% — below ${threshold}%`);
         }
       } else if (data > threshold + 5) {
-        // Hysteresis: only re-arm once it's recovered a few points past the
-        // threshold, so it doesn't re-fire every message while hovering at it.
+        // 使用滞回：电量恢复到高于阈值数个百分点后才重新启用提醒，避免电量在阈值附近波动时每条消息都触发通知。
         lowBatteryNotifiedRef.current = false;
       }
     });

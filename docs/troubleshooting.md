@@ -1,63 +1,54 @@
-# Troubleshooting Guide
+# 故障排查指南
 
-Start with the dashboard's connection indicator and Health page. A green
-browser connection does not prove that robot topics are fresh.
+先查看控制台的连接指示和 Health 页面。浏览器连接状态为绿色，并不能证明机器人 topic 数据是最新的。
 
 > [!CAUTION]
-> If motion, localization, or the active robot is uncertain, stop issuing
-> commands and verify the physical robot before troubleshooting further.
+> 如果机器人运动、定位或当前选中的机器人状态不明确，请停止发送命令，并先确认实体机器人状态，再继续排查。
 
-## Symptom guide
+## 按现象排查
 
-| Symptom | First check |
+| 现象 | 首要检查项 |
 | --- | --- |
-| Page does not open | UI process and port `5050` |
-| Page opens, connection is red | Rosbridge process, configured host, firewall, and port `9090` |
-| Connection is green, map/pose is frozen | Health page topic freshness; do not drive |
-| Map alone is blank | `/map`, `/ui/map`, and `map_volatile_relay` |
-| Camera alone is blank | Selected image topic and optional port `8080` service |
-| Route/map buttons fail | Optional `physnode_launch.py` helpers |
-| UI changes do not appear | Rebuild, synchronize, rebuild ROS, and hard-refresh |
-| Program/Mission stalls after WiFi loss | Stop it, verify the robot is stationary, reconnect, and restart deliberately |
+| 页面无法打开 | UI 进程和 `5050` 端口 |
+| 页面已打开但连接指示为红色 | rosbridge 进程、配置的主机、防火墙和 `9090` 端口 |
+| 连接指示为绿色但地图/位姿冻结 | Health 页面中的 topic 新鲜度；不要驾驶机器人 |
+| 只有地图为空白 | `/map`、`/ui/map` 和 `map_volatile_relay` |
+| 只有相机画面为空白 | 选中的图像 topic 和可选的 `8080` 端口服务 |
+| 路线/地图按钮失效 | 可选的 `physnode_launch.py` 辅助节点 |
+| UI 修改未显示 | 重新构建、同步、构建 ROS 并强制刷新 |
+| WiFi 断开后 Program/Mission 卡住 | 停止程序，确认机器人静止，重新连接后再有意地重启 |
 
-## Page does not open
+## 页面无法打开
 
-Check the launch or container:
-
-```bash
-docker compose logs -f
-```
-
-For a manual installation:
+检查 UI launch 是否正在运行：
 
 ```bash
 ros2 node list | grep flask_app
 ```
 
-Confirm Flask is configured for port `5050` in
-`ros2/src/openamr_ui_package/param/config.yaml`.
+如果通过 `scripts/run_ui_backend.sh` 启动后端，请检查该终端中的 launch 错误。确认
+`ros2/src/openamr_ui_package/param/config.yaml` 中 Flask 配置为使用 `5050` 端口。仅运行前端 Demo Mode 时，
+请检查 Vite 终端并打开 `http://localhost:3000/`；Vite 服务器不提供 Flask REST API。
 
-## Browser is disconnected
+## 浏览器未连接
 
-Confirm rosbridge:
+确认 rosbridge 正在运行：
 
 ```bash
 ros2 node list | grep rosbridge
 ```
 
-Check that the browser can reach the configured UI computer on port `9090`.
-For the frontend development server, verify `ROSBRIDGE_SERVER_IP` in
-`web/src/shared/constants/index.js`.
+检查浏览器是否能通过 `9090` 端口访问配置的 UI 主机。使用前端开发服务器时，请核对 `web/src/shared/constants/index.js`。
 
-Use the browser developer tools:
+在浏览器开发者工具中检查连接：
 
-1. Open **Network**.
-2. Filter for **WS**.
-3. Inspect the connection to port `9090`.
+1. 打开 **Network**。
+2. 筛选 **WS**。
+3. 检查连接到 `9090` 端口的请求。
 
-## Connected but data is stale
+## 已连接但数据过期
 
-Check the relevant topic rather than restarting rosbridge immediately:
+先检查相关 topic，不要立即重启 rosbridge：
 
 ```bash
 ros2 topic list
@@ -65,17 +56,16 @@ ros2 topic hz /odom
 ros2 topic echo /odom --once
 ```
 
-Inspect publishers, subscribers, and QoS:
+检查发布者、订阅者和 QoS：
 
 ```bash
 ros2 topic info /odom -v
 ```
 
-Continue with
-[Lesson 11 — Failure Modes and Reconnection](lessons/11-failure-modes-and-reconnection.md)
-and [Lesson 12 — Debugging with ROS CLI](lessons/12-debugging-with-ros-cli.md).
+请继续参阅[课程 11 — 故障模式与重连](lessons/11-failure-modes-and-reconnection.md)和
+[课程 12 — 使用 ROS CLI 调试](lessons/12-debugging-with-ros-cli.md)。
 
-## Blank map
+## 地图空白
 
 ```bash
 ros2 topic echo /map --once
@@ -83,70 +73,65 @@ ros2 topic echo /ui/map --once
 ros2 node list | grep map_volatile_relay
 ```
 
-The robot workspace owns the map server. The UI relay republishes `/map` as
-the browser-friendly `/ui/map`.
+地图服务器由机器人工作区负责。UI 中继节点会将 `/map` 重新发布为适合浏览器使用的 `/ui/map`。
 
-## Missing camera
+## 相机画面缺失
 
-Check:
+检查以下项目：
 
-- `web_video_server` is installed and running.
-- Port `8080` is reachable.
-- The selected image topic exists.
-- The image topic is publishing.
+- 已安装并运行 `web_video_server`。
+- `8080` 端口可访问。
+- 选中的图像 topic 存在。
+- 图像 topic 正在发布数据。
 
 ```bash
 ros2 topic list | grep image
 ros2 topic hz /camera/color/image_raw
 ```
 
-The camera is optional and independent of the rosbridge WebSocket.
+相机功能为可选项，与 rosbridge WebSocket 相互独立。
 
-## Route or map operations fail
+## 路线或地图操作失败
 
-The regular UI launch does not start the file-management helpers. Start:
+常规 UI launch 不会启动文件管理辅助节点。请启动：
 
 ```bash
 ros2 launch openamr_ui_package physnode_launch.py
 ```
 
-Then check:
+然后检查：
 
 ```bash
 ros2 node list | grep -E "handler|nav"
 ros2 topic echo /ui_message
 ```
 
-## Frontend changes do not appear
+## 前端修改未显示
 
 ```bash
-cd ~/openamrobot-ui
+cd /path/to/ROS2_UI
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 
-cd ros2
 source /opt/ros/jazzy/setup.bash
-colcon build --symlink-install --packages-select openamr_ui_package
-source install/setup.bash
+bash scripts/build_ros.sh
+source ros2/install/setup.bash
 ```
 
-Restart the launch and hard-refresh with `Ctrl+Shift+R`.
+重启 launch，并按 `Ctrl+Shift+R` 强制刷新。
 
-## ROS packages are not found
+## 找不到 ROS 软件包
 
 ```bash
-cd ~/openamrobot-ui/ros2
+cd /path/to/ROS2_UI/ros2
 source /opt/ros/jazzy/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 ros2 pkg list | grep openamr_ui
 ```
 
-## Collect diagnostics
+## 收集诊断信息
 
-The Health page can download a support package containing connection
-information, the health rollup, recent events, metrics, runtime configuration,
-and Nav2 parameters.
+Health 页面可以下载支持信息包，其中包含连接信息、健康状态汇总、近期事件、指标、运行时配置和 Nav2 参数。
 
-Review it for credentials, private addresses, and sensitive operational data
-before sharing it.
+分享之前，请检查其中是否包含凭据、内部地址或敏感运行数据。

@@ -3,12 +3,9 @@ import { useRuntimeConfig } from "../app/App";
 import { useT } from "../shared/i18n/i18n";
 
 /**
- * Always-visible while demo mode is on — deliberately not dismissible, the
- * same way AuthModeBanner's warnings are, but for a different reason: this
- * isn't warning about a risk, it's the one thing standing between "this is
- * simulated telemetry" and someone mistaking it for a live robot. It's also
- * the fastest way back to a real connection, per the spec's "Allow
- * switching from Demo to real connection."
+ * Demo Mode 开启时始终显示，不允许关闭。它与 AuthModeBanner 的警告采用相同展示方式，但原因不同：
+ * 此横幅用于明确遥测数据是模拟数据，避免被误认为来自真实机器人。它也提供了快速切回真实连接的入口，
+ * 符合“允许从 Demo 切换到真实连接”的需求。
  */
 const DemoModeBanner = () => {
   const { config, updateConfig } = useRuntimeConfig();

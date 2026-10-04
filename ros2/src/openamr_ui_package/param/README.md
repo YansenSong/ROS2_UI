@@ -1,11 +1,9 @@
-# Parameters
+# 参数
 
-This folder contains ROS parameter files for the UI package.
+此目录包含 UI 软件包的 ROS 参数文件。
 
-- `config.yaml`: active UI service configuration, including Flask, rosbridge,
-  and web video server ports.
-- `current_map_route.yaml`: tracks the active map and route used by helper
-  nodes.
-- `move_base/`: legacy compatibility parameters.
+- `config.yaml`：当前 UI 服务配置，包括 Flask、rosbridge 和 web video server 的端口。
+- `current_map_route.yaml`：记录辅助节点使用的当前地图和路线。
+- `move_base/`：旧版兼容参数。
 
-The root `README.md` documents the current ports and launch flow.
+当前端口和 launch 流程请参阅仓库根目录的 `README.md`。

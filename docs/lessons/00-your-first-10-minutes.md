@@ -1,151 +1,116 @@
-# Lesson 00 — Your First 10 Minutes
+# 课程 00 — 前 10 分钟
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 时间 | 前置条件 |
 | --- | --- | --- |
-| First-time operators and evaluators | 10 minutes | A running UI; no robot required for Demo Mode |
+| 首次使用的操作员和评估人员 | 10 分钟 | UI 已运行；使用 Demo Mode 时无需机器人 |
 
-## What you'll learn
+## 学习目标
 
-You will learn how to enter Demo Mode, recognize the shared controls, open the
-Health page, try a navigation goal without moving hardware, and prepare for a
-safe real-robot session.
+本课将介绍如何进入 Demo Mode、识别共用控件、打开 Health 页面、在不驱动硬件的情况下尝试导航目标，
+并为安全的真实机器人操作做好准备。
 
-## Before touching a real robot
+## 操作真实机器人前
 
 > [!CAUTION]
-> The dashboard's red **E-STOP** is a software stop. It publishes one
-> zero-velocity command and asks Nav2 to cancel the active goal. It is not
-> latched or safety-rated and depends on the browser, network, rosbridge, and
-> robot controller. Always keep a tested physical emergency stop within reach.
+> 控制台上的红色 **E-STOP** 是软件停止功能。它只发布一次零速度命令，并请求 Nav2 取消当前目标。
+> 该功能不会锁存，也不具备安全认证，并且依赖浏览器、网络、rosbridge 和机器人控制器。请始终确保经过验证的实体急停装置在伸手可及范围内。
 
-For real hardware:
+操作真实硬件时：
 
-- Clear people, pets, cables, tools, and loose objects from the operating area.
-- Confirm the physical emergency stop works before enabling motion.
-- Use one active operator and tell nearby people that the robot may move.
-- Begin with the lowest practical linear and angular speed limits.
-- Do not send a goal until the map, robot pose, and live surroundings agree.
-- Treat Scheduler, Missions, and Programs as motion commands, not harmless UI
-  previews.
+- 清除操作区域中的人员、宠物、线缆、工具和散落物品。
+- 启用运动前确认实体急停装置有效。
+- 指定一名操作员，并告知附近人员机器人可能移动。
+- 从可用范围内最低的线速度和角速度限制开始。
+- 确认地图、机器人位姿和现场环境一致后，再发送目标。
+- 将 Scheduler、Missions 和 Programs 视为运动命令，而非无害的 UI 预览。
 
-## Step 1: open the dashboard
+## 第 1 步：打开控制台
 
-Open:
+使用已构建的 UI 后端时，打开：
 
 ```text
 http://127.0.0.1:5050/
 ```
 
-If the UI runs on another computer, replace `127.0.0.1` with that computer's
-IP address.
+开发前端时，请改为打开 `http://localhost:3000/`。该 Vite 服务器只提供前端；依赖 Flask 的页面需要启动 UI 后端。
+如果已构建的 UI 运行在另一台计算机上，请将 `127.0.0.1` 替换为该计算机的 IP 地址。启动命令请参阅[安装指南](../installation.md)。
 
-The first-run guide appears once per browser profile. Choose **Explore without
-a robot**. If it was previously dismissed:
+首次启动引导在每个浏览器配置中只会自动显示一次。选择 **Explore without a robot**。如果之前已关闭引导：
 
-1. Open **Config** from the sidebar.
-2. Enable **Demo Mode**.
-3. Return to **Map**.
+1. 在侧边栏打开 **Config**。
+2. 启用 **Demo Mode**。
+3. 返回 **Map**。
 
-You should see a purple Demo Mode banner and a green connection indicator.
-That green indicator represents the simulated browser transport; it does not
-mean a physical robot is connected.
+页面应显示紫色 Demo Mode 横幅和绿色连接指示。绿色指示代表浏览器中的模拟传输，并不表示已连接实体机器人。
 
-## Step 2: learn the controls shared by every page
+## 第 2 步：了解各页面共用的控件
 
-The shared layout contains:
+共用布局包括：
 
-- The sidebar for moving between pages.
-- A connection indicator showing the browser-to-rosbridge state.
-- Battery status.
-- The red software-stop control.
-- A **?** help button with page-specific guidance.
+- 用于切换页面的侧边栏。
+- 显示浏览器到 rosbridge 连接状态的指示灯。
+- 电池状态。
+- 红色软件停止控件。
+- 提供当前页面说明的 **?** 帮助按钮。
 
-Connection and robot-data freshness are different. A green connection means
-the browser can talk to rosbridge. It does not prove that `/map`, `/odom`, or
-other robot topics are fresh. The Health page checks those separately.
+连接状态和机器人数据新鲜度是不同的。绿色连接表示浏览器可以与 rosbridge 通信，但不能证明 `/map`、`/odom` 或其他机器人 topic 数据是最新的。Health 页面会分别检查这些数据。
 
-## Step 3: explore the Map page safely
+## 第 3 步：安全体验 Map 页面
 
-In Demo Mode:
+在 Demo Mode 中：
 
-1. Toggle map layers and identify the simulated robot pose.
-2. Select **Send Goal** and place a practice goal.
-3. Open the saved-waypoint area and inspect its actions.
-4. Move the joystick briefly and release it.
-5. Press the red software-stop control once to learn where it is.
+1. 切换地图图层并找到模拟的机器人位姿。
+2. 选择 **Send Goal** 并放置一个练习目标。
+3. 打开已保存 waypoint 区域，查看可用操作。
+4. 短暂移动摇杆，然后松开。
+5. 按一次红色软件停止控件，熟悉其位置。
 
-Demo Mode intercepts these actions in the browser. Repeat them on real
-hardware only after completing the real-robot checklist below.
+Demo Mode 会在浏览器中拦截这些操作。只有完成下方真实机器人检查清单后，才可在真实硬件上重复这些操作。
 
-## Step 4: inspect system readiness
+## 第 4 步：检查系统就绪状态
 
-Open **Health** and find:
+打开 **Health**，查看：
 
-- Overall readiness.
-- ROS connection state.
-- Topic freshness.
-- Nav2 lifecycle state.
-- Battery and registered-device status.
-- Recent faults and diagnostic export.
+- Overall readiness（总体就绪状态）。
+- ROS connection state（ROS 连接状态）。
+- Topic freshness（topic 数据新鲜度）。
+- Nav2 lifecycle state（Nav2 生命周期状态）。
+- 电池和已注册设备状态。
+- 近期故障和诊断信息导出。
 
-Use the issue details rather than relying on the green connection indicator
-alone.
+应根据问题详情进行判断，不要只依赖绿色连接指示。
 
-## Step 5: understand background automation
+## 第 5 步：了解后台自动化
 
-Scheduler and Missions run in the browser tab:
+Scheduler 和 Missions 在浏览器标签页中运行：
 
-- The tab must stay open for a scheduled action to fire.
-- Closing, suspending, or refreshing the tab can interrupt browser-side
-  automation.
-- Do not assume a browser restart resumes an interrupted mission safely.
-- Stop automation and verify the robot is stationary before closing the UI.
+- 定时操作触发时，浏览器标签页必须保持打开。
+- 关闭、挂起或刷新标签页可能中断浏览器端自动化。
+- 不要假设浏览器重启后会安全地恢复中断的任务。
+- 关闭 UI 前，请停止自动化并确认机器人静止。
 
-Blockly Programs also require an active connection while running. A network
-drop can interrupt a wait or service call without completing the remaining
-steps.
+Blockly Programs 运行期间也需要保持连接。网络中断可能会打断等待或 service 调用，导致剩余步骤无法完成。
 
-## Switching from Demo Mode to a real robot
+## 从 Demo Mode 切换到真实机器人
 
-1. Start the robot or simulation workspace.
-2. Start the UI workspace.
-3. Open **Config** and turn Demo Mode off.
-4. Confirm the expected rosbridge address.
-5. Open **Health** and wait for required topics to become fresh.
-6. Confirm localization visually on the Map page.
-7. Set conservative speed limits.
-8. Confirm the physical emergency stop is reachable.
-9. Make one short, low-speed movement or nearby goal.
-10. Stop and verify that the robot is stationary before continuing.
+1. 启动机器人或仿真工作区。
+2. 启动 UI 工作区。
+3. 打开 **Config** 并关闭 Demo Mode。
+4. 确认 rosbridge 地址正确。
+5. 打开 **Health**，等待所需 topic 数据变为最新。
+6. 在 Map 页面直观确认定位状态。
+7. 设置保守的速度限制。
+8. 确认实体急停装置可触及。
+9. 进行一次短距离低速移动，或设置附近的目标点。
+10. 停止并确认机器人静止后再继续。
 
-If the UI is green but the map or pose is frozen, do not drive. Continue with
-[Lesson 11](11-failure-modes-and-reconnection.md) or the plain-language table
-in [Lesson 12](12-debugging-with-ros-cli.md).
+如果 UI 显示绿色，但地图或位姿已冻结，请勿驾驶机器人。继续阅读[课程 11](11-failure-modes-and-reconnection.md)，
+或查看[课程 12](12-debugging-with-ros-cli.md)中的通俗排查表。
 
-## Ending a session
+## 结束会话
 
-1. Stop active Programs, Missions, recordings, and manual motion.
-2. Use the software stop if motion is still active, then verify the robot
-   physically stops.
-3. Follow the robot platform's shutdown or docking procedure.
-4. Stop the UI process with `Ctrl+C`, or use `docker compose down`.
-5. Never rely on closing the browser tab as an emergency-stop method.
-
-## Try it
-
-Complete Steps 1–4 in Demo Mode and locate the physical emergency stop you
-would use during a real session.
-
-**You're ready to continue when:** you can explain the difference between a
-green connection indicator, fresh robot data, the dashboard's software stop,
-and the robot's physical emergency stop.
-
-## Next
-
-[Lesson 01 — What Is This UI?](01-what-is-this-ui.md) explains which parts of
-the complete robot system belong to this repository.
-
----
-
-[← Main README](../../README.md) · [Lesson index](README.md) ·
-[Next: Lesson 01 →](01-what-is-this-ui.md)
+1. 停止正在运行的 Programs、Missions、录制任务和手动运动。
+2. 如果机器人仍在运动，可使用软件停止功能，然后确认机器人已实际停止。
+3. 按照机器人平台的关机或对接流程操作。
+4. 在各进程对应的终端中按 `Ctrl+C` 停止 UI 进程。
+5. 切勿将关闭浏览器标签页当作急停方法。

@@ -1,33 +1,24 @@
-# Extending OpenAMRobot UI
+# 扩展 OpenAMRobot UI
 
-Hands-on guides for adding things to this UI, without changing how any
-existing page already behaves. If you haven't read the conceptual lessons
-yet, start with [`docs/lessons/`](../lessons/README.md) — these guides
-assume you already know what a topic, a relay, and the shared ROS
-connection are.
+本目录提供向 UI 添加功能的实操指南，不会改变现有页面的行为。如果尚未阅读概念课程，
+请先从 [`docs/lessons/`](../lessons/README.md) 开始；这些指南假设你已了解 topic、中继节点和共享 ROS 连接。
 
-## Which guide do I need?
+## 我应该看哪篇指南？
 
-| I want to... | Guide |
+| 目标 | 指南 |
 | --- | --- |
-| Add a new screen, or a new status/control widget on an existing page | [`add-a-ui-panel.md`](add-a-ui-panel.md) |
-| Bring a new sensor, actuator, or any new ROS topic into the browser | [`connect-external-device.md`](connect-external-device.md) |
-| Add a new drag-and-drop block to the Programs (Blockly) page | [`add-a-blockly-block.md`](add-a-blockly-block.md) |
-| See a complete example of the above, start to finish | [`worked-example-adding-a-sensor.md`](worked-example-adding-a-sensor.md) |
+| 添加新页面，或在现有页面添加状态/控制组件 | [`add-a-ui-panel.md`](add-a-ui-panel.md) |
+| 将新传感器、执行器或 ROS topic 接入浏览器 | [`connect-external-device.md`](connect-external-device.md) |
+| 在 Programs（Blockly）页面添加新的拖放积木 | [`add-a-blockly-block.md`](add-a-blockly-block.md) |
+| 从头到尾查看上述工作的完整示例 | [`worked-example-adding-a-sensor.md`](worked-example-adding-a-sensor.md) |
 
-Adding a new **panel that displays a new device's data** usually needs the
-first two guides together: decide the topic and relay in
-`connect-external-device.md`, then build the panel itself in
-`add-a-ui-panel.md`. The worked example walks through exactly that
-combination for one concrete case.
+添加一个**用于显示新设备数据的面板**通常需要结合前两篇指南：先在
+`connect-external-device.md` 中确定 topic 和中继节点，再按 `add-a-ui-panel.md` 实现面板。
+完整示例会以一个具体案例演示这两部分如何配合。
 
-## What these guides don't cover
+## 本指南未涵盖的内容
 
-None of these guides ask you to modify the behavior of an existing page or
-panel — they're additive by design. If you need to change how something
-already works, read the relevant lesson first
-([Lesson 06](../lessons/06-the-pages.md) for pages,
-[Lesson 07](../lessons/07-ui-components.md) for individual panels,
-[Lesson 09](../lessons/09-blockly-programming.md) for Blockly) so the change
-stays consistent with the rest of the codebase, then edit the source file
-directly — there's no separate guide for modifying existing behavior.
+这些指南只介绍新增功能，不涉及修改现有页面或面板的行为。如需更改已有功能，请先阅读相关课程
+（页面见[课程 06](../lessons/06-the-pages.md)，单个面板见[课程 07](../lessons/07-ui-components.md)，
+Blockly 见[课程 09](../lessons/09-blockly-programming.md)），确保改动与代码库其他部分一致，
+然后直接修改源码；目前没有专门介绍如何修改既有行为的指南。

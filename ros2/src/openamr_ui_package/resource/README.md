@@ -1,3 +1,3 @@
-# Resource Marker
+# 资源标记文件
 
-This directory contains the ament resource marker required by colcon.
+此目录包含 colcon 所需的 ament 资源标记文件。

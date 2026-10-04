@@ -17,8 +17,7 @@ import {
 
 const BATTERY_HISTORY_LENGTH = 40;
 
-// Minimal inline sparkline — no charting library in this repo, and this is
-// the only place a trend line is needed, so a small local SVG suffices.
+// 简易内联迷你趋势图：仓库没有图表库，且只有此处需要趋势线，因此使用小型本地 SVG 即可。
 const Sparkline = ({ values, className = "" }) => {
   if (values.length < 2) return null;
   const width = 100;
@@ -74,7 +73,7 @@ const InfoPage = () => {
       messageType: "std_msgs/Bool",
     });
 
-    // battery.py publishes percentage as a plain float (0–100)
+    // battery.py 将电量百分比作为普通浮点数（0–100）发布。
     batteryTopic.current.subscribe(({ data }) => {
       setBatteryPct(Math.round(data));
       setBatteryHistory((prev) => [...prev.slice(-(BATTERY_HISTORY_LENGTH - 1)), data]);

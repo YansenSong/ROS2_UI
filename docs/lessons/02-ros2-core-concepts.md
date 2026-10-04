@@ -1,141 +1,66 @@
-# Lesson 02 — ROS 2 Core Concepts
+# 课程 02——ROS 2 核心概念
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| ROS 2 newcomers | 15 minutes | [Lesson 01](01-what-is-this-ui.md) |
+| 首次接触 ROS 2 的 UI 开发者 | 15 分钟 | [课程 01](01-what-is-this-ui.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn the six ROS 2 concepts used throughout this UI: nodes, topics,
-messages, services, actions, and launch files.
+了解本 UI 中反复出现的六个 ROS 2 概念：node、topic、message、service、action 和 launch file。
 
-This lesson defines the vocabulary used everywhere else in these lessons and
-in the codebase. Each concept links to a real example already in this
-repository so the idea has a concrete anchor.
+本课定义了后续课程和代码库中使用的基础术语。每个概念都链接到仓库中的实际示例，便于结合代码理解。
 
 ## Node
 
-A node is one running process that does one job inside the ROS 2 graph.
-Nodes don't call each other directly — they publish and subscribe to topics,
-or offer/call services and actions, and the ROS 2 middleware handles
-discovery and delivery between them.
+Node 是 ROS 2 graph 中负责一项工作的运行进程。Nodes 不会直接互相调用，而是通过发布/订阅 topics，或提供/调用 services 和 actions 通信；ROS 2 middleware 负责发现节点并传递消息。
 
-This workspace's own nodes are plain Python classes that subclass
-`rclpy.node.Node`. Example: the Flask web server itself is a ROS 2 node, not
-just a web server that happens to sit near ROS — see the `ParamFlask(Node)`
-class in
-[`ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py).
-The map relay and navigation relay are separate, smaller nodes: see
-[`map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)
-and
-[`nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py).
+本工作区的 nodes 是继承 ROS 2 `Node` class 的 Python classes。例如 Flask node 同时承担网页服务工作，见[`flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)中的 `ParamFlask(Node)`。map relay 和 navigation relay 是职责更单一的节点，分别见[`map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)和[`nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py)。
 
 ## Topic
 
-A topic is a named, typed stream of messages. Any node can publish to a
-topic; any node can subscribe to it. Publishers and subscribers don't know
-about each other — they only agree on a topic **name** and a message
-**type**. That agreement is the whole contract (this idea is developed
-further in [Lesson 10](10-topics-as-the-contract.md)).
+Topic 是有名称、有类型的 message stream。任何 node 都可以向 topic 发布数据，任何 node 都可以订阅它。Publisher 和 subscriber 不直接互相识别，只需约定相同的 topic **名称**和 message **类型**；见[课程 10](10-topics-as-the-contract.md)了解这一约定如何构成 interface。
 
-Example: `/cmd_vel` carries velocity commands the UI publishes and the robot
-driver consumes. `/odom` carries robot pose/velocity the UI subscribes to and
-the robot stack publishes. Every topic name this frontend depends on is
-collected in one place:
-[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js).
+例如，`/cmd_vel` 携带 UI 发布、机器人 driver 消费的速度命令；`/odom` 携带 robot pose/velocity，由机器人栈发布、UI 订阅。Frontend 依赖的 topic names 集中定义在[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)。
 
 ## Message
 
-A message is the data structure carried on a topic — a typed record, similar
-to a struct. Most messages used here come from standard ROS 2 packages
-(`geometry_msgs/Twist`, `nav_msgs/OccupancyGrid`, `std_msgs/String`, and so
-on). When the standard types aren't enough, this workspace defines its own in
-a dedicated message package:
-[`ros2/src/openamr_ui_msgs/msg/`](../../ros2/src/openamr_ui_msgs/msg/).
+Message 是通过 topic 传输的 typed data structure，类似 struct。本项目使用的多数 messages 来自标准 ROS 2 packages（如 `geometry_msgs`、`nav_msgs`、`sensor_msgs`、`std_msgs`）；该 UI 没有自定义 message package。
 
-Example: a `geometry_msgs/Twist` message (the type carried on `/cmd_vel`) has
-exactly two fields — `linear` and `angular` — each an `{x, y, z}` triple. The
-UI only ever sets `linear.x` (forward/backward speed) and `angular.z` (turn
-rate); the other four numbers stay zero. That's the entire "shape" of a drive
-command — nothing more is sent or expected on that topic.
+例如，`/cmd_vel` 使用的 `geometry_msgs/Twist` 有 `linear` 和 `angular` 两个字段，每个字段都是 `{x, y, z}` 三元组。UI 只设置 `linear.x`（前进/后退速度）和 `angular.z`（转向命令），topic 上不会另外发送或要求其他内容。
 
 ## Service
 
-A service is a request/response call — send one request, get back exactly one
-reply, synchronously from the caller's point of view. Use a service when you
-need an answer, not a stream. Two examples used in this UI:
+Service 是 request/response 调用：发送一个 request 并收到一个 reply。从调用者的角度看，它是同步的一次性交互。需要一个明确答案时使用 service，而不是持续的数据流。本 UI 中的例子包括 lifecycle nodes 上的 `get_state`/`change_state`，以及 Nav2 planner 的 `compute_path_to_pose` action。
 
-- Nav2 lifecycle nodes expose `get_state`/`change_state` services that the
-  Health, Fleet, and Config pages poll and call — see
-  [`web/src/components/LifecycleStatus.jsx`](../../web/src/components/LifecycleStatus.jsx).
-  Example: `get_state` takes an empty request and replies with a single
-  `current_state` field whose `label` is a string like `"active"`,
-  `"inactive"`, or `"unconfigured"` — that string is exactly what the
-  Lifecycle panel's colored dot reflects.
+Nav2 的 `compute_path_to_pose` 实际是 action，而不是 service。尽管 UI 将它当成一次请求/响应操作，planner 计算期间并没有需要持续传送的部分结果。ROS 2 action 由 goal topic、`_action/get_result` service 等机制组成；Route 页面先发送 goal，再调用 result service 取得规划路径，因此 graph 上并不存在一个同名的普通 `/compute_path_to_pose` service。
 
 ## Action
 
-An action is for long-running work that a service is a poor fit for: you send
-a goal, get periodic feedback while it runs, and eventually get a result — and
-you can cancel it mid-flight. Nav2's `navigate_to_pose` is an action: the UI
-sends a goal pose, watches feedback (distance remaining) and status
-(navigating/succeeded/failed), and can cancel it. See
-[`web/src/components/NavStatus.jsx`](../../web/src/components/NavStatus.jsx)
-for the feedback/status side, and the cancel-goal service call in
-[`web/src/pages/MapPage.jsx`](../../web/src/pages/MapPage.jsx) (also called
-directly by the E-STOP button in
-[`web/src/components/StatusBar.jsx`](../../web/src/components/StatusBar.jsx),
-visible on every page). That dashboard button is a non-latched software stop,
-not a physical or safety-rated emergency stop.
+Action 用于不适合用 service 表示的长时间任务：发送 goal、运行期间接收定期 feedback、最后取得 result，并且可以中途取消。Nav2 的 `navigate_to_pose` 就是 action：UI 发送目标 pose，订阅 feedback（剩余距离）和 status，并在需要时调用 cancel-goal service。
 
-Concretely, that one navigation looks like three separate messages over
-time: a goal pose sent once ("go to x=2, y=1"), a stream of feedback
-messages while it drives (each carrying a `distance_remaining` number that
-counts down), and one final status update when it's done (a numeric status
-code — the UI treats `4` as succeeded, `5`/`6` as canceled/failed). A service
-could not represent the "stream of feedback while it's still running" part;
-that's precisely what makes this an action instead of a service.
+Map 页面通过 [`NavStatus.jsx`](../../web/src/components/NavStatus.jsx)订阅 feedback/status；页面级 cancel service client 由 Map 页面负责创建。顶部 E-STOP 按钮也会调用 cancel service（见[`StatusBar.jsx`](../../web/src/layouts/StatusBar.jsx)，该控件显示在每个页面上）。此 dashboard 按钮是非锁存的软件停止功能，不是物理或安全等级的 emergency stop。
 
-Nav2's `compute_path_to_pose` (used by the Route page's "Plan" button, in
-[`web/src/pages/RoutePage.jsx`](../../web/src/pages/RoutePage.jsx)) is also
-an action, not a service, even though it behaves like a one-shot
-request/response from the UI's point of view — there's no meaningful partial
-result to stream while the planner runs. Every ROS2 action, including this
-one, implicitly exposes a `_action/send_goal` service (submit the goal,
-learn whether it was accepted) and a `_action/get_result` service (fetch the
-outcome once it's done); calling those two in sequence is how the Route page
-gets a planned path without needing a plain `/compute_path_to_pose` service
-that doesn't actually exist on the ROS graph.
+一次 navigation 会产生多条信息：起始 goal、驾驶期间反复发送的 feedback（包含不断减少的 `distance_remaining`），以及结束时的一条 status update。UI 将数值 `4` 视为 succeeded，将 `5`/`6` 视为 canceled/failed。普通 service 无法表示“任务运行期间持续提供 feedback”这一需求。
 
 ## Launch file
 
-A launch file is a Python script that starts a group of nodes together with
-their configuration, instead of starting each node by hand in its own
-terminal. This workspace has a small, deliberate layering:
+Launch file 是启动一组 nodes 并加载对应配置的 Python script，无需在不同 terminal 中逐个手动启动。本工作区采用分层 launch 结构：
 
-- [`ros2/src/openamr_ui_bringup/launch/ui.launch.py`](../../ros2/src/openamr_ui_bringup/launch/ui.launch.py) —
-  the one command most people run; it just includes the package launch below.
-- [`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py) —
-  starts Flask, rosbridge, rosapi, the camera server, and the two relay
-  nodes.
-- [`ros2/src/openamr_ui_package/launch/physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py) —
-  optional helper nodes for map/route file management, started separately.
+- [`new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)启动 UI 侧的 Flask、rosbridge 和 relay nodes。
+- [`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)额外启动 Route/map 文件操作和 waypoint navigation 等可选辅助节点。
 
-## Try it
+这些 launch files 属于 UI 工作区。机器人、Nav2 和 drivers 由独立的机器人/仿真工作区负责启动（见[课程 01](01-what-is-this-ui.md#the-two-workspace-model)）。
 
-For `/cmd_vel`, identify the node that publishes, the topic name, and the
-message type. Then explain why cancelling navigation is better represented by
-a service or action operation than a continuous topic stream.
+## 试一试
 
-**You're ready to continue when:** you can classify a UI interaction as a
-topic, service, or action and explain what a launch file starts.
+在代码中找出一个 node class、一项 topic constant、使用该 topic 的 message type，以及启动相关节点的 launch file。
 
-## Next
+**完成标准：**能判断一个需求适合使用 topic、service 还是 action。
 
-[Lesson 03 — How the Browser Talks to ROS](03-how-the-browser-talks-to-ros.md)
-walks through the actual chain that connects a browser tab to this graph.
+## 下一课
+
+[课程 03——浏览器如何与 ROS 通信](03-how-the-browser-talks-to-ros.md)会追踪 UI 如何通过 rosbridge 连接到这些 ROS 2 概念。
 
 ---
 
-[← Lesson 01](01-what-is-this-ui.md) · [Lesson index](README.md) ·
-[Next: Lesson 03 →](03-how-the-browser-talks-to-ros.md)
+[← 课程 01](01-what-is-this-ui.md) · [课程索引](README.md) · [下一课：课程 03 →](03-how-the-browser-talks-to-ros.md)

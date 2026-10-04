@@ -13,12 +13,9 @@ const NAV_TERMINAL = {
 const LOW_BATTERY = 20; // percent; matches NotificationsWatcher's default band
 
 /**
- * Headless, always-mounted (AppLayout) recorder that turns key robot events
- * into a persisted, reviewable timeline (see shared/events/eventLog.js).
- * Unlike NotificationsWatcher — which fires ephemeral desktop notifications
- * and is gated on an opt-in — this always records, so an operator can review
- * what happened after the fact. It writes to the shared event log; the
- * Events page reads it.
+ * 无界面、始终挂载于 AppLayout 的记录器，会将关键机器人事件写成可持久保存和回顾的时间线（见 shared/events/eventLog.js）。
+ * NotificationsWatcher 需要用户启用，且只显示临时桌面通知；本组件始终记录事件，便于操作员事后查看。
+ * 事件写入共用日志，由 Events 页面读取。
  */
 const EventRecorder = () => {
   const ros = useRos();

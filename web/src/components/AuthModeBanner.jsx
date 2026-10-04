@@ -3,18 +3,12 @@ import React, { useEffect, useState } from "react";
 const API_BASE = window.location.port === "3000" ? "http://127.0.0.1:5050" : "";
 
 /**
- * Always-mounted (in AppLayout) banner surfacing the backend's real
- * AUTH_MODE state — never inferred client-side, since hiding frontend
- * routes/buttons is not authorization; the backend (flask_app.py) is the
- * only source of truth here. Two independent things it can warn about:
+ * 始终挂载（位于 AppLayout 中）的横幅，显示后端实际的 AUTH_MODE 状态。不会在客户端推断该状态，因为隐藏前端
+ * 路由/按钮不等于授权；此处只有后端（flask_app.py）是可信来源。横幅可以提示两种互相独立的情况：
  *
- *  1. A non-open AUTH_MODE was requested but isn't implemented yet, so the
- *     server fell back to open — the maintainer's config had no effect
- *     and they should know that, not discover it by assuming it worked.
- *  2. This browser reached the robot from outside the local network,
- *     which matters because AUTH_MODE=open (the only mode that currently
- *     exists) has no login standing between "on the network" and
- *     "driving the robot."
+ *  1. 请求的 AUTH_MODE 不是 open，但该模式尚未实现，因此服务器回退到 open。维护者应明确知道配置未生效，
+ *     而不是误以为它已生效。
+ *  2. 此浏览器从本地网络之外访问机器人。当前唯一实现的模式是 AUTH_MODE=open，网络可达与操作机器人之间没有登录验证。
  */
 const AuthModeBanner = () => {
   const [status, setStatus] = useState(null);

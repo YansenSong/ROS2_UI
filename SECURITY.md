@@ -1,45 +1,34 @@
-# Security Policy
+# 安全策略
 
-OpenAMRobot UI can send commands to physical robots. Treat vulnerabilities
-that expose the dashboard, bypass network restrictions, leak API keys, or
-permit unintended ROS commands as safety-relevant.
+OpenAMRobot UI 可以向实体机器人发送命令。任何可能暴露控制台、绕过网络限制、泄露 API 密钥或导致意外 ROS 命令的漏洞，
+都应视为与安全相关的问题。
 
-## Supported versions
+## 支持版本
 
-Security fixes are made on the current default branch. No older release line
-is currently maintained separately.
+安全修复会提交到当前默认分支。目前没有单独维护旧版发布分支。
 
-## Reporting a vulnerability
+## 报告漏洞
 
-Do not open a public issue containing exploit details, credentials, private
-network information, or a working attack against a robot.
+请勿在公开 issue 中披露漏洞利用细节、凭据、内部网络信息或针对机器人的可运行攻击方式。
 
-Use GitHub's private vulnerability reporting for this repository:
+请使用此仓库在 GitHub 上的私密漏洞报告功能：
 
-1. Open the repository's **Security** tab.
-2. Select **Advisories** and **Report a vulnerability**.
-3. Include the affected version or commit, impact, reproduction steps, and a
-   suggested mitigation if known.
+1. 打开仓库的 **Security** 标签页。
+2. 选择 **Advisories** 和 **Report a vulnerability**。
+3. 提供受影响的版本或 commit、影响范围、复现步骤，以及已知的缓解措施建议。
 
-If private vulnerability reporting is unavailable, contact a repository
-maintainer privately through their GitHub profile and ask for a secure channel
-before sending details.
+如果无法使用私密漏洞报告，请通过维护者的 GitHub 个人资料私下联系，并先询问安全的沟通渠道，再发送漏洞详情。
 
-## Operational security
+## 运行安全
 
-- Only unauthenticated `AUTH_MODE=open` is implemented.
-- Keep ports `5050`, `9090`, and `8080` on a trusted local network.
-- Do not forward these ports directly to the public internet.
-- Use firewall rules or an authenticated reverse proxy when network isolation
-  alone is not sufficient.
-- Never bake `.env` files or API keys into container images.
-- Rotate a key immediately if it appears in source control, logs, screenshots,
-  support packages, or a published image.
-- The dashboard's software stop is not a replacement for a physical,
-  safety-rated emergency stop.
+- 当前只实现了无需身份验证的 `AUTH_MODE=open`。
+- 将 `5050`、`9090` 和 `8080` 端口限制在可信的本地网络中。
+- 不要将这些端口直接转发到公共互联网。
+- 如果仅依赖网络隔离仍不充分，请使用防火墙规则或经过身份验证的反向代理。
+- 切勿将 `.env` 文件或 API 密钥打包进容器镜像。
+- 如果密钥出现在源码管理记录、日志、截图、支持信息包或已发布镜像中，请立即轮换该密钥。
+- 控制台的软件停止功能不能替代经过安全认证的实体急停装置。
 
-## Disclosure
+## 漏洞披露
 
-Please allow maintainers time to reproduce and fix a report before public
-disclosure. Maintainers should acknowledge reports, communicate progress, and
-credit reporters who want attribution.
+公开披露前，请留出时间让维护者复现并修复问题。维护者应确认收到报告、告知处理进度，并按报告者意愿注明贡献者身份。

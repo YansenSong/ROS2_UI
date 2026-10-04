@@ -1,248 +1,134 @@
-# Lesson 09 — Blockly Visual Programming
+# 课程 09——Blockly 可视化编程
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Operators and Blockly contributors | 20 minutes | [Lesson 00](00-your-first-10-minutes.md) and the Programs section of [Lesson 06](06-the-pages.md) |
+| 操作员和 Blockly 贡献者 | 20 分钟 | [课程 00](00-your-first-10-minutes.md)及[课程 06](06-the-pages.md)中的 Programs 章节 |
 
-## What you'll learn
+## 学习目标
 
-You will learn how blocks become validated robot actions, which state is
-stored in the browser or backend, and how to test plans without unsafe motion.
+了解 blocks 如何转换为经过验证的机器人 actions、哪些 state 保存在浏览器或 backend，以及如何在避免不安全运动的情况下检查 plan。
 
-[Lesson 06](06-the-pages.md#programs--blockspagejsx) introduced this page
-(the sidebar calls it "Programs") at a glance. This lesson is the deep dive
-on it specifically:
-what it is, how a block becomes a robot action, and how Voice Command fits
-in. For the exhaustive block-by-block reference, every
-example program, and setup/troubleshooting steps, see the practical guide:
-[`web/src/features/blocks/README.md`](../../web/src/features/blocks/README.md).
-This lesson is the "why it works this way"; that guide is the "how do I use
-it" reference.
+[课程 06](06-the-pages.md#programs--blockspagejsx)概览了此页面（侧边栏名称为 “Programs”）。本课会深入介绍其用途、block 到机器人 action 的转换方式，以及 Voice Command 如何接入。所有 block 的详细说明、示例程序和设置/故障排查步骤见实操指南：[`web/src/features/blocks/README.md`](../../web/src/features/blocks/README.md)。本课解释设计原理，指南用于实际操作。
 
-## What it is
+## Blockly 是什么
 
-Blockly is a visual programming editor: instead of writing code, you drag
-blocks onto a workspace and connect them into a chain. The Blocks page
-([`web/src/pages/BlocksPage.jsx`](../../web/src/pages/BlocksPage.jsx)) wraps
-that editor with OpenAMR-specific blocks — navigate, wait, drive, dock, and so
-on — so a non-programmer can build a robot program like "go here, wait, then
-dock" without touching JavaScript or ROS. It's the same idea as the rest of
-this UI ([Lesson 01](01-what-is-this-ui.md)): a friendlier way to do things a
-person could otherwise only do by publishing ROS messages by hand.
+Blockly 是可视化编程编辑器：用户将 blocks 拖到 workspace 中并连接起来，不必编写代码。Blocks 页面（[`web/src/pages/BlocksPage.jsx`](../../web/src/pages/BlocksPage.jsx)）提供 OpenAMR 专用 blocks，例如 navigation、wait、drive 和 dock，让非程序员也能构建“去某处、等待、然后 dock”这样的机器人程序，无需编写 JavaScript 或手动发送 ROS messages。这与本 UI 的目标一致（[课程 01](01-what-is-this-ui.md)）：让用户通过友好界面完成原本需要手工发布 ROS messages 的操作。
 
-## Screenshots and page layout
+## 页面布局
 
-![OpenAMR UI Programs page: a start-robot-program block chain in the workspace, the toolbox on the left, and ROSBridge status, Voice Command, Program Templates, and Run History on the right](../assets/programs/blockly.png)
+左侧 toolbox 按 `Program`、`Navigation`、`Motion`、`Docking` 和 `Robot State` 分类。中间 workspace 用于组合 blocks。右侧 panel 显示 connection status、Run/Stop buttons、Voice Command、program templates、run history、backend saved programs、named locations、plan checks，以及根据已连接 blocks 生成的 Generated Plan。
 
-The left toolbox groups blocks into `Program`, `Navigation`, `Motion`,
-`Docking`, and `Robot State`. The center workspace is where blocks are
-assembled. The right panel shows connection status ("Robot connected"/"Robot
-offline"), Run/Stop
-buttons, Voice Command, program templates, run history, backend saved
-programs, named locations, plan checks, and the Generated Plan created from
-the connected blocks (some of these sit further down the panel than the
-screenshot above scrolls to — each gets its own close-up below).
+workspace 上方 toolbar 提供本地 program controls。`Save` 和 `Load` 使用浏览器存储；`Import` 和 `Export` 以 JSON 文件导入或导出 Blockly programs；`Reset` 会将 workspace 恢复为 starter program。
 
-The top toolbar (visible above the workspace in the screenshot) contains
-local program controls. `Save` and `Load` use browser storage, `Import` and
-`Export` move Blockly programs as JSON files, and `Reset` clears the
-workspace back to the starter program.
+### Program Templates
 
-### Program templates
+`Program Templates` 提供现成示例，例如安全运动测试或低电量返航 routine。选中 template 后会显示简短说明；按 `Load Template` 会用其实际 Blockly blocks 替换当前 workspace。加载不会执行程序。按 `Run` 前应检查 blocks、Plan Checks 和 Generated Plan。
 
-![OpenAMR UI Programs page Program Templates panel with a template selector and Load Template button](../assets/programs/program-templates.png)
+### Backend Programs
 
-`Program Templates` provides ready-made examples such as a safe motion test or
-low-battery docking routine. Selecting a template shows a short description;
-`Load Template` then replaces the current workspace with that template's real
-Blockly blocks. Loading does not execute the program. Review the resulting
-blocks, Plan Checks, and Generated Plan before pressing `Run`.
+`Backend Programs` 通过 Flask backend 保存 Blockly workspaces（位于右侧 panel 更靠下的位置，在 Run History 后面）。输入 program name 并按 `Save` 保存；选择已有程序并按 `Load` 加载；按 `Delete` 删除选中的程序；`Refresh` 从 backend 重新加载列表。
 
-### Backend programs
+此功能与 toolbar 的浏览器本地 `Save`/`Load` 不同：即使清除浏览器存储，backend programs 仍然保留；能访问同一 UI server 的其他浏览器也可以打开它们。
 
-`Backend Programs` stores Blockly workspaces through the Flask backend
-(further down the right panel, past Run History). Enter a program name and
-press `Save`, choose an existing program and press `Load`, or remove the
-selected program with `Delete`. `Refresh` reloads the list from the backend.
-This is separate from the toolbar's browser-local `Save` and `Load`: backend
-programs remain available even if browser storage is cleared and can be
-opened from another browser that reaches the same UI server.
+### Run History
 
-### Run history
+每次 `Run` 都会记录在此处，无论程序是如何创建的。记录包含 name、result badge、timestamp、step count 和 duration。`Refresh` 重新加载列表；`Clear` 清空列表。无需打开 Events 或 Metrics 页面也能确认程序是否运行及运行时长。
 
-![OpenAMR UI Programs page Run History panel listing two past runs with success/stopped badges](../assets/programs/runhistory.png)
+### Named Locations
 
-Every `Run` (however the program was built) is logged here — name, result
-badge, timestamp, step count, and duration. `Refresh` reloads the list;
-`Clear` empties it. Useful for confirming a program actually ran, and how
-long it took, without needing the Events or Metrics pages open.
+`Named Locations` 将易读名称（如 `Charging Station`）与 map pose（`x`、`y` 和 `yaw`）关联起来。这些记录会出现在 `navigate to location` block 中，避免程序重复填写坐标。`Save Location` 新增或更新记录；`Delete` 删除选中项；`Refresh` 从 backend 获取最新列表。若删除仍被程序引用的位置，Plan Checks 会标记该 plan。
 
-### Named locations
+Blockly program 应从 `start robot program` block 开始。机器人 actions 必须连接在该 start block 下方才能运行。实验时可以暂留未连接的 blocks，但 planner 只会读取 start block 下方的内容，因此未连接的 blocks 不会进入 Generated Plan。真实机器人测试时建议 workspace 只保留一个 start block，避免混淆。
 
-![OpenAMR UI Programs page Named Locations panel with a saved "Charging Station" location and its x/y/yaw](../assets/programs/named-location.png)
+Plan Checks panel 会在执行前报告安全和 validation warnings；Generated Plan panel 显示由已连接 blocks 构造的准确 step list。每个 step 的 status 初始为 `QUEUED`，运行时会更新。step count 和有序描述是 executor 即将执行内容的最终预览；如与预期不同，应先修改 blocks。
 
-`Named Locations` associates a readable name, such as `Charging Station`,
-with a map pose: `x`, `y`, and `yaw`. These entries populate the
-`navigate to location` block so programs do not have to repeat raw coordinates.
-`Save Location` creates or updates an entry, `Delete` removes the selected
-entry, and `Refresh` fetches the latest list from the backend. Deleting a
-location that a program still references causes Plan Checks to flag that plan.
+<a id="the-pipeline-block--action--execution--ros"></a>
+## Pipeline：block → action → execution → ROS
 
-A Blockly program should start with `start robot program`. Robot actions
-must be connected below that start block to run. Loose blocks can remain on
-the workspace while you're experimenting, but they aren't part of the
-generated robot plan unless connected under the start block the planner
-reads — the same point made below in
-[The pipeline](#the-pipeline-block--action--execution--ros). For real robot
-tests, keep one start block in the workspace to avoid confusion.
-
-The Plan Checks panel reports safety and validation warnings before
-execution; the Generated Plan panel shows the exact step list built from
-connected blocks — see
-[Plan Checks](#plan-checks-one-safety-gate-regardless-of-origin) below.
-
-![OpenAMR UI Programs page Plan Checks panel showing the configured speed limits and "Ready. No validation warnings."](../assets/programs/planchecks.png)
-
-![OpenAMR UI Programs page Generated Plan panel listing three queued steps](../assets/programs/generatedplan.png)
-
-The status beside each generated step starts as `QUEUED` and changes as the
-program runs. The step count and ordered descriptions are a final preview of
-what the executor will do; if they do not match the intended behavior, edit
-the blocks before running.
-
-## The pipeline: block → action → execution → ROS
-
-Every block, however it got onto the workspace (dragged, loaded from a
-template, or generated from a voice command — more below), goes through the
-same four-stage pipeline before anything reaches the robot:
+每个 block——无论是手动拖入、从 template 加载，还是由语音命令生成——都会经过相同的四阶段 pipeline，之后才会向机器人发送内容：
 
 ```text
-Block in the toolbox / workspace
+toolbox/workspace 中的 block
         |
         v
-Block definition               (web/src/features/blocks/blockDefinitions.js)
+block definition（web/src/features/blocks/blockDefinitions.js）
         |
         v
-Action object in the Generated Plan   (e.g. "navigate", "wait", "dock")
+Generated Plan 中的 action object（例如 "navigate"、"wait"、"dock"）
         |
         v
-Execution logic                (web/src/features/blocks/robotActions.js)
+执行逻辑（web/src/features/blocks/robotActions.js）
         |
         v
-ROS topic or service, over the shared connection (Lesson 10)
+通过共享 connection 调用 ROS topic 或 service（课程 10）
 ```
 
-`blockDefinitions.js` defines what each block looks like and converts a
-connected chain of blocks into a flat list of plain action objects — the
-**Generated Plan** shown in the right panel. `robotActions.js` is the only
-place that actually talks to ROS: it walks that action list step by step and
-publishes/calls the matching topic or service for each one (the same
-`AppConfig` constants used everywhere else in the UI — see
-[Lesson 10](10-topics-as-the-contract.md) — not a separate set of names).
-Splitting "what a block means" from "how it executes" this way is what makes
-it possible for a block, a saved template, and a voice command to all produce
-the exact same kind of Generated Plan and go through the exact same execution
-path.
+`blockDefinitions.js` 定义 block 的外观，并将连接起来的 blocks 转换为一组扁平的 action objects，即右侧 panel 中的 **Generated Plan**。`robotActions.js` 是唯一实际与 ROS 通信的位置：它按顺序处理 action list，并为每一步发布或调用对应的 topic/service。topic 名称沿用 UI 其他位置使用的 `AppConfig` constants（见[课程 10](10-topics-as-the-contract.md)），没有单独维护一套名称。
 
-Only blocks connected below the single `start robot program` block are read
-into the Generated Plan — loose blocks sitting elsewhere on the workspace are
-ignored, which is why the guide's "0 steps" troubleshooting entry exists.
+将“block 表达的含义”和“如何执行”分开后，手动创建的 block、保存的 template 和语音命令都能生成相同格式的 Generated Plan，并使用相同的执行路径。只有连接在唯一 `start robot program` block 下方的 blocks 会被读取；workspace 其他位置的游离 blocks 会被忽略。这也是实操指南中 “0 steps” 故障排查项的原因。
 
-## Block categories, at a glance
+## Block 类别速览
 
-The toolbox ([`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js))
-groups blocks into five categories, each mapping to one theme covered
-elsewhere in these lessons:
+toolbox（[`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js)）将 blocks 分为五类：
 
-| Category | What it's for |
+| 类别 | 用途 |
 | --- | --- |
-| **Program** | Structure — the required `start` block, `repeat`, and `log` for debugging. Doesn't move the robot by itself. |
-| **Navigation** | Nav2 goals — coordinate or named-location goals, waiting on navigation status, patrol loops. The same `/goal_pose` and navigation-status mechanics as the Map page ([Lesson 06](06-the-pages.md#map--mappagejsx)). |
-| **Motion** | Direct `/cmd_vel` commands — drive, rotate, stop, emergency stop. Unlike Navigation, these don't plan around obstacles. |
-| **Docking** | Publishes the same dock/undock trigger topics as the Map page's `DockingControl` panel ([Lesson 07](07-ui-components.md#dockingcontrol--dockingcontroljsx)). |
-| **Robot State** | Reads battery data or publishes a UI mode string — the only category that branches on robot state rather than just commanding the robot. |
+| **Program** | 程序结构：必需的 `start` block、`repeat` 和用于 debugging 的 `log`。本身不会驱动机器人。 |
+| **Navigation** | Nav2 goals：坐标或 named-location goals、等待 navigation status、patrol loops。使用与 Map 页面相同的 `/goal_pose` 和 navigation-status 机制（[课程 06](06-the-pages.md#map--mappagejsx)）。 |
+| **Motion** | 直接发送 `/cmd_vel` 命令：drive、rotate、stop、emergency stop。与 Navigation 不同，这些命令不会规划避障路径。 |
+| **Docking** | 发布与 Map 页 `DockingControl` panel 相同的 dock/undock trigger topics（[课程 07](07-ui-components.md#dockingcontrol--dockingcontroljsx)）。 |
+| **Robot State** | 读取 battery data 或发布 UI mode string；这是唯一会根据机器人状态分支、而非只发送命令的类别。 |
 
-For the full reference — every block's exact fields, screenshots, and worked
-examples — see
-[the category reference in the practical guide](../../web/src/features/blocks/README.md#current-block-categories).
+每个 block 的精确字段、截图和示例见实操指南的[类别参考](../../web/src/features/blocks/README.md#current-block-categories)。
 
-## Plan Checks: one safety gate, regardless of origin
+<a id="plan-checks-one-safety-gate-regardless-of-origin"></a>
+## Plan Checks：所有来源共用一个安全门
 
-Before `Run` is enabled, `planValidation.js` checks the Generated Plan for
-problems — speeds over the configured limit, a named location that no longer
-exists, and so on — and the page asks for confirmation before running
-anything containing direct motion, docking, or emergency stop. This gate
-applies identically no matter how the plan was built: hand-dragged blocks, a
-loaded template, or a voice command all produce the same kind of Generated
-Plan and pass through the same checks. There's no "trusted" path that skips
-validation.
+启用 `Run` 前，`planValidation.js` 会检查 Generated Plan，例如速度是否超过配置的限制、named location 是否仍存在等。页面还会在执行包含直接运动、docking 或 emergency stop 的计划前要求确认。所有计划都经过相同检查，无论 blocks 是手工拖入、template 加载还是 voice command 生成；没有跳过 validation 的“可信路径”。
 
+<a id="voice-command"></a>
 ## Voice Command
 
-The `Voice Command` panel is an alternate way to *build* a plan — it still
-goes through the exact same pipeline and safety gate above, it just adds a
-speech-to-plan step in front of it:
+`Voice Command` panel 是另一种**创建** plan 的方式。它仍然使用上文相同的 pipeline 和安全检查，只是在 pipeline 前面增加语音转 plan 步骤。
 
-![OpenAMR UI Programs page Voice Command panel with a "Tap to speak a command" button and transcript field](../assets/programs/voicecommand.png)
-
-Tap the button, say the wake word `Monsieur`, and then speak the command. The
-panel shows the recognized transcript only after the wake word is heard. A
-short pause ends capture and sends the command for plan generation.
+点击按钮，说出 wake word `Monsieur`，再说命令。panel 只有在听到 wake word 后才会显示识别文本。短暂停顿会结束录音并提交命令以生成 plan。
 
 ```text
-You speak
+用户说话
         |
         v
-Browser Web Speech API produces a transcript
+浏览器 Web Speech API 生成 transcript
         |
         v
-Everything up to and including the wake word ("Monsieur") is stripped
+去掉 wake word（"Monsieur"）及其之前的内容
         |
         v
-POST /api/voice-plan  (Flask backend, web/src/features/blocks/voicePlan.js)
+POST /api/voice-plan（Flask backend，web/src/features/blocks/voicePlan.js）
         |
         v
-Claude API returns a structured action plan
+Claude API 返回结构化 action plan
         |
         v
-planToWorkspace() (blockDefinitions.js) turns it into real Blockly blocks
+planToWorkspace()（blockDefinitions.js）将计划转换为实际 Blockly blocks
         |
         v
-The workspace updates — same Generated Plan, same Plan Checks, same Run button
+更新 workspace：使用相同的 Generated Plan、Plan Checks 和 Run button
 ```
 
-Two things worth understanding conceptually, not just operationally: Claude
-is constrained to the exact same action types the blocks already define — the
-`/api/voice-plan` endpoint in
-[`flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)
-forces a tool call against that fixed schema and drops anything that doesn't
-match, so voice can't invent a new kind of action the executor wouldn't
-recognize. And voice only ever *builds* blocks — it never runs anything by
-itself; the resulting plan is just an ordinary Generated Plan that still
-needs a manual `Run` press and still passes through Plan Checks like any
-other program.
+有两点设计需要理解。Claude 只能输出现有 blocks 已定义的 action types：[`flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)中的 `/api/voice-plan` endpoint 会使用固定 schema 发起 tool call，并丢弃不匹配的内容，因此语音不能创造 executor 不认识的新 action。其次，Voice Command 只会**创建** blocks，不会自行运行；生成的 plan 仍需要手动按 `Run`，并通过与其他程序相同的 Plan Checks。
 
-For setup requirements (browser support, secure-origin microphone rules, API
-key), the exact wake-word behavior, and troubleshooting, see
-[Voice Command in the practical guide](../../web/src/features/blocks/README.md#voice-command).
+浏览器支持、secure-origin microphone 要求、API key、wake-word 行为和故障排查见实操指南中的[Voice Command 章节](../../web/src/features/blocks/README.md#voice-command)。
 
-## Try it
+## 试一试
 
-In Demo Mode, load a template, inspect its generated plan and validation
-warnings, then run it and review the run-history result. Do not repeat on real
-hardware until the operating area and physical emergency stop are ready.
+在 Demo Mode 中加载一个 template，查看其 Generated Plan 和 validation warnings，再运行并检查 run-history result。若要在真实硬件上测试，须先确认操作区域安全并准备好实体 emergency stop。
 
-**You're ready to continue when:** you can trace one block from workspace to
-generated action and identify the topic, service, or browser wait it uses.
+**完成标准：**能追踪一个 block 从 workspace 到 generated action 的过程，并指出它会使用哪个 topic、service 或 browser wait。
 
-## Next
+## 下一课
 
-[Lesson 10 — Topics as the Contract](10-topics-as-the-contract.md) steps back
-from individual pages and pipelines to explain why the topic *names* used
-throughout every page — including the ones Blockly publishes to — are the
-real interface between the UI and the robot.
+[课程 10——Topic 是接口契约](10-topics-as-the-contract.md)将从单个页面和 pipeline 转向整体设计，解释所有页面（包括 Blockly）使用的 topic *names* 为什么是 UI 与机器人之间的实际 interface。
 
 ---
 
-[← Lesson 08](08-map-and-route-model.md) · [Lesson index](README.md) ·
-[Next: Lesson 10 →](10-topics-as-the-contract.md)
+[← 课程 08](08-map-and-route-model.md) · [课程索引](README.md) · [下一课：课程 10 →](10-topics-as-the-contract.md)

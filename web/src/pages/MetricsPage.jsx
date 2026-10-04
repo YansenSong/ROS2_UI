@@ -23,10 +23,8 @@ const fmtDuration = (ms) => {
 };
 
 /**
- * The robot's "track record" — distance, uptime, goal + docking outcomes and
- * speed, all derived client-side from telemetry the stack already publishes
- * (see useRobotMetrics). Cumulative counters persist across reloads; Reset
- * zeroes them.
+ * 机器人运行统计：里程、运行时长、导航目标与对接结果及速度，全部由客户端根据软件栈已发布的遥测数据计算
+ *（参见 useRobotMetrics）。累计计数会跨页面重载保留；Reset 会将计数清零。
  */
 const MetricsPage = () => {
   const rosStatus = useRosStatus();

@@ -8,17 +8,15 @@ import { addEvent } from "../shared/events/eventLog";
 import { loadWaypoints as readWaypoints } from "../shared/hooks/useSavedWaypoints";
 import { requestStart as requestMissionStart } from "../shared/missions/missionRunner";
 
-// Minute-resolution key so a schedule fires once per matching minute even
-// though we poll more often than that.
+// 使用分钟精度的键，确保即使轮询频率更高，同一条计划也只会在匹配分钟内触发一次。
 const minuteKey = (d) =>
   `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${d.getMinutes()}`;
 const hhmm = (d) =>
   `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
 /**
- * Headless (AppLayout) runner that fires due mission schedules while the tab
- * is open. Each schedule triggers a navigation goal (a saved waypoint, or
- * home) by publishing to /goal_pose — the same publish the Map page uses.
+ * 无界面 runner，挂载在 AppLayout 中，在浏览器标签页打开期间触发到期的任务计划。每条计划都会向 /goal_pose
+ * 发布导航目标（已保存的 waypoint 或 home），与 Map 页面使用相同的发布方式。
  */
 const SchedulerRunner = () => {
   const ros = useRos();

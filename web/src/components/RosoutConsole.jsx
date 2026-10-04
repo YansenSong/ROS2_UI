@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRos } from "../app/App";
 
-// rcl_interfaces/msg/Log severity levels (ROS 2). Anything below the selected
-// minimum is filtered out client-side.
+// rcl_interfaces/msg/Log 的严重程度级别（ROS 2）。低于所选最低级别的消息会在客户端过滤。
 const LEVELS = {
   10: { label: "DEBUG", color: "text-themeTextGray", chip: "border-borderSubtle text-themeTextGray" },
   20: { label: "INFO", color: "text-statusGreen", chip: "border-statusGreen/40 text-statusGreen" },
@@ -31,11 +30,9 @@ const fmtTime = (stamp) => {
 };
 
 /**
- * Live /rosout console. Subscribes to rcl_interfaces/msg/Log and renders a
- * filterable, pausable stream so operators can debug from the browser instead
- * of a sourced terminal. Incoming messages are buffered in a ref and flushed
- * to React state a few times a second — /rosout can burst well past a
- * reasonable re-render rate during startup or a fault.
+ * 实时 /rosout 控制台。订阅 rcl_interfaces/msg/Log，并提供可筛选、可暂停的消息流，操作员无需在加载 ROS 环境的终端中操作，
+ * 即可从浏览器调试。收到的消息先缓存在 ref 中，再以每秒数次的频率刷新到 React state；启动或故障期间，
+ * /rosout 的消息突发速率可能远高于合理的重新渲染频率。
  */
 const RosoutConsole = () => {
   const ros = useRos();
@@ -79,7 +76,7 @@ const RosoutConsole = () => {
     return () => topic.unsubscribe(handler);
   }, [ros]);
 
-  // Flush the buffer into state at ~5 Hz, capped to the newest MAX_LOGS.
+  // 以约 5 Hz 的频率将缓冲区刷新到 state，并限制为最新的 MAX_LOGS 条消息。
   useEffect(() => {
     const id = setInterval(() => {
       if (!bufferRef.current.length) return;
@@ -104,7 +101,7 @@ const RosoutConsole = () => {
     });
   }, [logs, minLevel, nodeFilter, textFilter]);
 
-  // Keep the view pinned to the newest line while autoscroll is on.
+  // 启用自动滚动时，保持视图定位在最新一行。
   useEffect(() => {
     if (!autoscroll || !listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;

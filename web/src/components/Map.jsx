@@ -14,7 +14,7 @@ import MapButton from "../shared/ui/MapButton";
 import { IconButton } from "../shared/ui/Dashboard";
 
 /**
- * NAV2D safety helpers
+ * NAV2D 安全辅助逻辑。
  */
 const getNav2D = () => (typeof window !== "undefined" ? window.NAV2D : null);
 
@@ -49,11 +49,11 @@ const Map = forwardRef(
   // eslint-disable-next-line no-unused-vars
   const [mapPoints, updateMapPoints] = useState(0);
 
-  // ROS topics refs (created lazily when ROSLIB exists)
+  // ROS topic 引用（ROSLIB 可用后再延迟创建）。
   const mapTopicRef = useRef(null);
   const mapUpdateTopicRef = useRef(null);
 
-  // Init retry interval (cleared automatically)
+  // 初始化重试定时器（会自动清理）。
   const initRetryIntervalRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
@@ -61,7 +61,7 @@ const Map = forwardRef(
   }));
 
   /**
-   * Lazily create ROSLIB topics when ROSLIB is available.
+   * ROSLIB 可用后再延迟创建 ROSLIB topic。
    */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -84,7 +84,7 @@ const Map = forwardRef(
       });
     }
 
-    // Publish to request waypoints as soon as ROS connection is active
+    // ROS 连接激活后立即发布 waypoint 请求。
     if (
       mapTopicRef.current &&
       typeof mapTopicRef.current.publish === "function"
@@ -94,7 +94,7 @@ const Map = forwardRef(
   }, [ros]);
 
   /**
-   * Create ROS2D.Viewer only if the container is empty.
+   * 仅在容器为空时创建 ROS2D.Viewer。
    */
   const createCanvasContainer = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -106,7 +106,7 @@ const Map = forwardRef(
 
     const mapElements = mapItem.current.childNodes;
 
-    // If canvas already present, do nothing
+    // 若 canvas 已存在，则不执行操作。
     if (mapElements && mapElements.length >= 1) {
       if (!nav2d.canvas && viewerRef.current) {
         nav2d.canvas = viewerRef.current;
@@ -152,7 +152,7 @@ const Map = forwardRef(
   }, []);
 
   /**
-   * Subscribe to relayed map updates only after the topic exists.
+   * topic 存在后再订阅中继地图的更新。
    */
   useEffect(() => {
     const topic = mapUpdateTopicRef.current;
@@ -170,15 +170,15 @@ const Map = forwardRef(
   }, [mapUpdateTopicRef.current]);
 
   /**
-   * On mount: create canvas container.
+   * 挂载时创建 canvas 容器。
    */
   useEffect(() => {
     createCanvasContainer();
   }, [createCanvasContainer]);
 
   /**
-   * Initialize NAV2D map logic.
-   * Retry until canvas.scene exists, then init once.
+   * 初始化 NAV2D 地图逻辑。
+   * 持续重试，直到 canvas.scene 存在，然后只初始化一次。
    */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -215,7 +215,7 @@ const Map = forwardRef(
         clearInterval(initRetryIntervalRef.current);
         initRetryIntervalRef.current = null;
       }
-      // Allow navigator() to re-run when Map remounts (e.g. after page navigation)
+      // Map 重新挂载（例如页面切换后）时允许再次运行 navigator()。
       if (window.NAV2D) {
         window.NAV2D.mapInited = false;
         if (window.NAV2D.scanTopic) {
@@ -248,11 +248,8 @@ const Map = forwardRef(
         rootObject: scene,
       });
 
-      // ZoomView.zoom(factor) multiplies the *current* scale (captured by
-      // startZoom() the line above) by factor — so a caller-supplied ±1
-      // passed straight through is a no-op (zoom(1)) or an inverting
-      // negative scale (zoom(-1)). Direction is just a step sign; convert
-      // it to an actual multiplicative step here.
+      // ZoomView.zoom(factor) 会将当前比例（由上一行的 startZoom() 获取）乘以 factor。因此直接传入调用方的 ±1
+      // 会变成无操作（zoom(1)）或负比例反转（zoom(-1)）。方向参数仅表示步进符号；在此转换为实际乘数。
       const ZOOM_STEP = 1.15;
       zoomView.startZoom(300, 200);
       zoomView.zoom(direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
@@ -267,9 +264,8 @@ const Map = forwardRef(
   };
 
   /**
-   * Scroll-wheel and two-finger pinch zoom, on top of the existing +/-
-   * buttons. Both funnel into the same zoomMap() step function — no new
-   * zoom mechanism, just two more ways to trigger the existing one.
+   * 在现有 +/- 按钮之外，支持滚轮和双指捏合缩放。两种输入都调用相同的 zoomMap() 步进函数，
+   * 不新增缩放机制，只增加两种触发现有逻辑的方式。
    */
   useEffect(() => {
     const container = mapContainer.current;
@@ -280,9 +276,8 @@ const Map = forwardRef(
       zoomMap(event.deltaY < 0 ? 1 : -1);
     };
 
-    // Plain object, not `new Map()` — this file's own component is also
-    // named Map, which shadows the global Map constructor in this module
-    // scope, so `new Map()` here would try to construct the component.
+    // 使用普通对象而不是 `new Map()`：本文件中的组件也名为 Map，会在模块作用域遮蔽全局 Map 构造函数，
+    // 因此此处的 `new Map()` 会尝试创建该组件。
     const activePointers = {};
     let lastPinchDistance = null;
     const PINCH_STEP_PX = 18; // px of pinch travel per discrete zoom step
@@ -334,12 +329,9 @@ const Map = forwardRef(
   }, [zoomMap]);
 
   /**
-   * Fullscreen: the canvas's pixel width/height are fixed at construction
-   * (ROS2D.Viewer never resizes them), so entering/exiting fullscreen
-   * resizes the canvas element + viewer instance fields directly, then
-   * re-emits the map client's own "change" event — the exact same redraw/
-   * rescale path nav2d.js already runs on every map update — rather than
-   * duplicating that scaling logic here.
+   * 全屏模式：canvas 的像素宽高在构造时固定（ROS2D.Viewer 不会自动调整），因此进入/退出全屏时需要直接调整
+   * canvas 元素和 viewer 实例字段，然后重新触发 map client 自带的 "change" 事件。此操作会复用 nav2d.js
+   * 每次地图更新时已有的重绘/缩放逻辑，避免在此重复实现。
    */
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -391,12 +383,9 @@ const Map = forwardRef(
   }, [resizeMapCanvas]);
 
   /**
-   * Optional right-click context menu (Send goal / Save waypoint / Set
-   * pose here) — only attaches at all if the parent page passed at least
-   * one handler, so pages that don't wire anything up (Control, Routes)
-   * keep their native right-click menu exactly as before. Handlers are
-   * read through refs so their identity changing every render doesn't
-   * tear down and reattach the listener.
+   * 可选的右键菜单（发送目标 / 保存 waypoint / 在此设置位姿）。只有父页面至少传入一个 handler 时才会启用，
+   * 因此未接入这些操作的页面（Control、Routes）仍保留浏览器原有的右键菜单。通过 ref 读取 handler，
+   * 避免它们每次渲染时身份变化导致监听器反复移除和注册。
    */
   const onContextGoalRef = useRef(onContextGoal);
   const onContextSavePoseRef = useRef(onContextSavePose);
@@ -460,7 +449,7 @@ const Map = forwardRef(
     };
   }, [hasContextMenuHandler]);
 
-  // Close the menu on any click outside it.
+  // 点击菜单外部时关闭菜单。
   useEffect(() => {
     if (!contextMenu) return undefined;
     const onDocClick = (event) => {

@@ -1,58 +1,43 @@
 ---
-title: Home
+title: 首页
 ---
 
-# OpenAMRobot UI Documentation
+# OpenAMRobot UI 文档
 
-OpenAMRobot UI is a browser dashboard for seeing and controlling a robot
-that's already running elsewhere — maps, routes, manual driving, Blockly
-programs, missions, diagnostics, and more, all talking to ROS 2 through
-rosbridge. This site is the documentation for it. The code itself lives at
-[github.com/openAMRobot/openamrobot-ui](https://github.com/openAMRobot/openamrobot-ui);
-start there for the [full README](https://github.com/openAMRobot/openamrobot-ui/blob/main/README.md).
+OpenAMRobot UI 是一个浏览器控制台，用于查看和操作已在其他环境中运行的机器人，
+提供地图、路线、手动驾驶、Blockly 程序、任务和诊断等功能，并通过 rosbridge 与 ROS 2 通信。
+本网站是该项目的文档。源码位于
+[github.com/YansenSong/ROS2_UI](https://github.com/YansenSong/ROS2_UI)，完整说明请从
+[README](https://github.com/YansenSong/ROS2_UI/blob/main/README.md)开始阅读。
 
-> **Heads up:** the lesson pages link out to source files
-> (`web/src/pages/...`) and a few repo-root docs (`README.md`,
-> `CONTRIBUTING.md`) using relative links. Those resolve correctly when
-> you're reading this documentation on GitHub itself, but this published
-> site only contains the `docs/` folder — so a link like that will 404
-> here. If you hit one, you're one click away: open the same page from the
-> [repository](https://github.com/openAMRobot/openamrobot-ui/tree/main/docs)
-> instead.
+如果指南与当前代码不一致，以源码为准。部分较早的课程可能介绍已经变更的功能；
+当前命令请以以下安装和开发指南为准。
 
-## Get started
+部分课程链接到 `docs/` 目录之外的源码文件。这些链接在仓库页面中有效，但在已发布的
+文档站点上可能无法解析。若源码链接无法打开，请到[仓库](https://github.com/YansenSong/ROS2_UI)
+中查看对应文件。
 
-- [Installation and Launch Guide](installation.md) — Docker Compose or
-  manual install, ports, backups, and uninstalling.
-- [Development Guide](development.md) — dev server, the production build
-  pipeline, and where to make a given kind of change.
-- [Troubleshooting Guide](troubleshooting.md) — a symptom-first table for
-  when something isn't working.
+## 开始使用
 
-## Learn how it works
+- [安装与启动指南](installation.md) — 浏览器 Demo Mode、ROS 工作区构建、启动方式和端口。
+- [开发指南](development.md) — Vite 开发、前端同步、ROS 构建、现有检查和源码位置。
+- [故障排查指南](troubleshooting.md) — 按现象整理的排查表。
 
-The lessons are a numbered curriculum (00–13) meant to be read in order the
-first time — each one names its audience, a reading-time estimate, and
-prerequisites, and links straight to the real source instead of pasting
-code that can go stale.
+## 了解工作原理
 
-- [Lessons index](lessons/README.md) — the full list, plus shorter reading
-  paths for specific roles (operator, panel developer, Blockly, etc.).
-- [Glossary](lessons/glossary.md) — quick term lookup without reading a
-  full lesson.
+课程按 00–13 编号，首次阅读建议按顺序学习。每篇都注明适读对象、预计阅读时间和前置知识，
+并直接链接到实际源码，避免复制容易过时的代码片段。
 
-## Extending the system
+- [课程目录](lessons/README.md) — 完整课程列表，以及面向操作员、面板开发者、Blockly 开发者等角色的精简阅读路径。
+- [术语表](lessons/glossary.md) — 无需阅读整篇课程即可快速查询术语。
 
-- [Extending guides](extending/README.md) — hands-on, task-first guides for
-  adding a UI panel, connecting a new device, or adding a Blockly block,
-  plus one complete worked example.
+## 扩展系统
 
-## Architecture at a glance
+- [扩展指南](extending/README.md) — 按任务编写的实操指南，介绍如何添加 UI 面板、连接新设备或添加 Blockly 积木，并提供完整示例。
 
-![OpenAMRobot UI architecture: browser, rosbridge, UI backend nodes, and the robot/simulation stack](assets/openamr_ui_architecture.svg)
+## 架构概览
 
-For the full picture, [Lesson 03](lessons/03-how-the-browser-talks-to-ros.md)
-walks through this chain in detail, and a
-[narrated feature tour](assets/openamrobot_ui_feature_tour_with_audio.mp4)
-([transcript](assets/openamrobot_ui_feature_tour_transcript.md)) walks
-through the UI itself page by page.
+浏览器前端位于 `web/`；Flask API、rosbridge 启动配置和 ROS 侧中继节点位于 `ros2/src/`。
+机器人驱动、Nav2、定位和仿真属于独立的 ROS 2 工作区。当前检出版本没有 Dockerfile、
+Compose 配置或本地架构图。浏览器与 ROS 的连接方式请参阅
+[课程 03](lessons/03-how-the-browser-talks-to-ros.md)。

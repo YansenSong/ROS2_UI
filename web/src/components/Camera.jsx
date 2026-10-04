@@ -28,8 +28,7 @@ const Camera = () => {
     const videoSrcString = `http://${ip}:${config.cameraPort}/stream?topic=${topic}&type=mjpeg&quality=${profile.quality}&width=${profile.width}&height=${profile.height}`;
     setStatus("loading");
     setVideoSrc(videoSrcString);
-    // streamProfiles is intentionally omitted — it's a fresh object literal
-    // every render, but its values are static, so it doesn't need to be a dep.
+    // 有意不将 streamProfiles 放入依赖项：它每次渲染都会创建新的对象字面量，但其值是静态的，因此无需作为依赖。
   }, [quality, topic, config]);
 
   useEffect(() => {
