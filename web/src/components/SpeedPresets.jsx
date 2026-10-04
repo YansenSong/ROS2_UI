@@ -4,9 +4,7 @@ import useSpeedPresets from "../shared/hooks/useSpeedPresets";
 import { useT } from "../shared/i18n/i18n";
 
 /**
- * Named max-speed profiles for the Map page. Clicking a preset applies its
- * limit to the manual-drive speed cap (onApply); operators can save the
- * current cap as a new named preset.
+ * Map 页面的命名速度上限配置。点击预设会通过 onApply 将其限制应用到手动驾驶速度上限；操作员也可以将当前上限保存为新的命名预设。
  */
 const SpeedPresets = ({ value, onApply }) => {
   const { t } = useT();

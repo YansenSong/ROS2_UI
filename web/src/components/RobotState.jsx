@@ -22,7 +22,7 @@ const State = ({ compact = false }) => {
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
 
-    // Position from AMCL (accurate, map-corrected)
+    // 使用 AMCL 位姿（精确且经过地图校正）。
     const amclTopic = new window.ROSLIB.Topic({
       ros,
       name: AppConfig.AMCL_POSE_TOPIC,
@@ -40,7 +40,7 @@ const State = ({ compact = false }) => {
       setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
     });
 
-    // Velocity from odom (continuous, real-time)
+    // 使用 odom 速度（连续、实时）。
     const odomTopic = new window.ROSLIB.Topic({
       ros,
       name: AppConfig.ROBOT_POSE_TOPIC,
@@ -53,7 +53,7 @@ const State = ({ compact = false }) => {
       setLinear(vel.linear.x.toFixed(2));
       setAngular(vel.angular.z.toFixed(2));
 
-      // Fall back to odom position if AMCL is not running
+      // AMCL 未运行时，回退到 odom 位姿。
       if (!amclActiveRef.current) {
         const pos = msg?.pose?.pose?.position;
         const ori = msg?.pose?.pose?.orientation;

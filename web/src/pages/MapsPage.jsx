@@ -7,12 +7,12 @@ import { AppConfig } from "../shared/constants";
 import { DashboardCard, EmptyState, SectionHeader, StatusBadge } from "../shared/ui/Dashboard";
 import { useT } from "../shared/i18n/i18n";
 
-// Names travel over the wire with underscores for spaces; the UI shows spaces.
+// 传输时用下划线代替空格；UI 中显示为空格。
 const toWire = (s) => String(s || "").trim().replace(/\s+/g, "_");
 const toDisplay = (s) => String(s || "").replace(/_/g, " ");
 const stripCsv = (s) => String(s || "").replace(".csv", "");
 
-// structure: [ { group: [ { map: [route,...] }, ... ] }, ... ]
+// 数据结构：[ { group: [ { map: [route,...] }, ... ] }, ... ]。
 const parseStructure = (structure) =>
   (structure || []).map((groupObj) => {
     const group = Object.keys(groupObj)[0];
@@ -27,10 +27,8 @@ const inputClass =
   "rounded-lg border border-borderSubtle bg-bgCard px-3 py-2 text-sm text-textWhiteHover outline-none focus:border-themeBlue";
 
 /**
- * Map management — save the current map, switch between saved maps, rename and
- * delete them, and organise them into groups. Talks to the existing
- * folders_handler backend over /ui_operation (the same command protocol the
- * Routes page uses) and reads the catalog from /nav_data_resp.
+ * 地图管理：保存当前地图、切换已保存地图、重命名和删除地图，并将地图整理到分组中。通过 /ui_operation 与现有
+ * folders_handler 后端通信（使用与 Routes 页面相同的命令协议），并从 /nav_data_resp 读取目录。
  */
 const MapsPage = () => {
   const { t } = useT();
@@ -76,7 +74,7 @@ const MapsPage = () => {
           map: toDisplay(obj.active_files?.map),
         });
       } catch {
-        // malformed nav_data — ignore this message
+        // nav_data 格式错误，忽略此消息。
       }
     });
 
@@ -93,7 +91,7 @@ const MapsPage = () => {
       : null;
     const msg = wired ? `${path}/${JSON.stringify(wired)}` : path;
     opRef.current.publish(new window.ROSLIB.Message({ data: msg }));
-    // Backend does file ops then re-publishes nav_data; nudge a refresh too.
+    // 后端完成文件操作后会重新发布 nav_data；此处也主动触发一次刷新。
     setTimeout(refresh, 900);
   };
 

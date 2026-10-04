@@ -1,10 +1,8 @@
-# Maps
+# 地图
 
-This folder stores UI-managed map groups. Each map normally includes a ROS map
-YAML file and its image file.
+此目录用于保存由 UI 管理的地图分组。每张地图通常包含 ROS 地图 YAML 文件及其图像文件。
 
-The main Nav2 map server belongs to the robot or simulation workspace. This UI
-workspace can store and manage map files, but it should not start a second map
-server when the platform stack already owns `/map_server`.
+主 Nav2 地图服务器属于机器人或仿真工作区。此 UI 工作区可以保存和管理地图文件；如果平台软件栈已负责
+`/map_server`，则不应再启动第二个地图服务器。
 
-Use the root `README.md` for the current build and run workflow.
+当前构建和运行流程请参阅仓库根目录的 `README.md`。

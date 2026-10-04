@@ -14,9 +14,8 @@ const fmt = (iso) => {
 };
 
 /**
- * Reviewable timeline of robot events (nav outcomes, docking, low battery,
- * E-stops…) recorded by EventRecorder into the shared, persisted event log.
- * Filterable by type and severity; survives reloads via localStorage.
+ * 可供回顾的机器人事件时间线。EventRecorder 会将导航结果、对接、低电量、E-stop 等事件写入共用的持久化事件日志。
+ * 可按类型和严重程度筛选；数据保存在 localStorage 中，页面重载后仍会保留。
  */
 const EventsPage = () => {
   const { t } = useT();

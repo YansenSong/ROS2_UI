@@ -1,28 +1,19 @@
-# Launch Files
+# Launch 文件
 
-Current launch files:
+当前 launch 文件：
 
-- `new_ui_launch.py`: main UI package launch. Starts Flask, rosbridge, rosapi,
-  web video server, `map_relay`, and `nav_relay`. For a manual launch it can
-  load `../.env` (a package-scoped, gitignored file — see
-  `../.env.example`) and inject those values only into `flask_app` through
-  `additional_env`. It also accepts `ANTHROPIC_API_KEY` from the parent
-  process, which is the recommended Docker Compose path. Real `.env` files
-  are excluded from Docker build contexts so API keys are not baked into
-  images. If neither source provides a key, `/api/voice-plan` returns 500 and
-  the launch logs explain how to configure it.
-- `physnode_launch.py`: optional helper launch for map/route file operations and
-  waypoint route following.
-- `map_server_launch.py`: deprecated compatibility launch, namespaced under
-  `ui_legacy`.
-- `mapping_launch.py` (includes `gmapping_launch.py` + `move_base_launch.py`)
-  and `navigation_launch.py` (includes `move_base_launch.py` +
-  `amcl_launch.py`): **not legacy** — `folders_handler.py`'s `build_map_func`/
-  `save_map_func` launch these directly, and they're what the web UI's Maps
-  page **Start mapping**/**Save current map** buttons actually trigger.
-  `amcl_launch.py`, `gmapping_launch.py`, and `move_base_launch.py` on their
-  own are just the pieces those two compose — not meant to be launched
-  standalone.
+- `new_ui_launch.py`：UI 软件包的主 launch。启动 Flask、rosbridge、rosapi、web video server、
+  `map_relay` 和 `nav_relay`。手动启动时，它可以读取 `../.env`（软件包专属且已加入 Git 忽略列表，
+  参见 `../.env.example`），并通过 `additional_env` 仅将其中的值传给 `flask_app`。它也会读取父进程中的
+  `ANTHROPIC_API_KEY`。请将 API 密钥保存在环境变量或已忽略的软件包 `.env` 文件中，不要提交密钥。
+  如果两处均未提供密钥，`/api/voice-plan` 会返回 500，launch 日志会说明如何配置。
+- `physnode_launch.py`：可选辅助 launch，用于地图/路线文件操作和 waypoint 路线跟随。
+- `map_server_launch.py`：已弃用的兼容性 launch，使用 `ui_legacy` 命名空间。
+`mapping_launch.py`（包含 `gmapping_launch.py` 和 `move_base_launch.py`）及
+`navigation_launch.py`（包含 `move_base_launch.py` 和 `amcl_launch.py`）**不是旧版实现**：
+`folders_handler.py` 中的 `build_map_func`/`save_map_func` 会直接启动它们；Web UI 的 Maps 页面
+**Start mapping**/**Save current map** 按钮实际触发的就是这两个 launch。单独的 `amcl_launch.py`、
+`gmapping_launch.py` 和 `move_base_launch.py` 只是这两个 launch 组合使用的组件，不应单独启动。
 
-For normal use, see the root `README.md` and prefer
-`openamr_ui_bringup ui.launch.py`.
+常规使用方法请参阅仓库根目录的 `README.md`，建议使用
+`openamr_ui_bringup ui.launch.py`。

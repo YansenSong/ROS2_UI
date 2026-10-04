@@ -17,25 +17,18 @@ from werkzeug.exceptions import HTTPException
 import xacro
 
 # ─────────────────────────────────────────────────────────────────────────
-# AUTH_MODE — open-source access model
+# AUTH_MODE — 开源项目的访问模式
 #
-# This UI must stay fully usable with zero authentication out of the box
-# (open-source, self-hosted, offline-first — see project design notes).
-# AUTH_MODE is an opt-in deployment switch for maintainers who need to lock
-# down a shared/classroom/lab robot, not a feature this app forces on
-# anyone:
-#   open     - default. No login. (only implemented mode right now)
-#   local    - backend-validated credentials/sessions for shared installs.
-#              NOT IMPLEMENTED YET: there is no user store, session/cookie
-#              handling, or password hashing in this codebase. Requesting
-#              it does not silently no-op into "unprotected" — it falls
-#              back to open and says so loudly (see AUTH_MODE_WARNING),
-#              because a maintainer believing they enabled auth when they
-#              didn't is worse than the current, honest "wide open" state.
-#   external - future OIDC/OAuth or authenticated-reverse-proxy support.
-#              NOT IMPLEMENTED YET, same reasoning as local.
-# Whichever mode is eventually real, it must be enforced here in the
-# backend — hiding frontend routes/buttons is never authorization.
+# 此 UI 开箱后无需身份验证即可完整使用（开源、自托管、离线优先；参见项目设计说明）。
+# AUTH_MODE 是可选的部署开关，供需要限制共享机器人、课堂或实验室机器人访问的维护者使用；应用不会强制所有人启用：
+#   open     - 默认模式，无需登录。（目前唯一已实现的模式）
+#   local    - 面向共享部署，由后端验证凭据/会话。
+#              尚未实现：代码库没有用户存储、会话/cookie 处理或密码哈希。
+#              请求此模式时不会静默地退化为“无保护”；系统会回退到 open 并明确提示
+#             （见 AUTH_MODE_WARNING），因为维护者误以为身份验证已启用，比明确报告当前开放状态更危险。
+#   external - 未来支持 OIDC/OAuth 或经身份验证的反向代理。
+#              尚未实现，原因与 local 模式相同。
+# 未来实现的任何模式都必须在此后端中强制执行；隐藏前端路由/按钮永远不等于授权。
 # ─────────────────────────────────────────────────────────────────────────
 VALID_AUTH_MODES = {"open", "local", "external"}
 IMPLEMENTED_AUTH_MODES = {"open"}
@@ -62,8 +55,8 @@ else:
 
 
 def is_local_address(addr):
-    """True if addr is a loopback/private/link-local IP (i.e. "this network"),
-    used only to warn operators in AUTH_MODE=open — not an access control."""
+    """如果 addr 是 loopback/private/link-local IP（即“本地网络”）则返回 True。
+    仅用于在 AUTH_MODE=open 时向操作员显示提示，不用于访问控制。"""
     if not addr:
         return False
     try:
@@ -74,24 +67,23 @@ def is_local_address(addr):
         ip = ip.ipv4_mapped
     return bool(ip.is_private or ip.is_loopback or ip.is_link_local)
 
-# React build is installed to share/openamr_ui_package/static/app/ by setup.py
+# React 构建文件由 setup.py 安装到 share/openamr_ui_package/static/app/。
 SHARE_DIR = get_package_share_directory("openamr_ui_package")
 REACT_BUILD_DIR = os.path.join(SHARE_DIR, "app")
 REACT_STATIC_DIR = os.path.join(REACT_BUILD_DIR, "static")
 REACT_ROS_DIR = os.path.join(REACT_BUILD_DIR, "ros")
 
-# Vendored URDF/Xacro + meshes for the Robot Description page, installed to
-# share/openamr_ui_package/robot_description/openamrobot/ by setup.py.
-# Source of truth: openAMRobot/openamr-platform-sw's openamrobot_description
-# ROS package. Kept as a data subfolder here (not a second ROS package of the
-# same name) so this UI workspace never collides with the real robot-software
-# workspace if the two are ever colcon-built together.
+# Robot Description 页面使用的 vendored URDF/Xacro 和网格文件，由 setup.py 安装到
+# share/openamr_ui_package/robot_description/openamrobot/。
+# 权威来源：openAMRobot/openamr-platform-sw 仓库中的 openamrobot_description ROS 软件包。
+# 此处将其保留为数据子目录（而不是同名的第二个 ROS 软件包），避免 UI 工作区与真实机器人软件工作区
+# 同时使用 colcon 构建时发生冲突。
 ROBOT_DESC_NAME = "openamrobot"
 ROBOT_DESC_DIR = os.path.join(SHARE_DIR, "robot_description", ROBOT_DESC_NAME)
 ROBOT_DESC_XACRO = os.path.join(ROBOT_DESC_DIR, "urdf", "robo_urdf.urdf.xacro")
 _robot_urdf_cache = {"mtime": None, "xml": None}
 
-# Make Flask serve /static/* from the CRA build folder
+# 让 Flask 从 CRA 构建目录提供 /static/*。
 app = Flask(__name__, static_folder=REACT_STATIC_DIR, static_url_path="/static")
 
 PROGRAM_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,63}$")
@@ -109,11 +101,10 @@ RECORDINGS_DIR = os.path.join(os.path.expanduser("~"), ".openamr_ui", "recording
 RECORDINGS_INDEX_FILE = os.path.join(RECORDINGS_DIR, "index.json")
 TOPIC_NAME_RE = re.compile(r"^/[A-Za-z0-9_/]{1,255}$")
 
-# In-process only — this Flask server runs as a single Werkzeug process
-# (threaded=True, not multi-worker), so module-level state is safe here.
-# Neither survives a Flask restart: the real `ros2 bag` OS process would
-# keep running orphaned if that happened mid-recording/replay (flagged,
-# not solved — see _reconcile_recordings_on_startup below).
+# 仅限进程内使用：此 Flask 服务器以单个 Werkzeug 进程运行（threaded=True，而非多 worker），
+# 因此在此处使用模块级状态是安全的。
+# Flask 重启后这些状态不会保留：如果录制/回放期间发生重启，实际的 `ros2 bag` 操作系统进程可能会成为孤儿进程并继续运行。
+# 此问题已标记但尚未解决；参见下方的 _reconcile_recordings_on_startup。
 _recording = {"proc": None, "id": None, "name": None, "started_at": None, "topics": None}
 _replay = {"proc": None, "id": None, "started_at": None, "paused": False, "rate": 1.0}
 DEFAULT_BLOCK_LOCATIONS = {

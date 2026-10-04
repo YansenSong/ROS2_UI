@@ -1,9 +1,8 @@
-# Static Frontend Assets
+# 前端静态资源
 
-This folder receives the compiled React production build served by Flask.
+此目录存放由 Flask 提供服务的 React 生产构建文件。
 
-Do not edit generated files here directly. Change frontend source under the
-repository-level `web/` directory, then run:
+请勿直接编辑此处的生成文件。修改仓库根目录 `web/` 中的前端源码后，运行：
 
 ```bash
 bash scripts/build_frontend.sh

@@ -6,9 +6,8 @@ import TopicEcho from "../components/TopicEcho";
 import { SectionHeader, StatusBadge } from "../shared/ui/Dashboard";
 
 /**
- * Observability page: a live /rosout log console plus an "echo any topic"
- * panel, so operators can debug the running stack from the browser without a
- * sourced terminal. Both panels share the app-wide ROS connection.
+ * 可观测性页面：提供实时 /rosout 日志控制台和“回显任意 topic”面板，操作员无需在加载 ROS 环境的终端中操作，
+ * 即可从浏览器调试正在运行的软件栈。两个面板共用应用级 ROS 连接。
  */
 const ConsolePage = () => {
   const rosStatus = useRosStatus();

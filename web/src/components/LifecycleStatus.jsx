@@ -30,9 +30,8 @@ const EXPLANATIONS = {
   unknown: "We couldn't check this system's status — it may be off, or the robot's connection may be down.",
 };
 
-// Plain-language names for the internal ROS node each row represents.
-// Exported so other places that reference these same node names (e.g. the
-// Health Centre's issue list) can show the same friendly wording.
+// 每行对应的 ROS 内部节点的通俗名称。
+// 导出此映射，让其他引用相同节点名称的位置（如 Health 页面的问题列表）可以显示统一的易读名称。
 export const FRIENDLY_NAMES = {
   map_server: "Map data",
   amcl: "Position tracking",
@@ -41,10 +40,8 @@ export const FRIENDLY_NAMES = {
   bt_navigator: "Navigation logic",
 };
 
-// These four buttons act on every navigation node at once (fleet-wide, not
-// just this one robot's UI tab). Deactivate/Cleanup can stop navigation
-// outright, so those two confirm before firing; Configure/Activate are
-// constructive (bringing something up) and don't need a gate.
+// 这四个按钮会同时作用于所有导航节点（整个机器人集群，而非仅当前 UI 标签页对应的机器人）。Deactivate/Cleanup
+// 可能直接停止导航，因此执行前需要确认；Configure/Activate 用于启动或配置功能，不需要确认。
 const ACTION_LABELS = {
   configure: { full: "Prepare", compact: "Prep", title: "Load configuration for every navigation system so it's ready to start." },
   activate: { full: "Start", compact: "Start", title: "Start every navigation system running." },

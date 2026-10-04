@@ -4,8 +4,7 @@ import { Joystick } from "react-joystick-component";
 import { AppConfig } from "../shared/constants/index";
 import { useRos, useRuntimeConfig } from "../app/App";
 
-// W3C Gamepad API standard mapping: left stick is axes[0] (x, +right) and
-// axes[1] (y, +down — inverted vs. the joystick lib's evt.y, which is +up).
+// W3C Gamepad API 标准映射：左摇杆使用 axes[0]（x，正值向右）和 axes[1]（y，正值向下；与摇杆库 evt.y 的向上正值相反）。
 const GAMEPAD_DEADZONE = 0.12;
 const applyDeadzone = (value) => (Math.abs(value) > GAMEPAD_DEADZONE ? value : 0);
 
@@ -32,10 +31,8 @@ const JoystickComponent = ({ maxSpeed, compact = false }) => {
     });
   }, [ros]);
 
-  // Updates the in-flight publish rather than restarting the interval on
-  // every call — the gamepad poller (below) calls this every animation
-  // frame while the stick is held, and restarting a 100ms interval that
-  // often would starve it of ever firing.
+  // 更新正在运行的发布流程，而不是每次调用都重启定时器。下方的游戏手柄轮询器在摇杆按住期间每帧都会调用此函数；
+  // 若如此频繁地重启 100 ms 定时器，定时器将一直无法触发。
   const setDataToRos = useCallback((coordsData) => {
     latestCoordsRef.current = coordsData;
     if (!intervalRef.current) {
@@ -73,11 +70,9 @@ const JoystickComponent = ({ maxSpeed, compact = false }) => {
     }
   }, []);
 
-  // Gamepad support: an alternate input feeding the same setDataToRos/
-  // handleStop path the on-screen joystick uses, so it publishes to the
-  // exact same cmd_vel topic with the same speed limits. Polled via rAF
-  // (the Gamepad API has no change events for stick movement), edge-
-  // triggered so handleStop only fires once per release, not every frame.
+  // 游戏手柄支持：备用输入，沿用屏幕摇杆使用的 setDataToRos/handleStop 流程，因此会向相同的 cmd_vel topic
+  // 发布数据并遵守相同的速度限制。通过 rAF 轮询（Gamepad API 不提供摇杆移动事件）；采用边沿触发，
+  // 确保松开时 handleStop 只调用一次，而不是每帧都调用。
   useEffect(() => {
     const gamepadActiveRef = { current: false };
     let rafId;

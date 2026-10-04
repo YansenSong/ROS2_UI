@@ -1,12 +1,11 @@
-# Generated React App
+# React 生成文件
 
-This directory is populated by:
+此目录由以下命令生成：
 
 ```bash
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 ```
 
-Do not commit generated `index.html`, `asset-manifest.json`, `ros/`, or
-`static/` bundle files from this directory. They are build artifacts and can
-cause stale UI assets to be served.
+请勿提交此目录中生成的 `index.html`、`asset-manifest.json`、`ros/` 或 `static/` 构建文件。
+这些均为构建产物，可能导致 UI 提供过期资源。

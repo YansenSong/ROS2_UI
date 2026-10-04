@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Relay TRANSIENT_LOCAL topics to /ui/* VOLATILE topics for rosbridge compatibility.
+将 TRANSIENT_LOCAL topic 中继到 /ui/* VOLATILE topic，以兼容 rosbridge。
   /amcl_pose                         -> /ui/amcl_pose
   /navigate_to_pose/_action/status   -> /ui/navigate_to_pose/status
   /dock_robot/_action/status         -> /ui/dock_robot/status

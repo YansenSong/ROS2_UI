@@ -15,7 +15,7 @@ robot workspace itself — and the fact that "connected" and "data is fresh"
 are different signals. This lesson turns that into a method: which tool to
 reach for, at which layer, in which order, instead of guessing. It pulls
 together commands that are otherwise scattered across the
-[README's troubleshooting section](../../README.md#troubleshooting) and
+  [故障排查指南](../troubleshooting.md)以及
 [`connect-external-device.md`](../extending/connect-external-device.md)'s
 verification step, and explains *why* each one is the right one for its
 layer.
@@ -33,7 +33,7 @@ problems you actually have before you touch a command line.
 
 | What you see | What it usually means | First action |
 | --- | --- | --- |
-| Page does not open | Flask or port `5050` is unavailable | Check the UI launch or Docker logs |
+| Page does not open | Flask or port `5050` is unavailable | Check the UI launch terminal and verify the Flask node is running. |
 | Page opens, connection is red | Browser cannot reach rosbridge on `9090` | Check the configured host, port, firewall, and rosbridge process |
 | Connection is green, but map or pose is frozen | rosbridge is reachable but robot topics are stale | Open Health and check topic freshness; do not drive |
 | Map is blank but pose/velocity updates | `/map` or `/ui/map` relay path is missing | Check map server and `map_volatile_relay` |

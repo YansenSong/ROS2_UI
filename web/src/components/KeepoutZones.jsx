@@ -7,9 +7,8 @@ const EMPTY = { name: "", cx: "", cy: "", w: "", h: "" };
 const numField = (v) => v !== "" && !Number.isNaN(Number(v));
 
 /**
- * Manage rectangular keep-out zones drawn on the map (centre + size in map
- * metres). Visual/planning aid — see useKeepoutZones for the enforcement
- * caveat. Toggle visibility with the "Zones" layer switch.
+ * 管理绘制在地图上的矩形禁入区域（地图坐标系中的中心点和尺寸，单位为米）。该区域仅用于可视化和规划辅助；
+ * 关于约束是否实际生效的说明，参见 useKeepoutZones。通过 "Zones" 图层开关切换显示。
  */
 const KeepoutZones = () => {
   const { zones, addZone, removeZone } = useKeepoutZones();

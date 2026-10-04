@@ -2,20 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants";
 
-// AMCL publishes a 6x6 pose covariance (row-major, 36 floats). The three
-// diagonal entries we care about for a planar robot are x, y and yaw:
+// AMCL 发布 6×6 位姿协方差矩阵（行优先，共 36 个浮点数）。平面机器人需要关注的三个对角元素对应 x、y 和 yaw：
 const COV_X = 0; // [0][0]
 const COV_Y = 7; // [1][1]
 const COV_YAW = 35; // [5][5]
 
-// How long without a fresh /amcl_pose before we treat localization as "no
-// data" rather than trusting the last (possibly stale) confidence reading.
+// /amcl_pose 多久未更新后，将定位状态视为“无数据”，而不再使用上一次（可能已过期）的置信度读数。
 const STALE_AFTER_MS = 6000;
 
-// Confidence bands from the position standard deviation (metres) and yaw
-// standard deviation (degrees). Tuned for a well-behaved indoor AMCL: a
-// converged filter sits well under 0.25 m / 8°; a freshly kidnapped or
-// global-init filter has particles spread across metres.
+// 根据位置标准差（米）和 yaw 标准差（度）划分置信度区间。阈值针对正常工作的室内 AMCL 设置：收敛后的滤波器应明显低于 0.25 m / 8°；刚被移动或全局初始化的滤波器，其粒子可能分布在数米范围内。
 const classify = (posStd, yawStdDeg) => {
   if (posStd <= 0.25 && yawStdDeg <= 8) {
     return {
@@ -48,13 +43,10 @@ const classify = (posStd, yawStdDeg) => {
 };
 
 /**
- * Localization confidence readout for AMCL. Subscribes to the relayed
- * /ui/amcl_pose (PoseWithCovarianceStamped), derives an "am I lost?" band
- * from the pose covariance, and offers two recovery actions:
- *   - Re-localize: calls /reinitialize_global_localization so AMCL scatters
- *     particles across the whole map and re-converges as the robot drives.
- *   - Set pose: hands control back to the Map's existing Set-Pose mode
- *     (via onSetPoseMode) so the operator can click the true pose.
+ * AMCL 定位置信度显示组件。订阅中继后的
+ * /ui/amcl_pose（PoseWithCovarianceStamped），根据位姿协方差推断“是否已丢失定位”，并提供两种恢复操作：
+ *   - 重新定位：调用 /reinitialize_global_localization，让 AMCL 在整张地图上重新分布粒子，并在机器人移动时重新收敛。
+ *   - 设置位姿：通过 onSetPoseMode 切换到 Map 页面现有的 Set-Pose 模式，由操作员在地图上点击真实位姿。
  */
 const LocalizationStatus = ({ onSetPoseMode }) => {
   const ros = useRos();
@@ -94,8 +86,7 @@ const LocalizationStatus = ({ onSetPoseMode }) => {
     return () => amclTopic.unsubscribe(handler);
   }, [ros]);
 
-  // Cheap 1 Hz tick so the "stale / no data" state and the age readout stay
-  // live even when AMCL stops publishing (the very case we want to surface).
+  // 每秒进行一次轻量更新，使“数据过期/无数据”状态和数据时长持续刷新，包括 AMCL 停止发布时（正是需要显示的情况）。
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);

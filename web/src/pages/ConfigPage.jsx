@@ -60,8 +60,7 @@ const ConfigPage = () => {
   const { reportHealth, reportLifecycle, issues, overall, overallLabel } =
     useSystemDiagnostics();
 
-  // Keep the form in sync if settings change elsewhere (e.g. reset from
-  // another tab writing to the same localStorage key).
+  // 如果设置在其他位置发生变化（例如另一标签页重置了相同 localStorage 键），同步更新表单。
   useEffect(() => setForm(config), [config]);
 
   const requestNotificationPermission = async () => {

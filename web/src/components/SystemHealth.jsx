@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRos, useRosStatus } from "../app/App";
 import { AppConfig } from "../shared/constants";
 
-// Streaming topics: health = message received within timeout ms
+// 流式 topic：在 timeout 毫秒内收到消息即视为健康。
 const STREAMING = [
   {
     key: "scan",
@@ -61,8 +61,7 @@ const TF_LINKS = [
   ["base_link", "lidar_link"],
 ];
 
-// Plain-language names for each position-tracking link, keyed the same way
-// as TF_LINKS above. The raw frame names stay available as a hover tooltip.
+// 位姿跟踪链路的通俗名称，键与上方 TF_LINKS 保持一致。原始 frame 名称仍可通过悬停提示查看。
 const FRIENDLY_TF_LABELS = {
   "map->odom": "Map alignment",
   "odom->base_link": "Motion tracking",
@@ -104,7 +103,7 @@ const SystemHealth = ({ compact = false, onHealthChange }) => {
     ),
   );
 
-  // Subscribe to streaming topics and stamp lastSeen on each message
+  // 订阅流式 topic，并在每条消息到达时记录 lastSeen。
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
 
@@ -146,7 +145,7 @@ const SystemHealth = ({ compact = false, onHealthChange }) => {
     return () => subs.forEach((t) => t.unsubscribe());
   }, [ros]);
 
-  // Track the frame chain needed by Nav2 and the map view.
+  // 跟踪 Nav2 和地图视图所需的 frame 链。
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
 
@@ -182,7 +181,7 @@ const SystemHealth = ({ compact = false, onHealthChange }) => {
     };
   }, [ros]);
 
-  // Every second: evaluate streaming health from timestamps
+  // 每秒根据时间戳评估流式数据的健康状态。
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();

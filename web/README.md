@@ -1,78 +1,56 @@
-# Web Frontend
+# Web 前端
 
-This folder contains the React browser dashboard for OpenAMR robot control,
-status, maps, routes, docking, and camera views.
+本目录包含 React 应用和 Vite 配置。工作区级别的设置和 ROS 启动流程请参阅
+[installation guide](../docs/installation.md) and
+[development guide](../docs/development.md).
 
-The top-level `../README.md` is the source of truth for full workspace setup,
-ROS launch commands, ports, and troubleshooting.
+## 本地开发
 
-## Development
-
-Install dependencies and run the React development server:
+使用 Node.js `20.19+` 或 `22.12+`（支持 Node 24）：
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-The dev server runs at:
+Vite 在 `http://localhost:3000/` 提供服务，并绑定到 `0.0.0.0`。在 Config 中启用
+Demo Mode，即可在无需连接机器人或 rosbridge 的情况下查看浏览器端模拟的 ROS 遥测数据。
 
-```text
-http://localhost:3000
+Vite 服务器不提供 Flask `/api/*` endpoint。要使用相关功能，需单独运行 ROS UI 后端。要获取实时
+ROS 数据，必须能通过配置的主机和端口访问 rosbridge。可在应用的 Config 页面覆盖运行时连接设置；
+默认值位于
+[`src/shared/constants/index.js`](src/shared/constants/index.js) and
+[`src/shared/constants/runtimeConfig.js`](src/shared/constants/runtimeConfig.js).
+
+开发时如需显示 inspection 导航配置：
+
+```bash
+VITE_UI_PROFILE=inspection_demo npm run dev
 ```
 
-The frontend can render without ROS, but live robot data and controls require
-rosbridge to be running and reachable. If the robot isn't at the default
-address, the easiest fix is the in-app Config page (`/config`) — it overrides
-the rosbridge host/port at runtime, no rebuild needed. `ROSBRIDGE_SERVER_IP`
-in `src/shared/constants/index.js` is only the fallback default the dev
-server (`:3000`) uses when no runtime override is set — see
-`src/shared/constants/runtimeConfig.js`'s `resolveRosbridgeHost()`.
+也接受 `REACT_APP_UI_PROFILE=inspection_demo`。如需在生产构建中使用相同配置，请在运行
+`npm run build` 前设置该变量。
 
-Also worth knowing: Demo Mode (toggle on the Config page) renders the entire
-UI with simulated telemetry and no rosbridge connection at all — useful for
-frontend-only work when a robot or simulator isn't available.
+## 前端生产构建
 
-## Production build
-
-From the repository root, use the canonical scripts:
+From the repository root, run:
 
 ```bash
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 ```
 
-`build_frontend.sh` creates `web/build/`. `sync_frontend_to_ros.sh` copies that
-build into the ROS package static app directory so Flask can serve it.
+第一个脚本会安装 lockfile 锁定的 npm 依赖，并将构建结果放到 `web/build/`；第二个脚本会将结果复制到
+ROS 软件包的 `static/app/` 目录。之后请构建 ROS 工作区，以便已安装的软件包提供更新后的前端。
 
-## Structure
+## 源码目录
 
-- `public/ros/`: browser ROS libraries copied into the production build
-  (`roslib.js`, `ros2d.js`, `nav2d.js`, `easeljs.js`, `eventemitter2.min.js`).
-- `src/app/`: top-level React app setup, providers, and global styles.
-- `src/assets/`: images, icons, and fonts.
-- `src/components/`: shared UI and robot-control components.
-- `src/features/`: larger, self-contained feature modules, each with its own
-  API/model/component files — `blocks/` (Blockly programming, toolbox, action
-  executor, and the dedicated guide), `devices/`, `recordings/`, and
-  `robotDescription/` (the URDF/Xacro digital-twin viewer).
-- `src/layouts/`: page layout components (`appLayout.jsx` — header, status
-  bar, always-mounted background components, and the active page).
-- `src/pages/`: route-level pages, driven by `src/pages/registry.js`'s
-  `PAGE_REGISTRY` (the single source of truth for routing and the sidebar —
-  see `docs/extending/add-a-ui-panel.md`).
-- `src/plugins/`: example/optional page plugins registered through
-  `src/shared/plugins/registerPlugin.js` instead of editing the core
-  registry directly (see `notesPlugin/` for a complete working example).
-- `src/shared/`: constants, styles, reusable UI primitives, and small
-  cross-cutting feature folders — `hooks/`, `events/` (the Events page's
-  log), `missions/` and `schedules/` (Missions/Scheduler state and runners),
-  `support/` (support-package export), `demo/` (Demo Mode), `help/` and
-  `tour/` (onboarding/help widget), `i18n/`, and `plugins/` (the plugin
-  registry itself).
-- `src/stores/`: Redux store setup (used for exactly one thing — the console
-  log message list; see `docs/lessons/07-ui-components.md`).
-- `package.json`: frontend dependencies and npm scripts.
+- `src/app/` — 应用框架、共享 ROS 连接和 providers。
+- `src/components/` — 共用面板和控件。
+- `src/features/` — Programs、设备、录制和机器人描述等功能模块。
+- `src/pages/` — 路由页面和 `registry.js` 导航注册表。
+- `src/shared/` — 常量、hooks、Demo Mode 数据、样式和共用辅助工具。
+- `public/ros/` — 应用构建时包含的浏览器端 ROS 库。
 
-For what each top-level page actually shows, see
-[`docs/lessons/06-the-pages.md`](../docs/lessons/06-the-pages.md).
+Topic 名称集中定义在 `src/shared/constants/index.js`；消息类型和订阅在各组件中声明。
+使用实时数据前，请对照机器人侧 ROS graph 核实 topic 契约。

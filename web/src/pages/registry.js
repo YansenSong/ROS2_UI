@@ -11,15 +11,11 @@ const MissionsPage = lazy(() => import("./MissionsPage"));
 const ConfigPage = lazy(() => import("./ConfigPage"));
 
 /**
- * Single source of truth for every top-level page. Header.jsx's sidebar/
- * mobile nav and pages/index.jsx's routing both read this array instead of
- * each keeping their own hardcoded list — a contributor adding a new page
- * appends one entry here and nothing else needs editing.
+ * 所有顶层页面的唯一数据源。Header.jsx 的侧边栏/移动端导航和 pages/index.jsx 的路由都读取此数组，
+ * 无需各自维护硬编码列表。添加新页面时，只需在此处追加一项。
  *
- * `path` is always the absolute nav path (what NavLink's `to` wants);
- * pages/index.jsx derives the relative <Route path> from it. `icon` must
- * match a case in Header.jsx's NavIcon (unregistered names fall back to a
- * generic dot, so a new entry never renders as a blank slot).
+ * `path` 始终是导航使用的绝对路径（即 NavLink 的 `to` 值）；pages/index.jsx 会据此生成相对的 <Route path>。
+ * `icon` 必须与 Header.jsx 的 NavIcon 中某个分支对应（未注册的名称会回退到通用圆点，避免新条目显示为空白）。
  */
 export const PAGE_REGISTRY = [
   { path: "/", label: "Map", icon: "map", component: MapPage },
@@ -45,7 +41,7 @@ export const PAGE_REGISTRY = [
 
 export const NAV_REGISTRY = INSPECTION_PROFILE ? [...PAGE_REGISTRY] : PAGE_REGISTRY;
 
-/** Appends a page plugin to the registry. Call before the app renders. */
+/** 将页面插件追加到注册表。必须在应用渲染前调用。 */
 export function registerPage(entry) {
   PAGE_REGISTRY.push(entry);
 }
