@@ -10,6 +10,7 @@
 
 [课程 06](06-the-pages.md)概览了所有页面。本课深入介绍 Map 和 Route 背后的共享面板：这两个页面由[`web/src/components/`](../../web/src/components/)中的小面板组合而成。我们会说明各面板显示什么、使用哪些 ROS 名称（除非另有说明，名称来自[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)）、目前由哪些页面渲染，以及从名称看不出的内部行为。Programs/Blockly 不是由这类面板组合而成，因此会在[课程 09](09-blockly-programming.md)单独介绍。
 
+<a id="a-note-on-the-old-control-page"></a>
 ### 关于旧版 Control 页面的说明
 
 早期版本的 UI 有单独的 Control 页面，现在已移除；手动驾驶、docking 和 telemetry 面板已并入 Map 页面（见[课程 06](06-the-pages.md#map--mappagejsx)）。下文的 `Joystick`、`DockingControl`、`NavStatus` 和 `SystemAlerts` 组件过去就在该页面中渲染。变化的是渲染它们的页面，而不是组件行为或使用的 topics。旧文档、issue 或代码注释中的 “Control page” 指的就是旧版页面。

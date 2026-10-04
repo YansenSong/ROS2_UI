@@ -1,18 +1,10 @@
-# Adding a Blockly Block
+# 添加 Blockly block
 
-A hands-on guide to adding a new block to the Blocks page. If you haven't
-read it yet, [Lesson 09 — Blockly Visual Programming](../lessons/09-blockly-programming.md)
-explains the pipeline this guide walks through mechanically: a block
-definition becomes an action object, and an executor turns that action object
-into a real ROS publish or service call. Adding a block means touching all
-three stages.
+本指南通过实操说明如何在 Blocks 页面添加新的 block。如果还没有阅读[课程 09——Blockly 可视化编程](../lessons/09-blockly-programming.md)，建议先阅读；该课程会介绍本指南涉及的 pipeline：block definition 转换成 action object，executor 再将该 action object 转为实际的 ROS publish 或 service call。添加 block 需要修改这三个阶段。
 
-## 1. Define the block
+## 1. 定义 block
 
-Edit
-[`web/src/features/blocks/blockDefinitions.js`](../../web/src/features/blocks/blockDefinitions.js).
-Add a Blockly JSON block definition — this is what the user sees and drags
-onto the workspace:
+编辑[`web/src/features/blocks/blockDefinitions.js`](../../web/src/features/blocks/blockDefinitions.js)。添加 Blockly JSON block definition，也就是用户看到并拖入 workspace 的内容：
 
 ```js
 {
@@ -25,59 +17,43 @@ onto the workspace:
 }
 ```
 
-Then add a matching case to `blockToAction` in the same file — this is what
-converts the connected block into a plain action object in the Generated
-Plan:
+接着在同一文件的 `blockToAction` 中添加对应 case，将已连接的 block 转换为 Generated Plan 中的普通 action object：
 
 ```js
 case "openamr_beep":
   return { type: "beep" };
 ```
 
-If the block takes fields (a number, a dropdown, …), read them off the block
-the same way neighboring cases in `blockToAction` already do, and include
-them in the returned action object.
+如果 block 包含 fields（数字、dropdown 等），按照 `blockToAction` 中相邻 case 的方式读取字段，并将它们加入返回的 action object。
 
-## 2. Add it to the toolbox
+## 2. 将 block 添加到 toolbox
 
-Edit [`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js)
-and add an entry under whichever category the block belongs in (Program,
-Navigation, Motion, Docking, or Robot State — see
-[Lesson 09](../lessons/09-blockly-programming.md#block-categories-at-a-glance)):
+编辑[`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js)，在对应类别下添加一项（Program、Navigation、Motion、Docking 或 Robot State，见[课程 09](../lessons/09-blockly-programming.md#block-categories-at-a-glance)）：
 
 ```js
 { kind: "block", type: "openamr_beep" }
 ```
 
-Without this step the block exists but never appears in the left sidebar.
+如果没有这一步，block 虽然已经定义，但不会出现在左侧 sidebar 中。
 
-## 3. Execute the action
+## 3. 执行 action
 
-Edit [`web/src/features/blocks/robotActions.js`](../../web/src/features/blocks/robotActions.js)
-and add a case matching the action `type` from step 1:
+编辑[`web/src/features/blocks/robotActions.js`](../../web/src/features/blocks/robotActions.js)，为第 1 步定义的 action `type` 添加对应 case：
 
 ```js
 case "beep":
-  // publish to your topic here, following the pattern of the
-  // neighboring cases in this file (dockTopic.publish(...), etc.)
+  // 按照此文件中相邻 case 的模式（例如 dockTopic.publish(...)），
+  // 在这里向你的 topic 发布消息。
   return;
 ```
 
-If the action needs a new topic name, add it to `AppConfig` in
-[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)
-first and reference it from here — never inline a topic string, same rule as
-every other panel (see
-[`docs/extending/add-a-ui-panel.md`](add-a-ui-panel.md#4-add-topic-names-to-the-constants-file--never-inline)).
-If the underlying topic doesn't exist on the robot side yet, or needs a
-relay, see
-[`docs/extending/connect-external-device.md`](connect-external-device.md)
-first.
+如果 action 需要新的 topic name，先将它加到[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)的 `AppConfig` 中，再从这里引用。不要 inline 写 topic string；这是所有面板都应遵守的规则，见[`docs/extending/add-a-ui-panel.md`](add-a-ui-panel.md#4-add-topic-names-to-the-constants-file--never-inline)。
 
-## 4. Confirm it
+如果机器人侧还没有对应 topic，或需要 relay，请先阅读[`docs/extending/connect-external-device.md`](connect-external-device.md)。
 
-Rebuild the frontend and reinstall it so Flask serves the updated bundle —
-Blockly code doesn't hot-reload through the production Flask server the way
-`npm run dev` does:
+## 4. 确认实现
+
+重新构建 frontend 并安装，确保 Flask 提供更新后的 bundle。与 `npm run dev` 不同，生产环境的 Flask server 不会对 Blockly code 执行 hot reload：
 
 ```bash
 cd ~/openamrobot-ui
@@ -88,10 +64,6 @@ colcon build --packages-select openamr_ui_package
 source install/setup.bash
 ```
 
-Restart the UI launch, hard-refresh the browser (`Ctrl+Shift+R`), open
-`/blocks`, and confirm the new block appears in its category, connects under
-`start robot program`, shows up correctly in the Generated Plan, and (once
-the page shows "Robot connected") actually publishes when run.
+重启 UI launch，强制刷新浏览器（`Ctrl+Shift+R`），打开 `/blocks`，确认新增 block 出现在正确类别中、可以连接到 `start robot program` 下方、能正确显示在 Generated Plan 中，并且页面显示 “Robot connected” 后，运行时确实会 publish。
 
-Full setup, build-mode notes, and troubleshooting for the Blocks page live in
-[`web/src/features/blocks/README.md`](../../web/src/features/blocks/README.md).
+Blocks 页的完整设置、构建模式说明和故障排查见[`web/src/features/blocks/README.md`](../../web/src/features/blocks/README.md)。

@@ -67,6 +67,7 @@ Generated Plan 中的 action object（例如 "navigate"、"wait"、"dock"）
 
 将“block 表达的含义”和“如何执行”分开后，手动创建的 block、保存的 template 和语音命令都能生成相同格式的 Generated Plan，并使用相同的执行路径。只有连接在唯一 `start robot program` block 下方的 blocks 会被读取；workspace 其他位置的游离 blocks 会被忽略。这也是实操指南中 “0 steps” 故障排查项的原因。
 
+<a id="block-categories-at-a-glance"></a>
 ## Block 类别速览
 
 toolbox（[`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js)）将 blocks 分为五类：

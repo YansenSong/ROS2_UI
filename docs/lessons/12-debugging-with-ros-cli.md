@@ -48,6 +48,7 @@
 
 如果第 2 层确认 UI 侧 graph 正常（nodes 正在运行、topics 存在），问题仍然存在，通常就在机器人或仿真工作区（见[课程 01](01-what-is-this-ui.md#the-two-workspace-model)）。该工作区不在本仓库中；应检查其日志以及 Nav2/driver 状态，而不是继续查看 UI 代码。
 
+<a id="a-decision-order-for-common-symptoms"></a>
 ## 常见现象的排查顺序
 
 | 现象 | 首要检查 |
