@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { useRos, useRosStatus, useRuntimeConfig } from "../app/App";
 import { resolveRosbridgeHost } from "../shared/constants/runtimeConfig";
 import buildSupportPackage from "../shared/support/buildSupportPackage";
+import { useT } from "../shared/i18n/i18n";
 
 /**
  * Downloads a single JSON file bundling connection info, the Health Centre
@@ -15,6 +16,7 @@ import buildSupportPackage from "../shared/support/buildSupportPackage";
  * topics on its own.
  */
 const SupportPackageButton = ({ health }) => {
+  const { t } = useT();
   const ros = useRos();
   const rosStatus = useRosStatus();
   const { config } = useRuntimeConfig();
@@ -39,9 +41,11 @@ const SupportPackageButton = ({ health }) => {
       a.download = `openamr-support-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Support package downloaded");
+      toast.success(t("Support package downloaded"));
     } catch (err) {
-      toast.error(`Couldn't build support package: ${err?.message || err}`);
+      toast.error(
+        `${t("Couldn't build support package")}: ${err?.message || err}`,
+      );
     } finally {
       setBusy(false);
     }
@@ -53,7 +57,7 @@ const SupportPackageButton = ({ health }) => {
       disabled={busy}
       className="rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue disabled:opacity-40"
     >
-      {busy ? "Building…" : "Export support package"}
+      {t(busy ? "Building…" : "Export support package")}
     </button>
   );
 };

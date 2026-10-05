@@ -179,38 +179,9 @@ body {
 /* 145px = Header's mobile top bar + StatusBar (components/StatusBar.jsx),
    the two pieces of chrome that sit above <main> in every layout. Keep this
    in sync with the other calc(100vh-145px) spots (MapPage/ConsolePage/
-   BlocksPage) if either of those ever changes height. */
+   other full-height pages) if those ever change height. */
 .sectionHeight {
   min-height: calc(100vh - 145px);
-}
-
-/* ─── Blockly ───────────────────────────────────────────────────────────── */
-.blocklyMainBackground {
-  stroke: #d8e4ed;
-}
-
-.dark .blocklyMainBackground {
-  fill: #0d0d11;
-  stroke: rgba(255, 255, 255, 0.09);
-}
-
-.blocklyToolboxDiv,
-.blocklyFlyoutBackground {
-  background: #f8fbfd;
-}
-
-.dark .blocklyToolboxDiv,
-.dark .blocklyFlyoutBackground {
-  background: #111116;
-}
-
-.dark .blocklyToolboxDiv {
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.dark .blocklyTreeLabel,
-.dark .blocklyFlyoutLabelText {
-  color: #d7d4df;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────── */

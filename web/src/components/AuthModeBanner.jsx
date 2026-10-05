@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useEffect, useState } from "react";
 
 const API_BASE = window.location.port === "3000" ? "http://127.0.0.1:5050" : "";
@@ -30,7 +31,8 @@ const AuthModeBanner = () => {
   if (!status || dismissed) return null;
 
   const showConfigWarning = Boolean(status.warning);
-  const showNetworkWarning = status.mode === "open" && status.isLocalNetwork === false;
+  const showNetworkWarning =
+    status.mode === "open" && status.isLocalNetwork === false;
   if (!showConfigWarning && !showNetworkWarning) return null;
 
   return (
@@ -39,10 +41,11 @@ const AuthModeBanner = () => {
         {showConfigWarning && <span>{status.warning} </span>}
         {showNetworkWarning && (
           <span>
-            This robot&apos;s controls are reachable from outside your local
-            network with no authentication (AUTH_MODE=open) — anyone who can
-            reach this address can operate the robot. Restrict network access,
-            or set AUTH_MODE once a supported mode is available.
+            <T>
+              {
+                "This robot's controls are reachable from outside your local network with no authentication (AUTH_MODE=open) — anyone who can reach this address can operate the robot. Restrict network access, or set AUTH_MODE once a supported mode is available."
+              }
+            </T>{" "}
           </span>
         )}
       </span>

@@ -3,24 +3,26 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Button from "../../shared/ui/Button";
+import { useT } from "../../shared/i18n/i18n";
 
 const TextInputModal = ({ header, placeholder, routesList, modalHandler }) => {
+  const { t } = useT();
   const [inputValue, setInputValue] = useState("");
 
   const handleSubmitClick = () => {
     const trimmedValue = inputValue.trim();
     if (!trimmedValue) {
-      toast.warn("Enter route name");
+      toast.warn(t("Enter route name"));
       return;
     }
 
     if (trimmedValue === "Null" || trimmedValue === "New route") {
-      toast.warn("This name is reserved");
+      toast.warn(t("This name is reserved"));
       return;
     }
 
     if (trimmedValue.toString().includes("_")) {
-      toast.warn("Symbol '_' is forbidden");
+      toast.warn(t("Symbol '_' is forbidden"));
       return;
     }
 
@@ -28,7 +30,7 @@ const TextInputModal = ({ header, placeholder, routesList, modalHandler }) => {
       (route) => route === trimmedValue,
     );
     if (isRouteWithPassedNameExist) {
-      toast.warn("Route with passed name is already exist");
+      toast.warn(t("Route with passed name is already exist"));
       return;
     }
     modalHandler(trimmedValue);
@@ -67,7 +69,7 @@ const TextInputModal = ({ header, placeholder, routesList, modalHandler }) => {
         <div className="grid w-full grid-cols-2 gap-3">
           <div>
             <Button type={"gray"} onBtnClick={handleCancelClick}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
           <div>

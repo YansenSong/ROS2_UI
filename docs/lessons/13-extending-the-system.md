@@ -1,92 +1,41 @@
-# Lesson 13 — Extending the System
+# 课程 13——扩展系统
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Contributors | 8 minutes | [Lesson 10](10-topics-as-the-contract.md) and the relevant page lesson |
+| 贡献者 | 8 分钟 | [课程 10](10-topics-as-the-contract.md)及对应页面课程 |
 
-## What you'll learn
+## 学习目标
 
-You will learn how to choose the correct hands-on extension guide and how to
-verify that a new page, device, or Blockly block follows the existing system
-contracts.
+了解应选择哪份实操扩展指南，以及如何确认新增页面或设备遵循现有系统契约。
 
-If you've read Lessons 00–12, you now have the whole mental model this UI
-runs on:
+读完课程 00–12 后，你已经掌握了理解本 UI 所需的整体模型：
 
-- A browser dashboard talking to ROS through rosbridge, over one shared
-  connection ([Lesson 01](01-what-is-this-ui.md),
-  [Lesson 03](03-how-the-browser-talks-to-ros.md)).
-- Nodes, topics, messages, services, actions, and launch files as the basic
-  building blocks ([Lesson 02](02-ros2-core-concepts.md)).
-- A relay pattern — robot topic → relay node → browser-safe topic — used
-  whenever a robot-side topic's QoS doesn't suit a late-joining browser
-  client ([Lesson 04](04-data-flow-and-relays.md)).
-- What the rest of `openamr_ui_package` runs beyond the relays — the Flask
-  web/API server and the two Route-page backend nodes
-  ([Lesson 05](05-backend-nodes-in-detail.md)).
-- A full tour of every page — most of them thin compositions of panels that
-  subscribe/publish through that one shared connection
-  ([Lesson 06](06-the-pages.md)) — and exactly what each of the panels
-  behind Map and Route does ([Lesson 07](07-ui-components.md)).
-- The group → map → route file hierarchy behind the Route page
-  ([Lesson 08](08-map-and-route-model.md)).
-- Programs (Blockly), where the same publish/subscribe mechanics get
-  wrapped in a block → action → execution pipeline instead of direct panel
-  code ([Lesson 09](09-blockly-programming.md)).
-- Topic names as the real, unchecked-by-any-compiler interface between the UI
-  and the robot, which is why they're centralized in one constants file
-  ([Lesson 10](10-topics-as-the-contract.md)).
-- What breaks and what recovers on its own when WiFi drops or a process
-  restarts ([Lesson 11](11-failure-modes-and-reconnection.md)), and which
-  `ros2` command to reach for at each layer when it does
-  ([Lesson 12](12-debugging-with-ros-cli.md)).
+- 浏览器 dashboard 通过 rosbridge 和 ROS 通信，并共用一个 connection（[课程 01](01-what-is-this-ui.md)、[课程 03](03-how-the-browser-talks-to-ros.md)）。
+- Nodes、topics、messages、services、actions 和 launch files 是 ROS 的基础组成部分（[课程 02](02-ros2-core-concepts.md)）。
+- 机器人侧 topic 的 QoS 不适合迟加入的 browser client 时，使用 robot topic → relay node → browser-safe topic 模式（[课程 04](04-data-flow-and-relays.md)）。
+- `openamr_ui_package` 除 relay 外还运行 Flask web/API server 和 Route 页的两个 backend nodes（[课程 05](05-backend-nodes-in-detail.md)）。
+- 了解所有页面以及它们使用的面板（[课程 06](06-the-pages.md)、[课程 07](07-ui-components.md)），并理解 Route 页背后的 group → map → route 文件层级（[课程 08](08-map-and-route-model.md)）。
+- Topic names 是 UI 和机器人之间实际生效、但 compiler 不会检查的 interface，因此应集中定义（[课程 10](10-topics-as-the-contract.md)）。
+- WiFi 断开或进程重启时，哪些内容会出错并自行恢复（[课程 11](11-failure-modes-and-reconnection.md)），以及各层调试时应使用哪些 `ros2` 命令（[课程 12](12-debugging-with-ros-cli.md)）。
 
-That's everything needed to make three kinds of changes safely. All three
-guides below are hands-on and reference exact files — no more theory from
-here. [`docs/extending/README.md`](../extending/README.md) is a one-page
-router if you just want to jump straight to the right one, and
-[`docs/extending/worked-example-adding-a-sensor.md`](../extending/worked-example-adding-a-sensor.md)
-walks the first two guides together through one complete, concrete example.
+以上内容足以开始三类扩展工作。以下指南都是实操说明，并引用了具体文件。若要直接选择指南，可查看[`docs/extending/README.md`](../extending/README.md)；[`docs/extending/worked-example-adding-a-sensor.md`](../extending/worked-example-adding-a-sensor.md)则用一个完整实例串联前两份指南。
 
-## Adding a new panel or page to the UI
+## 为 UI 添加面板或页面
 
-If you want a new screen, or a new self-contained widget on an existing page
-(a new status readout, a new control), follow
-[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md). It
-covers where the file goes, how to register a route, how to reach the shared
-ROS connection, and which constants file to add topic names to.
+要新增页面，或在已有页面中增加独立 widget（例如新的 status readout 或 control），请遵循[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md)。指南会介绍文件位置、route 注册方式、如何访问共享 ROS connection，以及应在哪个 constants file 添加 topic names。
 
-## Connecting a new external device
+## 连接外部设备
 
-If you have a new sensor, actuator, or any new ROS topic on the robot side
-that you want visible or controllable from the browser, follow
-[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md).
-It covers deciding whether the topic needs a relay
-([Lesson 04](04-data-flow-and-relays.md)'s pattern), where to register that
-relay, and how to expose and render the result in a panel.
+如果要让新的 sensor、actuator 或机器人侧 ROS topic 在浏览器中可见或可控，请遵循[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md)。指南涵盖如何判断是否需要 relay（见[课程 04](04-data-flow-and-relays.md)）、在哪里注册 relay，以及如何在 panel 中呈现数据。
 
-## Adding a new Blockly block
+这些指南都针对新增功能，不要求改变现有页面的行为。
 
-If you want a new drag-and-drop block on the Programs page, follow
-[`docs/extending/add-a-blockly-block.md`](../extending/add-a-blockly-block.md).
-It covers defining the block, registering it in the toolbox, and wiring its
-execution — the same three-stage pipeline from
-[Lesson 09](09-blockly-programming.md).
+## 试一试
 
-All three guides assume you're only adding things — none of them ask you to
-modify an existing page's behavior.
+选一个小型扩展想法，先记录它对用户可见的用途、ROS topic/service/action contract、message type、安全影响、持久化需求，以及应该参考哪份指南，再创建文件。
 
-## Try it
-
-Choose one small extension idea and write down its user-visible purpose, ROS
-topic/service/action contract, message type, safety impact, persistence needs,
-and the guide you would follow. Do this before creating files.
-
-**You're ready to continue when:** you can identify the smallest applicable
-guide and list how you will verify the change in Demo Mode, simulation, and—if
-appropriate—real hardware.
+**完成标准：**能找出最适用的指南，并列出在仿真以及（如适用）真实硬件上如何验证。
 
 ---
 
-[← Lesson 12](12-debugging-with-ros-cli.md) · [Lesson index](README.md) ·
-[Continue to the extension guides →](../extending/README.md)
+[← 课程 12](12-debugging-with-ros-cli.md) · [课程索引](README.md) · [前往扩展指南 →](../extending/README.md)

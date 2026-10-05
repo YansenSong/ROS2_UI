@@ -15,7 +15,7 @@ export const TOURS = {
     {
       selector: '[data-tour="connection-status"]',
       title: "Connection status",
-      body: "Shows whether this browser is actually connected to a robot (or, in Demo Mode, to simulated data).",
+      body: "Shows whether this browser is connected to the robot.",
     },
     {
       selector: '[data-tour="map-layers"]',

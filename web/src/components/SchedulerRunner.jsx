@@ -7,12 +7,16 @@ import { getSchedules, updateSchedule } from "../shared/schedules/schedules";
 import { addEvent } from "../shared/events/eventLog";
 import { loadWaypoints as readWaypoints } from "../shared/hooks/useSavedWaypoints";
 import { requestStart as requestMissionStart } from "../shared/missions/missionRunner";
+import { translate as t } from "../shared/i18n/i18n";
 
 // 使用分钟精度的键，确保即使轮询频率更高，同一条计划也只会在匹配分钟内触发一次。
 const minuteKey = (d) =>
   `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${d.getMinutes()}`;
 const hhmm = (d) =>
-  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(
+    2,
+    "0",
+  )}`;
 
 /**
  * 无界面 runner，挂载在 AppLayout 中，在浏览器标签页打开期间触发到期的任务计划。每条计划都会向 /goal_pose
@@ -52,8 +56,12 @@ const SchedulerRunner = () => {
     const runAction = (s) => {
       if (s.action?.type === "mission") {
         requestMissionStart(s.action.missionId);
-        toast.info(`Scheduled: running mission "${s.name}"`);
-        addEvent({ type: "system", severity: "info", message: `Schedule "${s.name}" fired → mission run started` });
+        toast.info(`${t("Scheduled: running mission")} "${s.name}"`);
+        addEvent({
+          type: "system",
+          severity: "info",
+          message: `Schedule "${s.name}" fired → mission run started`,
+        });
         return;
       }
 
@@ -70,10 +78,18 @@ const SchedulerRunner = () => {
         }
       }
       if (ok) {
-        toast.info(`Scheduled: navigating to ${where}`);
-        addEvent({ type: "system", severity: "info", message: `Schedule "${s.name}" fired → ${where}` });
+        toast.info(`${t("Scheduled: navigating to")} ${where}`);
+        addEvent({
+          type: "system",
+          severity: "info",
+          message: `Schedule "${s.name}" fired → ${where}`,
+        });
       } else {
-        addEvent({ type: "system", severity: "warning", message: `Schedule "${s.name}" could not run (target missing or disconnected)` });
+        addEvent({
+          type: "system",
+          severity: "warning",
+          message: `Schedule "${s.name}" could not run (target missing or disconnected)`,
+        });
       }
     };
 

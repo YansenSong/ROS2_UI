@@ -20,7 +20,7 @@ import useSavedWaypoints from "../shared/hooks/useSavedWaypoints";
 import useKeepoutZones from "../shared/hooks/useKeepoutZones";
 import { addEvent } from "../shared/events/eventLog";
 import { INSPECTION_PROFILE } from "../shared/robot/robotContract";
-import { useT } from "../shared/i18n/i18n";
+import { useT, T } from "../shared/i18n/i18n";
 
 const INITIAL_POSE_COV = [
   0.25, 0, 0, 0, 0, 0, 0, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -113,7 +113,7 @@ const MapPage = () => {
     amclTopic.subscribe(() => {
       if (!pendingInitialPoseRef.current) return;
       pendingInitialPoseRef.current = false;
-      toast.success("Robot's position estimate updated");
+      toast.success(t("Robot's position estimate updated"));
     });
 
     return () => amclTopic.unsubscribe();
@@ -140,18 +140,18 @@ const MapPage = () => {
           queueIdxRef.current = next;
           publishGoal(waypointQueueRef.current[next]);
           toast.info(
-            `Waypoint ${next + 1} / ${waypointQueueRef.current.length}`,
+            `${t("Waypoint")} ${next + 1} / ${waypointQueueRef.current.length}`,
           );
         } else {
           queueExecutingRef.current = false;
           setQueueExecuting(false);
           setWaypointQueue([]);
-          toast.success("All waypoints complete!");
+          toast.success(t("All waypoints complete!"));
         }
       } else if (latest.status === 5 || latest.status === 6) {
         queueExecutingRef.current = false;
         setQueueExecuting(false);
-        toast.warn("Queue stopped: goal was canceled or failed");
+        toast.warn(t("Queue stopped: goal was canceled or failed"));
       }
     });
 
@@ -183,7 +183,7 @@ const MapPage = () => {
       position: { x: wp.x, y: wp.y, z: 0 },
       orientation: { x: 0, y: 0, z: wp.z, w: wp.w },
     });
-    toast.success(`Navigating to "${wp.name}"`);
+    toast.success(`${t("Navigating to")} "${wp.name}"`);
   }, []);
 
   // The three map right-click context-menu actions (Map.jsx's onContext*
@@ -193,7 +193,9 @@ const MapPage = () => {
   const sendGoalAt = (pose) => {
     publishGoal(pose);
     toast.success(
-      `Goal: (${pose.position.x.toFixed(2)}, ${pose.position.y.toFixed(2)}) m`,
+      `${t("Goal")}: (${pose.position.x.toFixed(2)}, ${pose.position.y.toFixed(
+        2,
+      )}) m`,
     );
   };
 
@@ -204,7 +206,7 @@ const MapPage = () => {
       z: pose.orientation.z,
       w: pose.orientation.w,
     });
-    toast.success(`Saved "${name}"`);
+    toast.success(`${t("Saved")} "${name}"`);
   };
 
   const setInitialPoseAt = (pose) => {
@@ -231,7 +233,9 @@ const MapPage = () => {
     window.NAV2D?.clearTrail?.();
     window.NAV2D?.clearGoalPose?.();
     toast.success(
-      `Initial pose set: (${pose.position.x.toFixed(2)}, ${pose.position.y.toFixed(2)}) m`,
+      `${t("Initial pose set")}: (${pose.position.x.toFixed(
+        2,
+      )}, ${pose.position.y.toFixed(2)}) m`,
     );
   };
 
@@ -259,9 +263,9 @@ const MapPage = () => {
       if (m === "goal") {
         publishGoal(pose);
         toast.success(
-          `Goal: (${pose.position.x.toFixed(2)}, ${pose.position.y.toFixed(
+          `${t("Goal")}: (${pose.position.x.toFixed(
             2,
-          )}) m`,
+          )}, ${pose.position.y.toFixed(2)}) m`,
         );
       } else if (m === "pose") {
         if (!initialPoseTopic.current) return;
@@ -286,7 +290,7 @@ const MapPage = () => {
         if (window.NAV2D?.clearTrail) window.NAV2D.clearTrail();
         window.NAV2D?.clearGoalPose?.();
         toast.success(
-          `Initial pose set: (${pose.position.x.toFixed(
+          `${t("Initial pose set")}: (${pose.position.x.toFixed(
             2,
           )}, ${pose.position.y.toFixed(2)}) m`,
         );
@@ -295,7 +299,7 @@ const MapPage = () => {
         window.NAV2D?.clearGoalPose?.();
         const idx = waypointQueueRef.current.length;
         setWaypointQueue((prev) => [...prev, pose]);
-        toast.info(`Waypoint ${idx + 1} added`);
+        toast.info(`${t("Waypoint")} ${idx + 1} ${t("added")}`);
       }
     };
   }, []);
@@ -333,7 +337,7 @@ const MapPage = () => {
           stamp: { sec: 0, nanosec: 0 },
         },
       }),
-      () => toast.info("Navigation canceled"),
+      () => toast.info(t("Navigation canceled")),
       (err) => console.warn("Cancel failed:", err),
     );
   }, []);
@@ -347,7 +351,11 @@ const MapPage = () => {
       }),
     );
     cancelGoal();
-    addEvent({ type: "safety", severity: "error", message: "Emergency stop — robot halted" });
+    addEvent({
+      type: "safety",
+      severity: "error",
+      message: "Emergency stop — robot halted",
+    });
     toast.warn("Emergency stop — robot halted");
   }, [cancelGoal]);
 
@@ -367,7 +375,7 @@ const MapPage = () => {
       position: { x: 0, y: 0, z: 0 },
       orientation: { x: 0, y: 0, z: 0, w: 1 },
     });
-    toast.info("Navigating to home position (0, 0) m");
+    toast.info(t("Navigating to home position (0, 0) m"));
   }, []);
 
   const executeQueue = useCallback(() => {
@@ -377,7 +385,9 @@ const MapPage = () => {
     queueExecutingRef.current = true;
     setQueueExecuting(true);
     publishGoal(waypointQueueRef.current[0]);
-    toast.info(`Executing ${waypointQueueRef.current.length} waypoints`);
+    toast.info(
+      `${t("Executing")} ${waypointQueueRef.current.length} ${t("waypoints")}`,
+    );
   }, []);
 
   const stopQueue = useCallback(() => {
@@ -408,9 +418,11 @@ const MapPage = () => {
         }`}
       >
         <span className="sm:hidden">
-          {active ? shortActiveLabel : shortLabel}
+          {t(active ? shortActiveLabel : shortLabel)}
         </span>
-        <span className="hidden sm:inline">{active ? activeLabel : label}</span>
+        <span className="hidden sm:inline">
+          {t(active ? activeLabel : label)}
+        </span>
       </button>
     );
   };
@@ -422,8 +434,16 @@ const MapPage = () => {
       <div className="flex min-h-[calc(100vh-145px)] flex-col gap-2 py-2 sm:py-3">
         {!INSPECTION_PROFILE && <SystemAlerts />}
         {!INSPECTION_PROFILE && <NavStatus onCancelGoal={cancelGoal} />}
-        {!INSPECTION_PROFILE && <LocalizationStatus onSetPoseMode={() => activateMode("pose")} />}
-        {INSPECTION_PROFILE && <p className="dashboard-card p-3 text-sm text-statusYellow">{t("Project navigation and localization interfaces are unconfigured. Status: UNKNOWN.")}</p>}
+        {!INSPECTION_PROFILE && (
+          <LocalizationStatus onSetPoseMode={() => activateMode("pose")} />
+        )}
+        {INSPECTION_PROFILE && (
+          <p className="dashboard-card p-3 text-sm text-statusYellow">
+            {t(
+              "Project navigation and localization interfaces are unconfigured. Status: UNKNOWN.",
+            )}
+          </p>
+        )}
         <MapLayers />
 
         {/* Map + Camera */}
@@ -436,7 +456,9 @@ const MapPage = () => {
               ref={mapRef}
               onContextGoal={INSPECTION_PROFILE ? undefined : sendGoalAt}
               onContextSavePose={saveWaypointAt}
-              onContextSetPose={INSPECTION_PROFILE ? undefined : setInitialPoseAt}
+              onContextSetPose={
+                INSPECTION_PROFILE ? undefined : setInitialPoseAt
+              }
             />
           </div>
           <div className="h-[300px] w-full sm:h-[360px] xl:h-[480px] xl:w-[42%]">
@@ -447,10 +469,7 @@ const MapPage = () => {
         {/* Controls row */}
         <section className="flex w-full shrink-0 flex-col gap-3">
           {/* Manual drive: joystick + e-stop, max speed, live telemetry, docking, saved waypoints */}
-          <div
-            className="flex w-full flex-wrap gap-3"
-            data-tour="manual-drive"
-          >
+          <div className="flex w-full flex-wrap gap-3" data-tour="manual-drive">
             <div className="dashboard-card flex w-full shrink-0 flex-col items-center justify-center gap-2 p-2 sm:w-[140px]">
               <p className="font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray">
                 {t("Manual")}
@@ -458,12 +477,18 @@ const MapPage = () => {
               {!INSPECTION_PROFILE ? (
                 <Joystick maxSpeed={maxSpeed} compact />
               ) : (
-                <p className="text-center text-xs text-themeTextGray">{t("Manual control interface not configured")}</p>
+                <p className="text-center text-xs text-themeTextGray">
+                  {t("Manual control interface not configured")}
+                </p>
               )}
               <button
                 onClick={emergencyStop}
                 disabled={INSPECTION_PROFILE}
-                title={INSPECTION_PROFILE ? "Software Stop unavailable: robot interface not configured; not physical E-STOP" : "Software stop request; not physical E-STOP"}
+                title={
+                  INSPECTION_PROFILE
+                    ? "Software Stop unavailable: robot interface not configured; not physical E-STOP"
+                    : "Software stop request; not physical E-STOP"
+                }
                 className="mt-1 h-9 w-9 shrink-0 rounded-full border-2 border-statusRed bg-statusRed/10 font-[RobotoMono] text-[9px] font-bold leading-none text-statusRed transition-colors hover:bg-statusRed hover:text-white"
               >
                 {INSPECTION_PROFILE ? t("Software Stop") : "STOP"}
@@ -496,9 +521,11 @@ const MapPage = () => {
 
             <SpeedPresets value={maxSpeed} onApply={setMaxSpeed} />
 
-            {!INSPECTION_PROFILE && <div className="w-full shrink-0 sm:w-[380px]">
-              <RobotState compact />
-            </div>}
+            {!INSPECTION_PROFILE && (
+              <div className="w-full shrink-0 sm:w-[380px]">
+                <RobotState compact />
+              </div>
+            )}
 
             <div className="dashboard-card w-full shrink-0 p-3 sm:w-[260px]">
               {!INSPECTION_PROFILE && <DockingControl compact />}
@@ -512,101 +539,115 @@ const MapPage = () => {
                 onRemove={removeWaypoint}
               />
             </div>
-
           </div>
 
           {/* Mode buttons + queue */}
-          {!INSPECTION_PROFILE && <div className="flex min-w-0 flex-1 flex-col gap-2" data-tour="map-actions">
-            <div className="flex gap-2">
-              {modeBtn(
-                "○ Send Goal",
-                "Goal",
-                "goal",
-                "● Click to Send Goal",
-                "● Goal",
-              )}
-              {modeBtn(
-                "⊕ Correct Robot's Position",
-                "Fix Position",
-                "pose",
-                "● Click to Correct Position",
-                "● Fixing",
-              )}
-              {modeBtn(
-                "＋ Add Waypoint",
-                "Waypoint",
-                "waypoint",
-                "● Adding Waypoints",
-                "● Adding",
-              )}
-              <button
-                onClick={sendHome}
-                className="flex-1 rounded-xl border border-borderSubtle bg-bgCard px-2 py-3 font-[RobotoMono] text-[10px] font-semibold text-textWhiteHover transition-colors hover:border-themeBlue hover:text-themeBlue sm:px-3 sm:text-sm"
-              >
-                <span className="sm:hidden">Home</span>
-                <span className="hidden sm:inline">⌂ Go Home</span>
-              </button>
-            </div>
-
-            <p className="px-1 font-[RobotoMono] text-xs leading-5 text-themeTextGray">
-              {mode === "goal" &&
-                "Click map to navigate. Drag before releasing to set heading."}
-              {mode === "pose" &&
-                "Click the map to tell the robot where it currently is. Drag to set heading. One-shot."}
-              {mode === "waypoint" &&
-                "Each click adds a waypoint. Drag to set heading. Execute all below."}
-              {!mode && "Select a mode above to interact with the map."}
-            </p>
-
-            {waypointQueue.length > 0 && (
-              <div className="dashboard-card p-3 font-[RobotoMono]">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-wider text-themeTextGray">
-                    Waypoint Queue ({waypointQueue.length})
-                  </p>
-                  <button
-                    onClick={() => {
-                      setWaypointQueue([]);
-                      stopQueue();
-                    }}
-                    className="text-xs text-statusRed hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div className="mb-3 flex flex-wrap gap-1.5">
-                  {waypointQueue.map((wp, i) => (
-                    <span
-                      key={i}
-                      className={`rounded border px-2 py-0.5 text-xs ${
-                        queueExecuting && i === queueIdxRef.current
-                          ? "border-themeBlue bg-themeBlue/20 text-themeBlue"
-                          : "border-borderSubtle text-themeTextGray"
-                      }`}
-                    >
-                      {i + 1}: ({wp.position.x.toFixed(1)},{" "}
-                      {wp.position.y.toFixed(1)}) m
-                    </span>
-                  ))}
-                </div>
-                {queueExecuting ? (
-                  <button
-                    onClick={stopQueue}
-                    className="w-full rounded-lg border border-statusRed bg-bgCard py-1.5 text-xs font-semibold text-statusRed transition-colors hover:bg-statusRed hover:text-white"
-                  >
-                    Stop Queue
-                  </button>
-                ) : (
-                  <button
-                    onClick={executeQueue}
-                    className="w-full rounded-lg border border-themeBlue bg-themeBlue/10 py-1.5 text-xs font-semibold text-themeBlue transition-colors hover:bg-themeBlue hover:text-white"
-                  >
-                    Execute Queue
-                  </button>
+          {!INSPECTION_PROFILE && (
+            <div
+              className="flex min-w-0 flex-1 flex-col gap-2"
+              data-tour="map-actions"
+            >
+              <div className="flex gap-2">
+                {modeBtn(
+                  "○ Send Goal",
+                  "Goal",
+                  "goal",
+                  "● Click to Send Goal",
+                  "● Goal",
                 )}
+                {modeBtn(
+                  "⊕ Correct Robot's Position",
+                  "Fix Position",
+                  "pose",
+                  "● Click to Correct Position",
+                  "● Fixing",
+                )}
+                {modeBtn(
+                  "＋ Add Waypoint",
+                  "Waypoint",
+                  "waypoint",
+                  "● Adding Waypoints",
+                  "● Adding",
+                )}
+                <button
+                  onClick={sendHome}
+                  className="flex-1 rounded-xl border border-borderSubtle bg-bgCard px-2 py-3 font-[RobotoMono] text-[10px] font-semibold text-textWhiteHover transition-colors hover:border-themeBlue hover:text-themeBlue sm:px-3 sm:text-sm"
+                >
+                  <span className="sm:hidden">
+                    <T>{"Home"}</T>
+                  </span>
+                  <span className="hidden sm:inline">
+                    <T>{"⌂ Go Home"}</T>
+                  </span>
+                </button>
               </div>
-            )}
-          </div>}
+
+              <p className="px-1 font-[RobotoMono] text-xs leading-5 text-themeTextGray">
+                {mode === "goal" &&
+                  t(
+                    "Click map to navigate. Drag before releasing to set heading.",
+                  )}
+                {mode === "pose" &&
+                  t(
+                    "Click the map to tell the robot where it currently is. Drag to set heading. One-shot.",
+                  )}
+                {mode === "waypoint" &&
+                  t(
+                    "Each click adds a waypoint. Drag to set heading. Execute all below.",
+                  )}
+                {!mode && t("Select a mode above to interact with the map.")}
+              </p>
+
+              {waypointQueue.length > 0 && (
+                <div className="dashboard-card p-3 font-[RobotoMono]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-wider text-themeTextGray">
+                      {t("Waypoint Queue")} ({waypointQueue.length})
+                    </p>
+                    <button
+                      onClick={() => {
+                        setWaypointQueue([]);
+                        stopQueue();
+                      }}
+                      className="text-xs text-statusRed hover:underline"
+                    >
+                      <T>{"Clear"}</T>{" "}
+                    </button>
+                  </div>
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {waypointQueue.map((wp, i) => (
+                      <span
+                        key={i}
+                        className={`rounded border px-2 py-0.5 text-xs ${
+                          queueExecuting && i === queueIdxRef.current
+                            ? "border-themeBlue bg-themeBlue/20 text-themeBlue"
+                            : "border-borderSubtle text-themeTextGray"
+                        }`}
+                      >
+                        {i + 1}: ({wp.position.x.toFixed(1)},{" "}
+                        {wp.position.y.toFixed(1)}) m
+                      </span>
+                    ))}
+                  </div>
+                  {queueExecuting ? (
+                    <button
+                      onClick={stopQueue}
+                      className="w-full rounded-lg border border-statusRed bg-bgCard py-1.5 text-xs font-semibold text-statusRed transition-colors hover:bg-statusRed hover:text-white"
+                    >
+                      <T>{"Stop Queue"}</T>{" "}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={executeQueue}
+                      className="w-full rounded-lg border border-themeBlue bg-themeBlue/10 py-1.5 text-xs font-semibold text-themeBlue transition-colors hover:bg-themeBlue hover:text-white"
+                    >
+                      <T>{"Execute Queue"}</T>{" "}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </>

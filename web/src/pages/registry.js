@@ -27,15 +27,12 @@ export const PAGE_REGISTRY = [
   { path: "/events", label: "Events", icon: "events", component: EventsPage },
   { path: "/config", label: "Config", icon: "config", component: ConfigPage },
   ...(!INSPECTION_PROFILE ? [
-    { path: "/blocks", label: "Programs", icon: "blocks", component: lazy(() => import("./BlocksPage")) },
     { path: "/scheduler", label: "Scheduler", icon: "scheduler", component: lazy(() => import("./SchedulerPage")) },
-    { path: "/robot", label: "Robot", icon: "robot", component: lazy(() => import("./RobotDescriptionPage")) },
     { path: "/devices", label: "Devices", icon: "devices", component: lazy(() => import("./DevicesPage")) },
     { path: "/metrics", label: "Metrics", icon: "metrics", component: lazy(() => import("./MetricsPage")) },
     { path: "/recordings", label: "Recordings", icon: "recordings", component: lazy(() => import("./RecordingsPage")) },
     { path: "/console", label: "Console", icon: "console", component: lazy(() => import("./ConsolePage")) },
     { path: "/params", label: "Parameters", icon: "params", component: lazy(() => import("./ParamsPage")) },
-    { path: "/fleet", label: "Fleet", icon: "fleet", component: lazy(() => import("./FleetPage")) },
   ] : []),
 ];
 

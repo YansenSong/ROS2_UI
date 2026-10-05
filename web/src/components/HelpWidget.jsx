@@ -1,9 +1,11 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { PAGE_HELP, DEFAULT_HELP } from "../shared/help/helpContent";
 import { TOURS } from "../shared/tour/tours";
 import TourOverlay from "../shared/tour/TourOverlay";
+import { useT } from "../shared/i18n/i18n";
 
 /**
  * Always-mounted floating "?" — not tied to any one page's layout (Map and
@@ -14,9 +16,10 @@ import TourOverlay from "../shared/tour/TourOverlay";
  *
  * `autoStartTour`/`onTourStarted` let OnboardingWizard's "guided tasks" step
  * kick off this same tour engine after navigating here, instead of
- * duplicating a second tour implementation just for the demo-mode flow.
+ * duplicating a second tour implementation just for the onboarding flow.
  */
 const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
+  const { t } = useT();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [touring, setTouring] = useState(false);
@@ -36,7 +39,7 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
       <button
         onClick={() => setOpen((o) => !o)}
         className="fixed bottom-5 right-5 z-[150] flex h-12 w-12 items-center justify-center rounded-full bg-themeBlue font-[RobotoMono] text-xl font-bold text-white shadow-2xl shadow-black/40 hover:bg-themeMediumBlue"
-        aria-label={open ? "Close help" : "Help"}
+        aria-label={t(open ? "Close help" : "Help")}
         aria-expanded={open}
       >
         ?
@@ -46,27 +49,30 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
         <div className="fixed bottom-20 right-5 z-[150] w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-borderSubtle bg-bgCard p-4 shadow-2xl shadow-black/50">
           <div className="flex items-start justify-between gap-2">
             <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-              {content.title}
+              {t(content.title)}
             </p>
             <button
               onClick={() => setOpen(false)}
               className="shrink-0 text-themeTextGray hover:text-statusRed"
-              aria-label="Close help"
+              aria-label={t("Close help")}
             >
               ×
             </button>
           </div>
 
           <p className="mt-2 text-xs leading-relaxed text-themeTextGray">
-            {content.summary}
+            {t(content.summary)}
           </p>
 
           {content.tips.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {content.tips.map((tip, index) => (
-                <li key={index} className="flex gap-2 text-xs text-themeTextGray">
+                <li
+                  key={index}
+                  className="flex gap-2 text-xs text-themeTextGray"
+                >
                   <span className="shrink-0 text-themeBlue">•</span>
-                  <span>{tip}</span>
+                  <span>{t(tip)}</span>
                 </li>
               ))}
             </ul>
@@ -81,7 +87,7 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
                 }}
                 className="rounded-lg border border-themeBlue px-2.5 py-1.5 text-xs font-semibold text-themeBlue hover:bg-themeBlue hover:text-white"
               >
-                Take the tour
+                <T>{"Take the tour"}</T>{" "}
               </button>
             )}
             <button
@@ -91,13 +97,17 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
               }}
               className="rounded-lg border border-borderSubtle px-2.5 py-1.5 text-xs text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
             >
-              Replay welcome guide
+              <T>{"Replay welcome guide"}</T>{" "}
             </button>
           </div>
         </div>
       )}
 
-      <TourOverlay steps={tourSteps} active={touring} onFinish={() => setTouring(false)} />
+      <TourOverlay
+        steps={tourSteps}
+        active={touring}
+        onFinish={() => setTouring(false)}
+      />
     </>
   );
 };

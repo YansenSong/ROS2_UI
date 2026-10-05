@@ -15,9 +15,11 @@ test("inspection profile keeps robot control pages out of routes and navigation"
   expect(NAV_REGISTRY.find(({ path }) => path === "/missions").label).toBe("Inspection");
 });
 
-test("legacy profile retains the existing program route", async () => {
+test("legacy profile omits removed optional pages and keeps device management", async () => {
   vi.stubEnv("REACT_APP_UI_PROFILE", "");
   vi.resetModules();
   const { PAGE_REGISTRY } = await import("./registry");
-  expect(PAGE_REGISTRY.some(({ path }) => path === "/blocks")).toBe(true);
+  expect(PAGE_REGISTRY.some(({ path }) => path === "/blocks")).toBe(false);
+  expect(PAGE_REGISTRY.some(({ path }) => path === "/robot")).toBe(false);
+  expect(PAGE_REGISTRY.some(({ path }) => path === "/devices")).toBe(true);
 });

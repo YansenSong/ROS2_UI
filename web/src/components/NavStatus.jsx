@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants";
@@ -7,13 +8,15 @@ const STATUS_CODES = {
     label: "Unknown",
     color: "text-themeTextGray",
     dot: "bg-themeTextGray",
-    explain: "No goal has been sent yet, or its status hasn't arrived. Send a goal from the map.",
+    explain:
+      "No goal has been sent yet, or its status hasn't arrived. Send a goal from the map.",
   },
   1: {
     label: "Accepted",
     color: "text-statusBlue",
     dot: "bg-statusBlue",
-    explain: "The robot's navigation system accepted the goal and is about to start planning and moving.",
+    explain:
+      "The robot's navigation system accepted the goal and is about to start planning and moving.",
   },
   2: {
     label: "Navigating",
@@ -25,29 +28,34 @@ const STATUS_CODES = {
     label: "Canceling",
     color: "text-statusYellow",
     dot: "bg-statusYellow",
-    explain: "A cancel request was sent; the robot is stopping the current goal.",
+    explain:
+      "A cancel request was sent; the robot is stopping the current goal.",
   },
   4: {
     label: "Succeeded",
     color: "text-statusGreen",
     dot: "bg-statusGreen",
-    explain: "The robot reached the goal — within the distance that counts as \"close enough.\"",
+    explain:
+      'The robot reached the goal — within the distance that counts as "close enough."',
   },
   5: {
     label: "Canceled",
     color: "text-themeTextGray",
     dot: "bg-themeTextGray",
-    explain: "The goal was stopped before completion — by the Cancel button or a new goal overriding it. Not an error; send a new goal to continue.",
+    explain:
+      "The goal was stopped before completion — by the Cancel button or a new goal overriding it. Not an error; send a new goal to continue.",
   },
   6: {
     label: "Failed",
     color: "text-statusRed",
     dot: "bg-statusRed",
-    explain: "The robot's navigation system couldn't complete the goal — usually no valid path was found, it tried to recover and couldn't, or the robot wasn't sure enough of its position to navigate safely. Check that the robot's position estimate looks accurate and the goal isn't inside an obstacle, then retry.",
+    explain:
+      "The robot's navigation system couldn't complete the goal — usually no valid path was found, it tried to recover and couldn't, or the robot wasn't sure enough of its position to navigate safely. Check that the robot's position estimate looks accurate and the goal isn't inside an obstacle, then retry.",
   },
 };
 
 const NavStatus = ({ onCancelGoal }) => {
+  const { t } = useT();
   const ros = useRos();
   const [navStatus, setNavStatus] = useState(0);
   const [distRemaining, setDistRemaining] = useState(null);
@@ -141,20 +149,20 @@ const NavStatus = ({ onCancelGoal }) => {
           </div>
           <div>
             <span className="text-xs uppercase tracking-wider text-themeTextGray">
-              Navigation{" "}
+              <T>{"Navigation"}</T>{" "}
             </span>
-            <span className={`text-sm font-semibold ${color}`}>{label}</span>
+            <span className={`text-sm font-semibold ${color}`}>{t(label)}</span>
             <button
               onClick={() => setShowExplain((v) => !v)}
-              aria-label="What does this status mean?"
-              title="What does this status mean?"
+              aria-label={t("What does this status mean?")}
+              title={t("What does this status mean?")}
               className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-borderSubtle text-[10px] text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
             >
               ?
             </button>
             {isActive && distRemaining !== null && (
               <span className="ml-3 text-xs text-themeTextGray">
-                {distRemaining}m remaining
+                {distRemaining}m {t("remaining")}
               </span>
             )}
           </div>
@@ -165,14 +173,14 @@ const NavStatus = ({ onCancelGoal }) => {
             onClick={onCancelGoal}
             className="rounded-lg border border-statusRed px-3 py-1 text-xs text-statusRed transition-colors hover:bg-statusRed hover:text-white"
           >
-            Cancel
+            <T>{"Cancel"}</T>{" "}
           </button>
         )}
       </div>
 
       {showExplain && (
         <p className="mt-1 border-t border-borderSubtle pt-1 text-[11px] leading-snug text-themeTextGray">
-          {explain}
+          {t(explain)}
         </p>
       )}
 
@@ -185,7 +193,7 @@ const NavStatus = ({ onCancelGoal }) => {
                 key={`${item.stamp}-${index}`}
                 className={`rounded border border-borderSubtle bg-bgSurface px-2 py-0.5 text-[10px] ${info.color}`}
               >
-                {item.stamp} {item.label}
+                {item.stamp} {t(item.label)}
               </span>
             );
           })}

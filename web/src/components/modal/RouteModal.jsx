@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import Button from "../../shared/ui/Button";
+import { T } from "../../shared/i18n/i18n";
 
 const RouteModal = ({ routesList, headerText, modalHandler }) => {
   const [selectedRoute, setSelectedRoute] = useState(null);
@@ -31,7 +32,7 @@ const RouteModal = ({ routesList, headerText, modalHandler }) => {
         <div className="max-h-[50vh] w-full overflow-y-auto rounded-xl border border-borderSubtle bg-bgSurface p-3">
           {routesList.length === 0 && (
             <p className="py-8 text-center text-sm text-themeTextGray">
-              No routes available
+              <T>{"No routes available"}</T>
             </p>
           )}
           <div>
@@ -57,7 +58,7 @@ const RouteModal = ({ routesList, headerText, modalHandler }) => {
         <div className="grid w-full grid-cols-2 gap-3">
           <div>
             <Button type={"gray"} onBtnClick={handleCancelClick}>
-              Cancel
+              <T>{"Cancel"}</T>
             </Button>
           </div>
           <div>

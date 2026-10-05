@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useT } from "../i18n/i18n";
 
 /**
  * Generic guided-tour renderer: given a list of {selector, title, body}
@@ -8,6 +9,7 @@ import React, { useEffect, useState } from "react";
  * still reads clearly as "look here" against this app's dark theme.
  */
 const TourOverlay = ({ steps, active, onFinish }) => {
+  const { t } = useT();
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState(null);
 
@@ -24,7 +26,11 @@ const TourOverlay = ({ steps, active, onFinish }) => {
     const update = () => {
       const el = step ? document.querySelector(step.selector) : null;
       if (el) {
-        el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+        el.scrollIntoView({
+          block: "center",
+          inline: "center",
+          behavior: "smooth",
+        });
         setRect(el.getBoundingClientRect());
       } else {
         setRect(null);
@@ -55,7 +61,9 @@ const TourOverlay = ({ steps, active, onFinish }) => {
       ? Math.max(rect.top - TOOLTIP_HEIGHT - 12, 16)
       : Math.min(rect.bottom + 12, window.innerHeight - TOOLTIP_HEIGHT)
     : window.innerHeight / 2;
-  const tooltipLeft = rect ? Math.min(Math.max(rect.left, 16), window.innerWidth - 336) : 16;
+  const tooltipLeft = rect
+    ? Math.min(Math.max(rect.left, 16), window.innerWidth - 336)
+    : 16;
 
   return (
     <>
@@ -76,17 +84,21 @@ const TourOverlay = ({ steps, active, onFinish }) => {
         style={{ top: tooltipTop, left: tooltipLeft }}
       >
         <p className="font-[RobotoMono] text-[10px] uppercase tracking-wider text-themeBlue">
-          Step {stepIndex + 1} of {steps.length}
+          {t("Step")} {stepIndex + 1} {t("of")} {steps.length}
         </p>
-        <p className="mt-1 text-sm font-semibold text-textWhiteHover">{step.title}</p>
-        <p className="mt-1 text-xs leading-relaxed text-themeTextGray">{step.body}</p>
+        <p className="mt-1 text-sm font-semibold text-textWhiteHover">
+          {t(step.title)}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-themeTextGray">
+          {t(step.body)}
+        </p>
 
         <div className="mt-3 flex items-center justify-between">
           <button
             onClick={onFinish}
             className="text-xs text-themeTextGray hover:text-statusRed"
           >
-            Skip tour
+            {t("Skip tour")}
           </button>
           <div className="flex gap-2">
             {stepIndex > 0 && (
@@ -94,14 +106,14 @@ const TourOverlay = ({ steps, active, onFinish }) => {
                 onClick={() => setStepIndex((i) => i - 1)}
                 className="rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeTextGray hover:border-themeBlue"
               >
-                Back
+                {t("Back")}
               </button>
             )}
             <button
               onClick={() => (isLast ? onFinish() : setStepIndex((i) => i + 1))}
               className="rounded-lg bg-themeBlue px-3 py-1.5 text-xs font-semibold text-white hover:bg-themeMediumBlue"
             >
-              {isLast ? "Done" : "Next"}
+              {t(isLast ? "Done" : "Next")}
             </button>
           </div>
         </div>

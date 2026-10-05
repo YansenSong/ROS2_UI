@@ -9,12 +9,12 @@ import { useT } from "../shared/i18n/i18n";
 const LangToggle = ({ lang, setLang }) => (
   <button
     type="button"
-    onClick={() => setLang(lang === "zh-CN" ? "en" : lang === "en" ? "de" : "zh-CN")}
+    onClick={() => setLang(lang === "zh-CN" ? "en" : "zh-CN")}
     aria-label="切换语言"
-    title="语言 / Language / Sprache"
+    title="语言 / Language"
     className="rounded-lg border border-borderSubtle px-2 py-1 font-[RobotoMono] text-[11px] font-semibold uppercase text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue"
   >
-    {lang === "zh-CN" ? "中" : lang === "en" ? "EN" : "DE"}
+    {lang === "zh-CN" ? "中" : "EN"}
   </button>
 );
 
@@ -39,26 +39,9 @@ const NavIcon = ({ name }) => {
         <path d="M8 18h3a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3h-1" />
       </>
     ),
-    blocks: (
-      <>
-        <rect x="3" y="3" width="7" height="7" rx="2" />
-        <rect x="14" y="3" width="7" height="7" rx="2" />
-        <rect x="3" y="14" width="7" height="7" rx="2" />
-        <path d="M14 17.5h7M17.5 14v7" />
-      </>
-    ),
     status: (
       <>
         <path d="M4 19V9M10 19V5M16 19v-7M22 19V3" />
-      </>
-    ),
-    robot: (
-      <>
-        <rect x="5" y="9" width="14" height="10" rx="2" />
-        <circle cx="9.5" cy="14" r="1.4" />
-        <circle cx="14.5" cy="14" r="1.4" />
-        <path d="M12 9V5M9 5h6" />
-        <circle cx="12" cy="3.6" r="1.1" />
       </>
     ),
     devices: (
@@ -118,15 +101,6 @@ const NavIcon = ({ name }) => {
         <circle cx="8" cy="18" r="2" fill="currentColor" stroke="none" />
       </>
     ),
-    fleet: (
-      <>
-        <rect x="3" y="10" width="7" height="7" rx="1.5" />
-        <rect x="14" y="10" width="7" height="7" rx="1.5" />
-        <path d="M6.5 10V7M17.5 10V7" />
-        <circle cx="6.5" cy="5" r="1" />
-        <circle cx="17.5" cy="5" r="1" />
-      </>
-    ),
     missions: (
       <>
         <path d="M9 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9l-5-5Z" />
@@ -153,7 +127,9 @@ const NavIcon = ({ name }) => {
       className="h-4 w-4"
       aria-hidden="true"
     >
-      {paths[name] || <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />}
+      {paths[name] || (
+        <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+      )}
     </svg>
   );
 };
@@ -208,35 +184,40 @@ const MenuIcon = ({ open }) => (
 
 const Logo = ({ onClick }) => {
   const { t } = useT();
-  return <NavLink
-    to="/"
-    onClick={onClick}
-    className="group flex min-w-0 items-center gap-2.5 rounded-xl focus-visible:outline-none"
-    aria-label={t("OpenAMR map dashboard")}
-  >
-    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-bgSurface text-white ring-1 ring-white/10">
-      <span className="absolute inset-0 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-400 opacity-90 transition-opacity group-hover:opacity-100" />
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        className="relative h-5 w-5"
-        aria-hidden="true"
-      >
-        <rect x="5" y="7" width="14" height="11" rx="4" />
-        <path d="M9 7V5m6 2V5M9 13h.01M15 13h.01M9 17h6" strokeLinecap="round" />
-      </svg>
-    </span>
-    <span className="min-w-0">
-      <span className="block truncate text-[15px] font-bold tracking-[-0.03em] text-textWhiteHover">
-        OpenAMR
+  return (
+    <NavLink
+      to="/"
+      onClick={onClick}
+      className="group flex min-w-0 items-center gap-2.5 rounded-xl focus-visible:outline-none"
+      aria-label={t("OpenAMR map dashboard")}
+    >
+      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-bgSurface text-white ring-1 ring-white/10">
+        <span className="absolute inset-0 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-400 opacity-90 transition-opacity group-hover:opacity-100" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          className="relative h-5 w-5"
+          aria-hidden="true"
+        >
+          <rect x="5" y="7" width="14" height="11" rx="4" />
+          <path
+            d="M9 7V5m6 2V5M9 13h.01M15 13h.01M9 17h6"
+            strokeLinecap="round"
+          />
+        </svg>
       </span>
-      <span className="hidden font-[RobotoMono] text-[9px] uppercase tracking-[0.16em] text-themeTextGray sm:block">
-        {t("Robot workspace")}
+      <span className="min-w-0">
+        <span className="block truncate text-[15px] font-bold tracking-[-0.03em] text-textWhiteHover">
+          OpenAMR
+        </span>
+        <span className="hidden font-[RobotoMono] text-[9px] uppercase tracking-[0.16em] text-themeTextGray sm:block">
+          {t("Robot workspace")}
+        </span>
       </span>
-    </span>
-  </NavLink>;
+    </NavLink>
+  );
 };
 
 const Header = ({ showLogs, onToggleLogs }) => {
@@ -246,7 +227,9 @@ const Header = ({ showLogs, onToggleLogs }) => {
   const { config } = useRuntimeConfig();
   const { label, pulse } = statusConfig[status] || statusConfig.disconnected;
   const [menuOpen, setMenuOpen] = useState(false);
-  const resolvedAddress = `${resolveRosbridgeHost(config)}:${config.rosbridgePort}`;
+  const resolvedAddress = `${resolveRosbridgeHost(config)}:${
+    config.rosbridgePort
+  }`;
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -260,7 +243,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
 
         <nav
           className="flex flex-1 flex-col gap-1 overflow-y-auto"
-          aria-label="Primary navigation"
+          aria-label={t("Primary navigation")}
           data-tour="nav"
         >
           {NAV_REGISTRY.map(({ path: to, label: navLabel, icon }) => (
@@ -293,16 +276,24 @@ const Header = ({ showLogs, onToggleLogs }) => {
                 : "border-borderSubtle bg-bgSurface/70 text-themeTextGray hover:border-themeBlue/40 hover:text-textWhiteHover"
             }`}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-current"
+              aria-hidden="true"
+            />
             {t("Console")}
           </button>
 
-          <div className="flex items-center justify-between gap-2" data-tour="connection-status">
+          <div
+            className="flex items-center justify-between gap-2"
+            data-tour="connection-status"
+          >
             <StatusBadge status={status} label={label} pulse={pulse} />
             <div className="flex items-center gap-2">
               <LangToggle lang={lang} setLang={setLang} />
               <IconButton
-                label={theme === "dark" ? "Use light theme" : "Use dark theme"}
+                label={t(
+                  theme === "dark" ? "Use light theme" : "Use dark theme",
+                )}
                 onClick={toggleTheme}
               >
                 {theme === "dark" ? <SunIcon /> : <MoonIcon />}
@@ -312,7 +303,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
           <NavLink
             to="/config"
             className="truncate text-center font-[RobotoMono] text-[10px] text-themeTextGray/70 hover:text-themeBlue"
-            title={`ws://${resolvedAddress} — edit in Config`}
+            title={`ws://${resolvedAddress} — ${t("Edit in Config")}`}
           >
             {resolvedAddress}
           </NavLink>
@@ -327,7 +318,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
           <div className="flex items-center gap-2">
             <LangToggle lang={lang} setLang={setLang} />
             <IconButton
-              label={theme === "dark" ? "Use light theme" : "Use dark theme"}
+              label={t(theme === "dark" ? "Use light theme" : "Use dark theme")}
               onClick={toggleTheme}
             >
               {theme === "dark" ? <SunIcon /> : <MoonIcon />}
@@ -335,8 +326,8 @@ const Header = ({ showLogs, onToggleLogs }) => {
 
             <div
               className="flex h-3 w-3 items-center justify-center"
-              title={label}
-              aria-label={label}
+              title={t(label)}
+              aria-label={t(label)}
             >
               <span
                 className={`h-2.5 w-2.5 rounded-full ${
@@ -350,7 +341,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
             </div>
 
             <IconButton
-              label={menuOpen ? "Close navigation" : "Open navigation"}
+              label={t(menuOpen ? "Close navigation" : "Open navigation")}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}
             >
@@ -371,7 +362,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
                 </div>
                 <StatusBadge status={status} label={label} pulse={pulse} />
               </div>
-              <nav className="grid gap-1" aria-label="Mobile navigation">
+              <nav className="grid gap-1" aria-label={t("Mobile navigation")}>
                 {NAV_REGISTRY.map(({ path: to, label: navLabel, icon }) => (
                   <NavLink
                     key={to}
@@ -404,7 +395,7 @@ const Header = ({ showLogs, onToggleLogs }) => {
                   >
                     ›_
                   </span>
-                  {showLogs ? "Hide console" : "Open console"}
+                  {t(showLogs ? "Hide console" : "Open console")}
                 </button>
               </nav>
             </div>

@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants";
@@ -49,6 +50,7 @@ const classify = (posStd, yawStdDeg) => {
  *   - 设置位姿：通过 onSetPoseMode 切换到 Map 页面现有的 Set-Pose 模式，由操作员在地图上点击真实位姿。
  */
 const LocalizationStatus = ({ onSetPoseMode }) => {
+  const { t } = useT();
   const ros = useRos();
   const [cov, setCov] = useState(null); // { posStd, yawStdDeg }
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -114,7 +116,10 @@ const LocalizationStatus = ({ onSetPoseMode }) => {
   const isLost = band?.key === "lost";
 
   return (
-    <div className="dashboard-card px-4 py-1.5 font-[RobotoMono]" data-tour="localization">
+    <div
+      className="dashboard-card px-4 py-1.5 font-[RobotoMono]"
+      data-tour="localization"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className="relative flex h-2.5 w-2.5">
@@ -123,17 +128,19 @@ const LocalizationStatus = ({ onSetPoseMode }) => {
                 className={`absolute inline-flex h-full w-full animate-ping rounded-full ${dot} opacity-60`}
               />
             )}
-            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dot}`} />
+            <span
+              className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dot}`}
+            />
           </div>
           <div>
             <span className="text-xs uppercase tracking-wider text-themeTextGray">
-              Localization{" "}
+              <T>{"Localization"}</T>{" "}
             </span>
-            <span className={`text-sm font-semibold ${color}`}>{label}</span>
+            <span className={`text-sm font-semibold ${color}`}>{t(label)}</span>
             <button
               onClick={() => setShowExplain((v) => !v)}
-              aria-label="What does this mean?"
-              title="What does this mean?"
+              aria-label={t("What does this mean?")}
+              title={t("What does this mean?")}
               className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-borderSubtle text-[10px] text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
             >
               ?
@@ -152,31 +159,35 @@ const LocalizationStatus = ({ onSetPoseMode }) => {
               onClick={onSetPoseMode}
               className="rounded-lg border border-borderSubtle px-3 py-1 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue"
             >
-              Set pose
+              <T>{"Set pose"}</T>{" "}
             </button>
           )}
           <button
             onClick={reLocalize}
             disabled={relocalizing}
-            title="Have the robot search the whole map for its position again (drive to help it converge)"
+            title={t(
+              "Have the robot search the whole map for its position again (drive to help it converge)",
+            )}
             className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
               isLost
                 ? "border-statusRed text-statusRed hover:bg-statusRed hover:text-white"
                 : "border-borderSubtle text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
             } disabled:opacity-50`}
           >
-            {relocalizing ? "Re-localizing…" : "Re-localize"}
+            {t(relocalizing ? "Re-localizing…" : "Re-localize")}
           </button>
         </div>
       </div>
 
       {showExplain && (
         <p className="mt-1 border-t border-borderSubtle pt-1 text-[11px] leading-snug text-themeTextGray">
-          {band
-            ? band.explain
-            : lastUpdate == null
+          {t(
+            band
+              ? band.explain
+              : lastUpdate == null
               ? "No position data received yet. The localization system may not be running, or the robot hasn't been told where it currently is."
-              : "The robot has stopped sending a position estimate — the last reading is stale. Check that localization is still running, on the Health page."}
+              : "The robot has stopped sending a position estimate — the last reading is stale. Check that localization is still running, on the Health page.",
+          )}
         </p>
       )}
     </div>

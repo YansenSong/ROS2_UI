@@ -12,9 +12,13 @@ import {
   moveStep,
 } from "../shared/missions/missions";
 import { requestStart, requestStop } from "../shared/missions/missionRunner";
-import { DashboardCard, EmptyState, SectionHeader } from "../shared/ui/Dashboard";
+import {
+  DashboardCard,
+  EmptyState,
+  SectionHeader,
+} from "../shared/ui/Dashboard";
 import { INSPECTION_PROFILE } from "../shared/robot/robotContract";
-import { useT } from "../shared/i18n/i18n";
+import { useT, T } from "../shared/i18n/i18n";
 
 const inputClass =
   "rounded-lg border border-borderSubtle bg-bgCard px-3 py-2 text-sm text-textWhiteHover outline-none focus:border-themeBlue";
@@ -68,7 +72,11 @@ const MissionsPage = () => {
   const [missions, setMissions] = useState(getMissions);
   const [selectedId, setSelectedId] = useState(null);
   const [newName, setNewName] = useState("");
-  const [stepForm, setStepForm] = useState({ type: "waypoint", waypointId: "", seconds: "5" });
+  const [stepForm, setStepForm] = useState({
+    type: "waypoint",
+    waypointId: "",
+    seconds: "5",
+  });
 
   useEffect(() => subscribeMissions(setMissions), []);
 
@@ -86,7 +94,10 @@ const MissionsPage = () => {
     if (!selected) return;
     if (stepForm.type === "waypoint") {
       if (!stepForm.waypointId) return;
-      addStep(selected.id, { type: "waypoint", waypointId: Number(stepForm.waypointId) });
+      addStep(selected.id, {
+        type: "waypoint",
+        waypointId: Number(stepForm.waypointId),
+      });
     } else if (stepForm.type === "wait") {
       const seconds = Math.max(1, parseInt(stepForm.seconds, 10) || 5);
       addStep(selected.id, { type: "wait", seconds });
@@ -100,22 +111,31 @@ const MissionsPage = () => {
       <SectionHeader
         eyebrow={t("Autonomy")}
         title={t(INSPECTION_PROFILE ? "Inspection" : "Missions")}
-        description={INSPECTION_PROFILE
-          ? t("Robot-side mission interface not configured. Existing mission drafts cannot be executed in this profile.")
-          : t("Chain waypoints, waits, and dock/undock into one sequence. Runs while a browser tab is open — not robot-side autonomy — and can be triggered from the Scheduler page too.")}
+        description={
+          INSPECTION_PROFILE
+            ? t(
+                "Robot-side mission interface not configured. Existing mission drafts cannot be executed in this profile.",
+              )
+            : t(
+                "Chain waypoints, waits, and dock/undock into one sequence. Runs while a browser tab is open — not robot-side autonomy — and can be triggered from the Scheduler page too.",
+              )
+        }
       />
 
       <DashboardCard className="p-0">
         {missions.length === 0 ? (
           <EmptyState
             title={t("No missions yet")}
-            description={t("Create one below, then add steps — e.g. go to the loading bay, wait 10s, then dock.")}
+            description={t(
+              "Create one below, then add steps — e.g. go to the loading bay, wait 10s, then dock.",
+            )}
           />
         ) : (
           <ul className="divide-y divide-borderSubtle/30 font-[RobotoMono]">
             {missions.map((m) => {
               const isSelected = selectedId === m.id;
-              const isRunning = run?.missionId === m.id && run.status === "running";
+              const isRunning =
+                run?.missionId === m.id && run.status === "running";
               const activeRun = run?.missionId === m.id ? run : null;
               return (
                 <li key={m.id} className="px-4 py-3">
@@ -133,10 +153,16 @@ const MissionsPage = () => {
                       <p className="text-xs text-themeTextGray">
                         {m.steps.length} {t("steps")}
                         {activeRun && (
-                          <span className={`ml-2 ${STATUS_STYLE[activeRun.status] || ""}`}>
+                          <span
+                            className={`ml-2 ${
+                              STATUS_STYLE[activeRun.status] || ""
+                            }`}
+                          >
                             · {activeRun.status}
                             {activeRun.status === "running" &&
-                              ` (step ${activeRun.stepIndex + 1}/${m.steps.length})`}
+                              ` (step ${activeRun.stepIndex + 1}/${
+                                m.steps.length
+                              })`}
                           </span>
                         )}
                       </p>
@@ -146,18 +172,33 @@ const MissionsPage = () => {
                         onClick={requestStop}
                         className="rounded-lg border border-statusRed px-3 py-1 text-xs text-statusRed transition-colors hover:bg-statusRed hover:text-white"
                       >
-                        Stop
+                        <T>{"Stop"}</T>{" "}
                       </button>
                     ) : (
                       <button
                         onClick={() => {
-                          if (!window.confirm("This will start moving the robot through this mission's steps. Continue?")) return;
+                          if (
+                            !window.confirm(
+                              t(
+                                "This will start moving the robot through this mission's steps. Continue?",
+                              ),
+                            )
+                          )
+                            return;
                           requestStart(m.id);
                         }}
-                        disabled={INSPECTION_PROFILE || !m.steps.length || run?.status === "running"}
+                        disabled={
+                          INSPECTION_PROFILE ||
+                          !m.steps.length ||
+                          run?.status === "running"
+                        }
                         className="rounded-lg border border-themeBlue px-3 py-1 text-xs text-themeBlue transition-colors hover:bg-themeBlue hover:text-white disabled:opacity-40"
                       >
-                        {t(INSPECTION_PROFILE ? "Run unavailable" : "Run (moves robot)")}
+                        {t(
+                          INSPECTION_PROFILE
+                            ? "Run unavailable"
+                            : "Run (moves robot)",
+                        )}
                       </button>
                     )}
                     <button
@@ -234,7 +275,9 @@ const MissionsPage = () => {
                         <select
                           className={inputClass}
                           value={stepForm.type}
-                          onChange={(e) => setStepForm((p) => ({ ...p, type: e.target.value }))}
+                          onChange={(e) =>
+                            setStepForm((p) => ({ ...p, type: e.target.value }))
+                          }
                         >
                           {STEP_TYPES.map((stepType) => (
                             <option key={stepType.value} value={stepType.value}>
@@ -247,7 +290,10 @@ const MissionsPage = () => {
                             className={inputClass}
                             value={stepForm.waypointId}
                             onChange={(e) =>
-                              setStepForm((p) => ({ ...p, waypointId: e.target.value }))
+                              setStepForm((p) => ({
+                                ...p,
+                                waypointId: e.target.value,
+                              }))
                             }
                           >
                             <option value="">{t("Choose a waypoint…")}</option>
@@ -265,7 +311,10 @@ const MissionsPage = () => {
                             className={`${inputClass} w-24`}
                             value={stepForm.seconds}
                             onChange={(e) =>
-                              setStepForm((p) => ({ ...p, seconds: e.target.value }))
+                              setStepForm((p) => ({
+                                ...p,
+                                seconds: e.target.value,
+                              }))
                             }
                             placeholder="seconds"
                           />
@@ -277,11 +326,14 @@ const MissionsPage = () => {
                           {t("+ Add step")}
                         </button>
                       </div>
-                      {stepForm.type === "waypoint" && waypoints.length === 0 && (
-                        <p className="text-[11px] text-themeTextGray/70">
-                          {t("No saved waypoints yet — add one from the Map page first.")}
-                        </p>
-                      )}
+                      {stepForm.type === "waypoint" &&
+                        waypoints.length === 0 && (
+                          <p className="text-[11px] text-themeTextGray/70">
+                            {t(
+                              "No saved waypoints yet — add one from the Map page first.",
+                            )}
+                          </p>
+                        )}
                     </div>
                   )}
                 </li>

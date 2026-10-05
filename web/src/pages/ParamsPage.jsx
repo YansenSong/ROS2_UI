@@ -1,9 +1,14 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useRef, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useRos, useRosStatus } from "../app/App";
-import { DashboardCard, SectionHeader, StatusBadge } from "../shared/ui/Dashboard";
+import {
+  DashboardCard,
+  SectionHeader,
+  StatusBadge,
+} from "../shared/ui/Dashboard";
 import {
   PARAM_ROWS_STORAGE_KEY,
   readParamValue,
@@ -21,6 +26,7 @@ const inputClass =
  * Changes are runtime-only — they revert when the node restarts.
  */
 const ParamsPage = () => {
+  const { t } = useT();
   const ros = useRos();
   const rosStatus = useRosStatus();
   const connected = rosStatus === "connected";
@@ -34,7 +40,9 @@ const ParamsPage = () => {
     setRows(next);
     localStorage.setItem(
       PARAM_ROWS_STORAGE_KEY,
-      JSON.stringify(next.map(({ node, param, type }) => ({ node, param, type }))),
+      JSON.stringify(
+        next.map(({ node, param, type }) => ({ node, param, type })),
+      ),
     );
   };
 
@@ -63,19 +71,19 @@ const ParamsPage = () => {
     if (!param) return null;
     const p = param.toLowerCase();
     if (p.includes("theta") || p.includes("angular") || p.includes("yaw")) {
-      return "Top turning speed (rad/s)";
+      return t("Top turning speed (rad/s)");
     }
     if (p.includes("accel")) {
-      return "Acceleration limit (m/s²)";
+      return t("Acceleration limit (m/s²)");
     }
     if (p.includes("vel")) {
-      return "Top driving speed (m/s)";
+      return t("Top driving speed (m/s)");
     }
     if (p.includes("tolerance")) {
-      return "How close counts as close enough (m)";
+      return t("How close counts as close enough (m)");
     }
     if (p.includes("radius") || p.includes("distance")) {
-      return "Distance (m)";
+      return t("Distance (m)");
     }
     return null;
   };
@@ -95,28 +103,40 @@ const ParamsPage = () => {
       },
       (err) => {
         patch(row.id, { status: "error" });
-        toast.error(`Read failed: ${err}`);
+        toast.error(`${t("Read failed")}: ${err}`);
       },
     );
   };
 
   const applyRow = (row) => {
     if (!ros || !window.ROSLIB) return;
-    if (!window.confirm(`Set ${row.param} to ${row.value} on the robot right now?`)) return;
+    if (
+      !window.confirm(
+        t("Set {param} to {value} on the robot right now?")
+          .replace("{param}", row.param)
+          .replace("{value}", row.value),
+      )
+    )
+      return;
     patch(row.id, { status: "applying" });
     svc(row.node, "set").callService(
       new window.ROSLIB.ServiceRequest({
-        parameters: [{ name: row.param, value: buildParamValue(row.type, row.value) }],
+        parameters: [
+          { name: row.param, value: buildParamValue(row.type, row.value) },
+        ],
       }),
       (res) => {
         const ok = res?.results?.[0]?.successful;
         patch(row.id, { status: ok ? "applied" : "rejected" });
-        if (ok) toast.success(`${row.param} set`);
-        else toast.error(`Rejected: ${res?.results?.[0]?.reason || "unknown"}`);
+        if (ok) toast.success(`${row.param} ${t("Applied")}`);
+        else
+          toast.error(
+            `${t("Rejected")}: ${res?.results?.[0]?.reason || t("unknown")}`,
+          );
       },
       (err) => {
         patch(row.id, { status: "error" });
-        toast.error(`Set failed: ${err}`);
+        toast.error(`${t("Set failed")}: ${err}`);
       },
     );
   };
@@ -126,7 +146,13 @@ const ParamsPage = () => {
   const addRow = () =>
     persist([
       ...rows,
-      { id: `${Date.now()}`, node: "/controller_server", param: "", type: "double", value: "" },
+      {
+        id: `${Date.now()}`,
+        node: "/controller_server",
+        param: "",
+        type: "double",
+        value: "",
+      },
     ]);
 
   const removeRow = (id) => persist(rows.filter((r) => r.id !== id));
@@ -143,7 +169,7 @@ const ParamsPage = () => {
         disabled={!connected}
         className="rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue disabled:opacity-40"
       >
-        Read all
+        <T>{"Read all"}</T>{" "}
       </button>
     </div>
   );
@@ -160,10 +186,18 @@ const ParamsPage = () => {
 
       <DashboardCard className="p-3 font-[RobotoMono]">
         <div className="hidden grid-cols-[1.4fr_1.8fr_0.7fr_1fr_auto] gap-2 px-1 pb-2 text-[10px] uppercase tracking-wider text-themeTextGray sm:grid">
-          <span>Node</span>
-          <span>Parameter</span>
-          <span>Type</span>
-          <span>Value</span>
+          <span>
+            <T>{"Node"}</T>
+          </span>
+          <span>
+            <T>{"Parameter"}</T>
+          </span>
+          <span>
+            <T>{"Type"}</T>
+          </span>
+          <span>
+            <T>{"Value"}</T>
+          </span>
           <span />
         </div>
 
@@ -187,7 +221,9 @@ const ParamsPage = () => {
                   placeholder="param.name"
                 />
                 {paramHint(row.param) && (
-                  <p className="text-xs text-themeTextGray">{paramHint(row.param)}</p>
+                  <p className="text-xs text-themeTextGray">
+                    {paramHint(row.param)}
+                  </p>
                 )}
               </div>
               <select
@@ -195,10 +231,18 @@ const ParamsPage = () => {
                 value={row.type}
                 onChange={(e) => patch(row.id, { type: e.target.value })}
               >
-                <option value="double">Decimal number</option>
-                <option value="int">Whole number</option>
-                <option value="bool">On/Off</option>
-                <option value="string">Text</option>
+                <option value="double">
+                  <T>{"Decimal number"}</T>
+                </option>
+                <option value="int">
+                  <T>{"Whole number"}</T>
+                </option>
+                <option value="bool">
+                  <T>{"On/Off"}</T>
+                </option>
+                <option value="string">
+                  <T>{"Text"}</T>
+                </option>
               </select>
               <input
                 className={inputClass}
@@ -212,18 +256,18 @@ const ParamsPage = () => {
                   disabled={!connected}
                   className="rounded-lg border border-borderSubtle px-2 py-1 text-xs text-themeTextGray hover:border-themeBlue hover:text-themeBlue disabled:opacity-40"
                 >
-                  Read
+                  <T>{"Read"}</T>{" "}
                 </button>
                 <button
                   onClick={() => applyRow(row)}
                   disabled={!connected}
                   className="rounded-lg border border-themeBlue px-2 py-1 text-xs text-themeBlue hover:bg-themeBlue hover:text-white disabled:opacity-40"
                 >
-                  Set
+                  <T>{"Set"}</T>{" "}
                 </button>
                 <button
                   onClick={() => removeRow(row.id)}
-                  aria-label="Remove row"
+                  aria-label={t("Remove row")}
                   className="px-1 text-themeTextGray hover:text-statusRed"
                 >
                   ×
@@ -234,11 +278,11 @@ const ParamsPage = () => {
                       ["applied", "read"].includes(row.status)
                         ? "text-statusGreen"
                         : ["rejected", "error"].includes(row.status)
-                          ? "text-statusRed"
-                          : "text-themeTextGray"
+                        ? "text-statusRed"
+                        : "text-themeTextGray"
                     }`}
                   >
-                    {row.status}
+                    {t(row.status)}
                   </span>
                 )}
               </div>
@@ -250,7 +294,7 @@ const ParamsPage = () => {
           onClick={addRow}
           className="mt-3 rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue"
         >
-          + Add parameter
+          <T>{"+ Add parameter"}</T>{" "}
         </button>
       </DashboardCard>
     </div>

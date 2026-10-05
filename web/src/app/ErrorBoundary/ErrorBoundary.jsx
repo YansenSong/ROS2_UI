@@ -1,6 +1,8 @@
 import React from "react";
+import { useT } from "../../shared/i18n/i18n";
 
 const ErrorBoundary = () => {
+  const { t } = useT();
   return (
     <div className="dark flex min-h-screen items-center justify-center bg-bgBase px-4 text-textWhiteHover">
       <div className="dashboard-card w-full max-w-md p-8 text-center">
@@ -20,12 +22,12 @@ const ErrorBoundary = () => {
           </svg>
         </div>
         <h1 className="mt-4 text-lg font-bold text-textWhiteHover">
-          Something went wrong
+          {t("Something went wrong")}
         </h1>
         <p className="mt-2 text-sm text-themeTextGray">
-          The interface hit an unexpected error and couldn't continue. This
-          doesn't affect the robot itself — its ROS stack keeps running
-          independently of this UI.
+          {t(
+            "The interface hit an unexpected error and couldn't continue. This doesn't affect the robot itself — its ROS stack keeps running independently of this UI.",
+          )}
         </p>
         <button
           type="button"
@@ -34,7 +36,7 @@ const ErrorBoundary = () => {
           }}
           className="mt-6 min-h-[42px] w-full rounded-xl border border-themeBlue bg-themeBlue px-4 font-[RobotoMono] text-xs font-semibold text-white transition-colors hover:bg-themeMediumBlue"
         >
-          Return to dashboard
+          {t("Return to dashboard")}
         </button>
       </div>
     </div>

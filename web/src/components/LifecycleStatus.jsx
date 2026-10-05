@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { useRos } from "../app/App";
 import { LIFECYCLE_NODES as NODES } from "../shared/constants";
@@ -26,8 +27,10 @@ const DOTS = {
 const EXPLANATIONS = {
   active: "Configured and running normally.",
   inactive: "Configured but idle — call Activate to bring it online.",
-  unconfigured: "Not configured yet — call Configure, or it's a fresh restart. Normal right after Nav2 launches, before activation.",
-  unknown: "We couldn't check this system's status — it may be off, or the robot's connection may be down.",
+  unconfigured:
+    "Not configured yet — call Configure, or it's a fresh restart. Normal right after Nav2 launches, before activation.",
+  unknown:
+    "We couldn't check this system's status — it may be off, or the robot's connection may be down.",
 };
 
 // 每行对应的 ROS 内部节点的通俗名称。
@@ -43,19 +46,41 @@ export const FRIENDLY_NAMES = {
 // 这四个按钮会同时作用于所有导航节点（整个机器人集群，而非仅当前 UI 标签页对应的机器人）。Deactivate/Cleanup
 // 可能直接停止导航，因此执行前需要确认；Configure/Activate 用于启动或配置功能，不需要确认。
 const ACTION_LABELS = {
-  configure: { full: "Prepare", compact: "Prep", title: "Load configuration for every navigation system so it's ready to start." },
-  activate: { full: "Start", compact: "Start", title: "Start every navigation system running." },
-  deactivate: { full: "Pause", compact: "Pause", title: "Pause every navigation system. The robot will not respond to drive commands until it's started again." },
-  cleanup: { full: "Reset", compact: "Reset", title: "Reset every navigation system back to unconfigured. The robot will not respond to drive commands until it's prepared and started again." },
+  configure: {
+    full: "Prepare",
+    compact: "Prep",
+    title:
+      "Load configuration for every navigation system so it's ready to start.",
+  },
+  activate: {
+    full: "Start",
+    compact: "Start",
+    title: "Start every navigation system running.",
+  },
+  deactivate: {
+    full: "Pause",
+    compact: "Pause",
+    title:
+      "Pause every navigation system. The robot will not respond to drive commands until it's started again.",
+  },
+  cleanup: {
+    full: "Reset",
+    compact: "Reset",
+    title:
+      "Reset every navigation system back to unconfigured. The robot will not respond to drive commands until it's prepared and started again.",
+  },
 };
 const CONFIRM_BEFORE = {
-  deactivate: "Pause navigation on every system? The robot will not respond to drive commands until it's started again.",
-  cleanup: "Reset navigation on every system back to unconfigured? The robot will not respond to drive commands until it's prepared and started again.",
+  deactivate:
+    "Pause navigation on every system? The robot will not respond to drive commands until it's started again.",
+  cleanup:
+    "Reset navigation on every system back to unconfigured? The robot will not respond to drive commands until it's prepared and started again.",
 };
 
 const normalizeState = (label) => (label || "unknown").toLowerCase();
 
 const LifecycleStatus = ({ compact = false, onStatesChange }) => {
+  const { t } = useT();
   const ros = useRos();
   const clientsRef = useRef({});
   const changeClientsRef = useRef({});
@@ -123,7 +148,7 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
     const id = TRANSITIONS[transitionName];
     if (!id || !window.ROSLIB) return;
     const confirmMessage = CONFIRM_BEFORE[transitionName];
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
+    if (confirmMessage && !window.confirm(t(confirmMessage))) return;
     NODES.forEach(({ name }) => {
       const client = changeClientsRef.current[name];
       if (!client) return;
@@ -142,12 +167,12 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
       <div className="flex min-h-0 flex-col font-[RobotoMono]">
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-xs uppercase tracking-wider text-themeTextGray">
-            Lifecycle
+            <T>{"Lifecycle"}</T>{" "}
           </p>
           <button
             onClick={() => setShowLegend((v) => !v)}
-            aria-label="What do these states mean?"
-            title="What do these states mean?"
+            aria-label={t("What do these states mean?")}
+            title={t("What do these states mean?")}
             className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-borderSubtle text-[10px] text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
           >
             ?
@@ -158,7 +183,10 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
           <div className="mb-2 space-y-1 rounded-lg bg-bgSurface p-2 text-[10px] leading-snug text-themeTextGray">
             {Object.entries(EXPLANATIONS).map(([state, text]) => (
               <p key={state}>
-                <span className={`font-semibold ${COLORS[state]}`}>{state}</span>: {text}
+                <span className={`font-semibold ${COLORS[state]}`}>
+                  {t(state)}
+                </span>
+                : {t(text)}
               </p>
             ))}
           </div>
@@ -167,31 +195,31 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
         <div className="mb-2 grid grid-cols-2 gap-1.5">
           <button
             onClick={() => changeAll("configure")}
-            title={ACTION_LABELS.configure.title}
+            title={t(ACTION_LABELS.configure.title)}
             className="rounded-md border border-borderSubtle px-2 py-1 text-[11px] text-themeBlue hover:border-themeBlue"
           >
-            {ACTION_LABELS.configure.compact}
+            {t(ACTION_LABELS.configure.compact)}
           </button>
           <button
             onClick={() => changeAll("activate")}
-            title={ACTION_LABELS.activate.title}
+            title={t(ACTION_LABELS.activate.title)}
             className="rounded-md border border-borderSubtle px-2 py-1 text-[11px] text-statusGreen hover:border-statusGreen"
           >
-            {ACTION_LABELS.activate.compact}
+            {t(ACTION_LABELS.activate.compact)}
           </button>
           <button
             onClick={() => changeAll("deactivate")}
-            title={ACTION_LABELS.deactivate.title}
+            title={t(ACTION_LABELS.deactivate.title)}
             className="rounded-md border border-borderSubtle px-2 py-1 text-[11px] text-statusYellow hover:border-statusYellow"
           >
-            {ACTION_LABELS.deactivate.compact}
+            {t(ACTION_LABELS.deactivate.compact)}
           </button>
           <button
             onClick={() => changeAll("cleanup")}
-            title={ACTION_LABELS.cleanup.title}
+            title={t(ACTION_LABELS.cleanup.title)}
             className="rounded-md border border-borderSubtle px-2 py-1 text-[11px] text-statusRed hover:border-statusRed"
           >
-            {ACTION_LABELS.cleanup.compact}
+            {t(ACTION_LABELS.cleanup.compact)}
           </button>
         </div>
 
@@ -210,11 +238,11 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
                     }`}
                   />
                   <span className="truncate text-textWhiteHover" title={name}>
-                    {FRIENDLY_NAMES[name] || name}
+                    {t(FRIENDLY_NAMES[name] || name)}
                   </span>
                 </span>
                 <span className={`shrink-0 ${COLORS[state] || COLORS.unknown}`}>
-                  {state}
+                  {t(state)}
                 </span>
               </div>
             );
@@ -230,12 +258,12 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-wider text-themeTextGray">
-          Lifecycle
+          <T>{"Lifecycle"}</T>{" "}
         </p>
         <button
           onClick={() => setShowLegend((v) => !v)}
-          aria-label="What do these states mean?"
-          title="What do these states mean?"
+          aria-label={t("What do these states mean?")}
+          title={t("What do these states mean?")}
           className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-borderSubtle text-[10px] text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
         >
           ?
@@ -246,7 +274,10 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
         <div className="mb-2 space-y-1 rounded-lg bg-bgSurface p-2 text-[11px] leading-snug text-themeTextGray">
           {Object.entries(EXPLANATIONS).map(([state, text]) => (
             <p key={state}>
-              <span className={`font-semibold ${COLORS[state]}`}>{state}</span>: {text}
+              <span className={`font-semibold ${COLORS[state]}`}>
+                {t(state)}
+              </span>
+              : {t(text)}
             </p>
           ))}
         </div>
@@ -255,31 +286,31 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
       <div className="mb-2 grid grid-cols-2 gap-1.5">
         <button
           onClick={() => changeAll("configure")}
-          title={ACTION_LABELS.configure.title}
+          title={t(ACTION_LABELS.configure.title)}
           className="rounded-lg border border-borderSubtle px-2 py-1 text-xs text-themeBlue hover:border-themeBlue"
         >
-          {ACTION_LABELS.configure.full}
+          {t(ACTION_LABELS.configure.full)}
         </button>
         <button
           onClick={() => changeAll("activate")}
-          title={ACTION_LABELS.activate.title}
+          title={t(ACTION_LABELS.activate.title)}
           className="rounded-lg border border-borderSubtle px-2 py-1 text-xs text-statusGreen hover:border-statusGreen"
         >
-          {ACTION_LABELS.activate.full}
+          {t(ACTION_LABELS.activate.full)}
         </button>
         <button
           onClick={() => changeAll("deactivate")}
-          title={ACTION_LABELS.deactivate.title}
+          title={t(ACTION_LABELS.deactivate.title)}
           className="rounded-lg border border-borderSubtle px-2 py-1 text-xs text-statusYellow hover:border-statusYellow"
         >
-          {ACTION_LABELS.deactivate.full}
+          {t(ACTION_LABELS.deactivate.full)}
         </button>
         <button
           onClick={() => changeAll("cleanup")}
-          title={ACTION_LABELS.cleanup.title}
+          title={t(ACTION_LABELS.cleanup.title)}
           className="rounded-lg border border-borderSubtle px-2 py-1 text-xs text-statusRed hover:border-statusRed"
         >
-          {ACTION_LABELS.cleanup.full}
+          {t(ACTION_LABELS.cleanup.full)}
         </button>
       </div>
       <div
@@ -298,11 +329,11 @@ const LifecycleStatus = ({ compact = false, onStatesChange }) => {
                   }`}
                 />
                 <span className="text-xs text-textWhiteHover" title={name}>
-                  {FRIENDLY_NAMES[name] || name}
+                  {t(FRIENDLY_NAMES[name] || name)}
                 </span>
               </div>
               <span className={`text-xs ${COLORS[state] || COLORS.unknown}`}>
-                {state}
+                {t(state)}
               </span>
             </div>
           );

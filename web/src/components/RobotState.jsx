@@ -1,5 +1,5 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useState, useEffect, useRef } from "react";
-import * as Three from "three";
 
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants/index";
@@ -60,10 +60,7 @@ const State = ({ compact = false }) => {
         if (pos && ori) {
           setXCoord(pos.x.toFixed(2));
           setYCoord(pos.y.toFixed(2));
-          const euler = new Three.Euler().setFromQuaternion(
-            new Three.Quaternion(ori.x, ori.y, ori.z, ori.w),
-          );
-          setOrientation((euler._z * (180 / Math.PI)).toFixed(1));
+          setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
         }
       }
     });
@@ -76,7 +73,9 @@ const State = ({ compact = false }) => {
 
   return (
     <div
-      className={`grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 ${compact ? "gap-2" : "gap-3"}`}
+      className={`grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 ${
+        compact ? "gap-2" : "gap-3"
+      }`}
     >
       <MetricCard
         compact={compact}
@@ -88,7 +87,7 @@ const State = ({ compact = false }) => {
             className="font-[RobotoMono]"
             title="Radians per second — how fast the robot is turning in place"
           >
-            Angular{" "}
+            <T>{"Angular"}</T>{" "}
             <strong className="font-semibold text-textWhiteHover">
               {angular}
             </strong>{" "}
@@ -104,11 +103,11 @@ const State = ({ compact = false }) => {
         meta={
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-themeTextGray/70">
-              X / Y coordinates
+              <T>{"X / Y coordinates"}</T>{" "}
             </span>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-[RobotoMono]">
-                Heading{" "}
+                <T>{"Heading"}</T>{" "}
                 <strong className="font-semibold text-textWhiteHover">
                   {orientation}
                   {orientation !== "—" ? "°" : ""}

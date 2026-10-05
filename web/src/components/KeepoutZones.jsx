@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useState } from "react";
 
 import useKeepoutZones from "../shared/hooks/useKeepoutZones";
@@ -15,8 +16,12 @@ const KeepoutZones = () => {
   const [form, setForm] = useState(EMPTY);
 
   const valid =
-    numField(form.cx) && numField(form.cy) && numField(form.w) && numField(form.h) &&
-    Number(form.w) > 0 && Number(form.h) > 0;
+    numField(form.cx) &&
+    numField(form.cy) &&
+    numField(form.w) &&
+    numField(form.h) &&
+    Number(form.w) > 0 &&
+    Number(form.h) > 0;
 
   const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
@@ -48,8 +53,8 @@ const KeepoutZones = () => {
             >
               <span className="truncate text-textWhiteHover">{z.name}</span>
               <span className="text-themeTextGray">
-                ({z.cx.toFixed(1)}, {z.cy.toFixed(1)}) · {Math.abs(z.w).toFixed(1)}×
-                {Math.abs(z.h).toFixed(1)}m
+                ({z.cx.toFixed(1)}, {z.cy.toFixed(1)}) ·{" "}
+                {Math.abs(z.w).toFixed(1)}×{Math.abs(z.h).toFixed(1)}m
               </span>
               <button
                 onClick={() => removeZone(z.id)}
@@ -75,7 +80,7 @@ const KeepoutZones = () => {
         disabled={!valid}
         className="rounded-lg border border-themeBlue px-2 py-1 text-xs text-themeBlue transition-colors hover:bg-themeBlue hover:text-white disabled:opacity-40"
       >
-        Add zone
+        <T>{"Add zone"}</T>{" "}
       </button>
     </div>
   );

@@ -50,11 +50,11 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      toast.warn("Enter a name for this waypoint");
+      toast.warn(t("Enter a name for this waypoint"));
       return;
     }
     if (!currentPoseRef.current) {
-      toast.warn("No localized position yet — waiting for AMCL");
+      toast.warn(t("No localized position yet — waiting for AMCL"));
       return;
     }
     onAdd(trimmed, currentPoseRef.current);
@@ -73,7 +73,9 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSave()}
-          placeholder={t(hasPose ? "e.g. Dock, Loading bay" : "Waiting for pose…")}
+          placeholder={t(
+            hasPose ? "e.g. Dock, Loading bay" : "Waiting for pose…",
+          )}
           disabled={!hasPose}
           className="min-w-0 flex-1 rounded-lg border border-borderSubtle bg-bgSurface px-3 py-1.5 text-xs text-textWhiteHover placeholder:text-themeTextGray disabled:opacity-50"
         />
@@ -88,7 +90,9 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
 
       {waypoints.length === 0 ? (
         <p className="text-xs text-themeTextGray opacity-70">
-          {t("No saved waypoints yet — drive somewhere and save it, or right-click the map.")}
+          {t(
+            "No saved waypoints yet — drive somewhere and save it, or right-click the map.",
+          )}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">

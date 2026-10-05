@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -32,7 +33,8 @@ const TOPIC_CHOICES = [
   {
     topic: AppConfig.ROBOT_POSE_TOPIC,
     label: "Odometry",
-    description: "The robot's estimated position and speed from its wheels/motors",
+    description:
+      "The robot's estimated position and speed from its wheels/motors",
   },
   {
     topic: AppConfig.MAP_TOPIC,
@@ -77,15 +79,20 @@ const STATUS_LABELS = {
   interrupted: "Didn't finish cleanly",
 };
 
-const Field = ({ label, hint, children }) => (
-  <label className="block">
-    <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
-      {label}
-    </span>
-    <div className="mt-1.5">{children}</div>
-    {hint ? <p className="mt-1 text-[11px] text-themeTextGray/70">{hint}</p> : null}
-  </label>
-);
+const Field = ({ label, hint, children }) => {
+  const { t } = useT();
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
+        {t(label)}
+      </span>
+      <div className="mt-1.5">{children}</div>
+      {hint ? (
+        <p className="mt-1 text-[11px] text-themeTextGray/70">{t(hint)}</p>
+      ) : null}
+    </label>
+  );
+};
 
 const inputClass =
   "w-full rounded-lg border border-borderSubtle bg-bgCard px-3 py-2 text-sm text-textWhiteHover outline-none focus:border-themeBlue";
@@ -104,6 +111,7 @@ const formatDuration = (seconds) => {
 };
 
 const RecordingsPage = () => {
+  const { t } = useT();
   const [recordings, setRecordings] = useState([]);
   const [status, setStatus] = useState({ recording: null, replay: null });
   const [nowTick, setNowTick] = useState(Date.now());
@@ -148,11 +156,11 @@ const RecordingsPage = () => {
   const handleStart = async () => {
     const name = form.name.trim();
     if (!name) {
-      toast.warn("Enter a name for this recording");
+      toast.warn(t("Enter a name for this recording"));
       return;
     }
     if (!allTopics && selectedTopics.length === 0) {
-      toast.warn("Select at least one topic, or record all topics");
+      toast.warn(t("Select at least one topic, or record all topics"));
       return;
     }
     try {
@@ -161,7 +169,7 @@ const RecordingsPage = () => {
         description: form.description.trim(),
         topics: allTopics ? null : selectedTopics,
       });
-      toast.success(`Recording "${name}" started`);
+      toast.success(`${t("Recording started")}: "${name}"`);
       setForm({ name: "", description: "" });
       setSelectedTopics([]);
       setAllTopics(true);
@@ -174,7 +182,7 @@ const RecordingsPage = () => {
   const handleStop = async () => {
     try {
       await stopRecording();
-      toast.success("Recording stopped");
+      toast.success(t("Recording stopped"));
       refresh();
     } catch (err) {
       toast.error(err.message);
@@ -182,10 +190,11 @@ const RecordingsPage = () => {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm("Delete this recording? This can't be undone.")) return;
+    if (!window.confirm(t("Delete this recording? This can't be undone.")))
+      return;
     try {
       await deleteRecording(id);
-      toast.success(`Deleted "${name}"`);
+      toast.success(`${t("Deleted")}: "${name}"`);
       refresh();
     } catch (err) {
       toast.error(err.message);
@@ -195,7 +204,7 @@ const RecordingsPage = () => {
   const handleReplay = async (id, name) => {
     try {
       await startReplay(id, replayRate);
-      toast.success(`Replaying "${name}"`);
+      toast.success(`${t("Replaying")}: "${name}"`);
       refresh();
     } catch (err) {
       toast.error(err.message);
@@ -209,7 +218,7 @@ const RecordingsPage = () => {
     setStoppingReplay(true);
     try {
       await stopReplay();
-      toast.success("Replay stopped");
+      toast.success(t("Replay stopped"));
       refresh();
     } catch (err) {
       toast.error(err.message);
@@ -253,7 +262,7 @@ const RecordingsPage = () => {
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          {recording ? "Recording in progress" : "Start a recording"}
+          {t(recording ? "Recording in progress" : "Start a recording")}
         </p>
 
         {recording ? (
@@ -263,14 +272,16 @@ const RecordingsPage = () => {
                 {recording.name}
               </p>
               <p className="font-[RobotoMono] text-xs text-themeTextGray">
-                {recording.topics ? `${recording.topics.length} topic(s)` : "All topics"}
+                {recording.topics
+                  ? `${recording.topics.length} ${t("topic(s)")}`
+                  : t("All topics")}
                 {" · "}
-                {formatDuration(recordingElapsed)} elapsed
+                {formatDuration(recordingElapsed)} <T>{"elapsed"}</T>{" "}
               </p>
             </div>
             <StatusBadge status="active" label="Recording" pulse />
             <Button type="danger" onBtnClick={handleStop}>
-              Stop recording
+              <T>{"Stop recording"}</T>{" "}
             </Button>
           </div>
         ) : (
@@ -280,8 +291,10 @@ const RecordingsPage = () => {
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Warehouse loop demo"
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  placeholder={t("e.g. Warehouse loop demo")}
                   className={inputClass}
                 />
               </Field>
@@ -292,7 +305,7 @@ const RecordingsPage = () => {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, description: e.target.value }))
                   }
-                  placeholder="What this recording is for"
+                  placeholder={t("What this recording is for")}
                   className={inputClass}
                 />
               </Field>
@@ -305,7 +318,7 @@ const RecordingsPage = () => {
                   checked={allTopics}
                   onChange={(e) => setAllTopics(e.target.checked)}
                 />
-                Record all topics
+                <T>{"Record all topics"}</T>{" "}
               </label>
 
               {!allTopics && (
@@ -322,10 +335,10 @@ const RecordingsPage = () => {
                         className="mt-0.5"
                       />
                       <span>
-                        {label}
+                        {t(label)}
                         {description ? (
                           <span className="block text-[10px] text-themeTextGray/60">
-                            {description}
+                            {t(description)}
                           </span>
                         ) : null}
                       </span>
@@ -337,7 +350,7 @@ const RecordingsPage = () => {
 
             <div className="mt-4 sm:max-w-xs">
               <Button type="orange" onBtnClick={handleStart}>
-                Start recording
+                <T>{"Start recording"}</T>{" "}
               </Button>
             </div>
           </>
@@ -347,7 +360,7 @@ const RecordingsPage = () => {
       {replay && (
         <DashboardCard className="border border-statusYellow/30 bg-statusYellow/5 p-4">
           <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-statusYellow">
-            Replaying
+            <T>{"Replaying"}</T>{" "}
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -355,8 +368,8 @@ const RecordingsPage = () => {
                 {replayingEntry?.name || replay.id}
               </p>
               <p className="font-[RobotoMono] text-xs text-themeTextGray">
-                Rate {replay.rate}x · {formatDuration(replayElapsed)} elapsed
-                {replay.paused ? " · Paused" : ""}
+                <T>{"Rate"}</T> {replay.rate}x · {formatDuration(replayElapsed)}{" "}
+                <T>{"elapsed"}</T> {replay.paused ? ` · ${t("Paused")}` : ""}
               </p>
             </div>
             <div className="flex gap-2">
@@ -364,15 +377,17 @@ const RecordingsPage = () => {
                 type={stoppingReplay ? "disabled" : ""}
                 onBtnClick={handlePauseResume}
               >
-                {replay.paused ? "Resume" : "Pause"}
+                {t(replay.paused ? "Resume" : "Pause")}
               </Button>
               <Button
                 type={stoppingReplay ? "disabled" : "danger"}
                 onBtnClick={handleStopReplay}
               >
-                {stoppingReplay
-                  ? "Stopping… this can take a few seconds."
-                  : "Stop replay"}
+                {t(
+                  stoppingReplay
+                    ? "Stopping… this can take a few seconds."
+                    : "Stop replay",
+                )}
               </Button>
             </div>
           </div>
@@ -381,7 +396,7 @@ const RecordingsPage = () => {
 
       <DashboardCard className="p-4">
         <p className="mb-3 font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          Saved recordings
+          <T>{"Saved recordings"}</T>{" "}
         </p>
 
         {recordings.length === 0 ? (
@@ -392,7 +407,8 @@ const RecordingsPage = () => {
         ) : (
           <div className="space-y-2">
             {recordings.map((entry) => {
-              const isActive = recording?.id === entry.id || replay?.id === entry.id;
+              const isActive =
+                recording?.id === entry.id || replay?.id === entry.id;
               return (
                 <div
                   key={entry.id}
@@ -415,12 +431,16 @@ const RecordingsPage = () => {
                       />
                     </div>
                     <p className="mt-0.5 font-[RobotoMono] text-xs text-themeTextGray">
-                      {entry.topics ? `${entry.topics.length} topic(s)` : "All topics"}
+                      {entry.topics
+                        ? `${entry.topics.length} ${t("topic(s)")}`
+                        : t("All topics")}
                       {" · "}
                       {formatBytes(entry.sizeBytes)}
                       {entry.startedAt && entry.endedAt
                         ? ` · ${formatDuration(
-                            (new Date(entry.endedAt) - new Date(entry.startedAt)) / 1000,
+                            (new Date(entry.endedAt) -
+                              new Date(entry.startedAt)) /
+                              1000,
                           )}`
                         : ""}
                     </p>
@@ -437,20 +457,20 @@ const RecordingsPage = () => {
                         type={isActive ? "disabled" : ""}
                         onBtnClick={() => handleReplay(entry.id, entry.name)}
                       >
-                        Replay
+                        <T>{"Replay"}</T>{" "}
                       </Button>
                     )}
                     {entry.status !== "recording" && (
                       <Button onBtnClick={() => downloadRecording(entry.id)}>
-                        Download
+                        <T>{"Download"}</T>{" "}
                       </Button>
                     )}
                     <button
                       onClick={() => handleDelete(entry.id, entry.name)}
                       disabled={isActive}
                       className="text-themeTextGray hover:text-statusRed disabled:opacity-30"
-                      aria-label={`Delete ${entry.name}`}
-                      title={`Delete ${entry.name}`}
+                      aria-label={`${t("Delete")} ${entry.name}`}
+                      title={`${t("Delete")} ${entry.name}`}
                     >
                       ×
                     </button>

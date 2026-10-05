@@ -1,104 +1,47 @@
-# Lesson 10 — Topics as the Contract
+# 课程 10——Topic 是接口契约
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Frontend and ROS developers | 8 minutes | [Lesson 03](03-how-the-browser-talks-to-ros.md) |
+| Frontend 和 ROS 开发者 | 8 分钟 | [课程 03](03-how-the-browser-talks-to-ros.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn why topic, service, and action names form a cross-workspace
-contract and why browser code should use centralized constants.
+了解 topic、service 和 action 名称如何构成跨工作区契约，以及 browser code 为什么应使用集中定义的 constants。
 
-## There is no compiler checking this
+## 没有 compiler 帮你检查这份契约
 
-The UI (a JavaScript app) and the robot stack (a collection of independent
-ROS 2 processes, often in a completely separate workspace or on a separate
-machine) never import each other's code and are never built together.
-Nothing checks, at build time, that a topic the UI subscribes to actually
-exists on the robot side, or that the message type the UI expects matches
-what's actually published. The only thing connecting them is an agreed-upon
-**topic name string** and an agreed-upon **message type string**, as
-introduced in [Lesson 02](02-ros2-core-concepts.md). If the UI subscribes to
-`/ui/map` and nothing publishes `/ui/map`, nothing errors — the map panel
-just stays empty, silently.
+UI（JavaScript 应用）和 robot stack（多个独立 ROS 2 processes，通常位于另一个工作区或另一台机器）不会互相 import code，也不会一起构建。因此，build 时没有任何检查会确认 UI 订阅的 topic 是否存在于机器人侧，也不会确认 UI 期望的 message type 是否与实际发布的一致。连接两侧的唯一约定，是[课程 02](02-ros2-core-concepts.md)介绍的 **topic name string** 和 **message type string**。如果 UI 订阅 `/ui/map`，但没有节点发布 `/ui/map`，系统不会报错；map panel 只会一直空白。
 
-That means the topic name itself is the interface. Renaming a topic on one
-side without updating the other doesn't produce a stack trace; it produces a
-panel that mysteriously stopped updating. This is why topic names deserve the
-same care a function signature or an API schema would get in a normal
-codebase — they're just harder to verify automatically, so the discipline has
-to be manual.
+因此，topic name 本身就是 interface。只在一侧重命名 topic，而不更新另一侧，不会产生 stack trace，只会让面板停止更新且原因不明显。topic names 应像普通代码库中的 function signature 或 API schema 一样谨慎管理。它们难以自动检查，因此需要手动遵守约定。
 
-## Why centralizing the names matters
+## 为什么要集中定义名称
 
-Nearly every topic, service, and action name this frontend depends on is
-collected in one file:
-[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)
-(plus the small `LIFECYCLE_NODES` and `CAMERA_TOPIC_OPTIONS` lists in the
-same file for the handful of places that need more than a single name). This
-buys three things:
+frontend 依赖的大多数 topics、services 和 actions 都集中在[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)（少量需要多个值的场景还会使用同文件中的 `LIFECYCLE_NODES` 和 `CAMERA_TOPIC_OPTIONS`）。这样有三项好处：
 
-1. **One place to answer "what does the UI actually depend on."** Reading
-   this one file tells you the entire topic-level contract, without grepping
-   every page and component.
-2. **One place to fix a rename.** If the robot side renames `/scan_filtered`,
-   there is exactly one line to change here, instead of hunting for every
-   file that might have hardcoded the string.
-3. **No silent typo-mismatches.** A string literal duplicated in three files
-   can drift — one gets updated, two don't. A single imported constant
-   can't drift; every consumer reads the same value.
+1. **在一个位置查看 UI 实际依赖的接口。** 查看此文件就能了解完整的 topic-level contract，无需搜索所有页面和组件。
+2. **只需在一个位置更新重命名。** 例如机器人侧将 `/scan_filtered` 重命名后，只需在此处修改一行，不必逐个查找写死字符串的文件。
+3. **减少静默的拼写不一致。** 同一个 string literal 若散落在三个文件中，很容易只更新其中一个。使用同一个 imported constant，所有使用方都会读取相同的值。
 
-Pages and components import from this file rather than writing topic strings
-inline — see how
-[`web/src/pages/MapPage.jsx`](../../web/src/pages/MapPage.jsx) or
-[`web/src/components/SystemHealth.jsx`](../../web/src/components/SystemHealth.jsx)
-reference `AppConfig.GOAL_POSE_TOPIC`, `AppConfig.SCAN_TOPIC`, and so on
-instead of the literal topic strings.
+页面和组件会从此文件 import 常量，而不是直接写 topic strings。例如[`web/src/pages/MapPage.jsx`](../../web/src/pages/MapPage.jsx)和[`web/src/components/SystemHealth.jsx`](../../web/src/components/SystemHealth.jsx)使用 `AppConfig.GOAL_POSE_TOPIC`、`AppConfig.SCAN_TOPIC` 等。
 
-The discipline isn't perfect: `/rosout`
-([`RosoutConsole.jsx`](../../web/src/components/RosoutConsole.jsx)),
-`/reinitialize_global_localization`
-([`LocalizationStatus.jsx`](../../web/src/components/LocalizationStatus.jsx)),
-and `/diagnostics`
-([`useSystemDiagnostics.js`](../../web/src/shared/hooks/useSystemDiagnostics.js))
-are hardcoded string literals rather than `AppConfig` entries — a handful of
-exceptions worth knowing about before you trust `AppConfig` as a truly
-exhaustive list, and worth fixing the next time you're in one of those
-files. It's also one-sided: the Python backend nodes covered in
-[Lesson 05](05-backend-nodes-in-detail.md) (`/map`, `/amcl_pose`,
-`ui_operation`, `/WayPoints_topic`, and more) have no equivalent shared
-constants module — every backend file hardcodes its own topic strings ad
-hoc. The contract this lesson describes is only centrally documented on the
-frontend side of it.
+目前仍有例外：`/rosout`（[`RosoutConsole.jsx`](../../web/src/components/RosoutConsole.jsx)）、`/reinitialize_global_localization`（[`LocalizationStatus.jsx`](../../web/src/components/LocalizationStatus.jsx)）和 `/diagnostics`（[`useSystemDiagnostics.js`](../../web/src/shared/hooks/useSystemDiagnostics.js)）仍以 hardcoded string literal 形式出现，并未加入 `AppConfig`。所以在将 `AppConfig` 当作完整清单前需留意这些例外，修改对应文件时也可考虑一并整理。
 
-## Relays are part of the same contract
+集中管理目前也只覆盖 frontend。[课程 05](05-backend-nodes-in-detail.md)介绍的 Python backend nodes（例如 `/map`、`/amcl_pose`、`ui_operation`、`/WayPoints_topic`）没有共用 constants module；每个 backend file 都自行写 topic strings。本课所说的 contract 目前只在 frontend 一侧集中记录。
 
-[Lesson 04](04-data-flow-and-relays.md) covered *why* relay nodes exist. From
-the contract's point of view, a relay just means the "official" browser-facing
-name (`/ui/map`) is different from the robot's original publishing name
-(`/map`). The UI-side constant always stores the *final* name the browser
-actually subscribes to — the relay is an implementation detail on the ROS
-side that the frontend doesn't need to know about beyond that one string.
+## Relay 也属于这份契约
 
-## Try it
+[课程 04](04-data-flow-and-relays.md)解释了 relay node 存在的原因。从 interface 的角度看，relay 只是让“浏览器正式订阅的名称”（`/ui/map`）与机器人原始发布名称（`/map`）不同。UI 侧 constant 始终保存浏览器最终订阅的名称。对 frontend 来说，relay 属于 ROS 侧的实现细节，除这个名称外无需感知。
 
-Choose one constant in `web/src/shared/constants/index.js` and find every
-publisher or subscriber that relies on it. Confirm its message type on both
-sides.
+## 试一试
 
-**You're ready to continue when:** you know all files that must change when a
-topic name or message type changes.
+在 `web/src/shared/constants/index.js` 中选择一个 constant，找出所有依赖它的 publisher 或 subscriber，并确认两侧使用的 message type。
 
-## Next
+**完成标准：**topic name 或 message type 变更时，能列出必须同步修改的文件。
 
-[Lesson 11 — Failure Modes and Reconnection](11-failure-modes-and-reconnection.md)
-covers what happens when this contract breaks down at runtime — WiFi drops,
-rosbridge restarts, the robot workspace crashes.
-[Lesson 12](12-debugging-with-ros-cli.md) then turns those failure modes into
-a debugging method before [Lesson 13](13-extending-the-system.md) bridges from
-theory to practical extension guides.
+## 下一课
+
+[课程 11——故障模式与重连](11-failure-modes-and-reconnection.md)会介绍这份契约在运行时失效的情况，例如 WiFi 断开、rosbridge 重启或机器人工作区崩溃。[课程 12](12-debugging-with-ros-cli.md)会把这些故障整理为调试方法；[课程 13](13-extending-the-system.md)则从理论衔接到实际扩展指南。
 
 ---
 
-[← Lesson 09](09-blockly-programming.md) · [Lesson index](README.md) ·
-[Next: Lesson 11 →](11-failure-modes-and-reconnection.md)
+[← 课程 08](08-map-and-route-model.md) · [课程索引](README.md) · [下一课：课程 11 →](11-failure-modes-and-reconnection.md)

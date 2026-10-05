@@ -1,33 +1,18 @@
-# Worked Example: Adding a Front-Range Sensor
+# 完整示例：添加前向距离传感器
 
-A complete, start-to-finish example combining
-[`connect-external-device.md`](connect-external-device.md) and
-[`add-a-ui-panel.md`](add-a-ui-panel.md) into one concrete case, instead of
-two separate step lists. This is a teaching example — the code below isn't
-already in the repo, it's what you'd actually write.
+本示例从头到尾串联[`connect-external-device.md`](connect-external-device.md)和[`add-a-ui-panel.md`](add-a-ui-panel.md)，通过一个具体场景演示两份指南中的步骤如何配合，而不是将它们拆成两份互不相关的步骤列表。这是教学示例：以下代码目前并不存在于仓库中，是实际实现时需要编写的内容。
 
-**The scenario:** the robot gets a new front-facing ultrasonic range sensor.
-Its driver publishes `sensor_msgs/Range` on `/front_range`, continuously, at
-a few Hz. We want a small panel on the Map page showing the current
-distance and a warning when something is too close.
+**场景：**机器人新增一个朝前安装的 ultrasonic range sensor。它的 driver 以每秒数 Hz 的频率，持续在 `/front_range` 发布 `sensor_msgs/Range`。我们希望在 Map 页面添加一个小面板，显示当前距离，并在障碍物过近时给出提示。
 
-## Step 1 — Decide: does this need a relay?
+## 第 1 步——判断是否需要 relay
 
-Apply the test from
-[Lesson 04](../lessons/04-data-flow-and-relays.md#the-problem-qos-not-code):
-is `/front_range` latched (`TRANSIENT_LOCAL`), or otherwise likely to
-publish before the browser subscribes? A range sensor driver publishes
-continuously and doesn't need late-joining subscribers to see a "last
-value" — it's a normal `VOLATILE` stream, the same category as `/odom` or
-`/scan_filtered`. No relay needed; skip straight to wiring the topic in
-directly. (Confirm this for real with `ros2 topic info /front_range -v` —
-see [Lesson 12](../lessons/12-debugging-with-ros-cli.md) — rather than just
-assuming.)
+根据[课程 04](../lessons/04-data-flow-and-relays.md#the-problem-qos-not-code)中的方法检查：`/front_range` 是否为 latched（`TRANSIENT_LOCAL`），或是否可能在浏览器订阅前就已发布？range sensor driver 会持续发布，不需要让迟加入的 subscriber 读取“上一次的值”，所以它属于普通的 `VOLATILE` stream，与 `/odom` 或 `/scan_filtered` 类似，无需 relay，可直接接入 topic。
 
-## Step 2 — Add the topic name to the constants file
+请使用 `ros2 topic info /front_range -v` 实际确认 QoS（参见[课程 12](../lessons/12-debugging-with-ros-cli.md)），不要只凭假设判断。
 
-Edit
-[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js):
+## 第 2 步——在 constants file 中添加 topic name
+
+编辑[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)：
 
 ```js
 export const AppConfig = {
@@ -36,13 +21,9 @@ export const AppConfig = {
 };
 ```
 
-## Step 3 — Build the panel
+## 第 3 步——创建面板
 
-A new component,
-`web/src/components/FrontRangeIndicator.jsx`, following the same shape every
-panel in [Lesson 07](../lessons/07-ui-components.md) uses — `useRos()` for
-the shared connection, a topic built from the constant just added, subscribe
-in a `useEffect`, clean up on unmount:
+新增 component `web/src/components/FrontRangeIndicator.jsx`，沿用[课程 07](../lessons/07-ui-components.md)中面板的通用模式：使用 `useRos()` 获取共享 connection；根据刚添加的 constant 创建 topic；在 `useEffect` 中订阅，并在 component 卸载时清理：
 
 ```jsx
 import React, { useEffect, useRef, useState } from "react";
@@ -77,11 +58,11 @@ const FrontRangeIndicator = () => {
   return (
     <div className="rounded-xl border border-borderSubtle bg-bgCard px-4 py-2 font-[RobotoMono]">
       <p className="mb-1 text-xs uppercase tracking-wider text-themeTextGray">
-        Front Range
+        前向距离
       </p>
       <p className={`text-sm ${isClose ? "text-statusRed" : "text-textWhiteHover"}`}>
-        {range === null ? "No data" : `${range.toFixed(2)} m`}
-        {isClose && " — too close"}
+        {range === null ? "暂无数据" : `${range.toFixed(2)} m`}
+        {isClose && " — 距离过近"}
       </p>
     </div>
   );
@@ -90,16 +71,11 @@ const FrontRangeIndicator = () => {
 export default FrontRangeIndicator;
 ```
 
-This is exactly the shape from
-[`add-a-ui-panel.md`](add-a-ui-panel.md#3-reach-the-shared-ros-connection) —
-nothing sensor-specific about the wiring, only the topic name, message type,
-and what's done with the message once it arrives.
+这与[`add-a-ui-panel.md`](add-a-ui-panel.md#3-reach-the-shared-ros-connection)中的基本模式一致。接线流程本身没有传感器专属逻辑；不同之处只有 topic name、message type，以及收到消息后如何处理。
 
-## Step 4 — Render it on a page
+## 第 4 步——在页面中渲染面板
 
-Add it to whichever page makes sense — the Map page, since that's where
-drive-safety information belongs
-([Lesson 06](../lessons/06-the-pages.md#map--mappagejsx)):
+将面板加入合适的页面。此例选择 Map 页面，因为距离信息与驾驶有关（见[课程 06](../lessons/06-the-pages.md#map--mappagejsx)）：
 
 ```jsx
 // web/src/pages/MapPage.jsx
@@ -108,25 +84,15 @@ import FrontRangeIndicator from "../components/FrontRangeIndicator";
 <FrontRangeIndicator />
 ```
 
-No route registration needed here — this is a panel on an existing page, not
-a new page, so [step 2 of `add-a-ui-panel.md`](add-a-ui-panel.md#2-register-the-route-new-pages-only)
-doesn't apply.
+这里不需要注册 route：这是已有页面中的一个 panel，并非新页面。因此[`add-a-ui-panel.md`](add-a-ui-panel.md#2-register-the-route-new-pages-only)第 2 步不适用。
 
-## Step 5 — Verify
+## 第 5 步——验证
 
-1. Confirm the robot side is actually publishing:
+1. 确认机器人侧确实在发布：
    ```bash
    ros2 topic echo /front_range
    ```
-2. Rebuild and reinstall the frontend, then hard-refresh the browser — see
-   [`add-a-ui-panel.md` step 5](add-a-ui-panel.md#5-confirm-it) for the dev
-   vs. production build distinction.
-3. Open the Map page and confirm the panel shows live data, and that
-   moving something within 0.3m in front of the sensor turns the readout
-   red.
+2. 重新构建并安装 frontend，然后强制刷新浏览器。开发模式和生产构建的区别见[`add-a-ui-panel.md`第 5 步](add-a-ui-panel.md#5-confirm-it)。
+3. 打开 Map 页面，确认面板显示实时数据；在传感器前方 0.3 m 内移动物体，读数应变为红色。
 
-If step 1 shows data but the panel stays on "No data," the problem is on the
-frontend side — wrong constant, wrong message type, or the component isn't
-actually rendered on the page. See
-[Lesson 12](../lessons/12-debugging-with-ros-cli.md#a-decision-order-for-common-symptoms)
-for the general version of that triage.
+如果第 1 步能看到数据，但面板仍显示 “暂无数据”，问题在 frontend 一侧：constant 错误、message type 错误，或 component 没有实际渲染在页面中。通用排查方法见[课程 12](../lessons/12-debugging-with-ros-cli.md#a-decision-order-for-common-symptoms)。

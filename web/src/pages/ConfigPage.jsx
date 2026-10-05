@@ -11,7 +11,6 @@ import {
 import { SectionHeader, DashboardCard } from "../shared/ui/Dashboard";
 import Button from "../shared/ui/Button";
 import Switcher from "../shared/ui/Switcher";
-import useRobotProfiles from "../shared/hooks/useRobotProfiles";
 import KeepoutZones from "../components/KeepoutZones";
 import SystemHealth from "../components/SystemHealth";
 import LifecycleStatus from "../components/LifecycleStatus";
@@ -36,13 +35,17 @@ const OVERALL_TEXT = {
 
 const Field = ({ label, hint, children }) => {
   const { t } = useT();
-  return <label className="block">
-    <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
-      {t(label)}
-    </span>
-    <div className="mt-1.5">{children}</div>
-    {hint ? <p className="mt-1 text-[11px] text-themeTextGray/70">{t(hint)}</p> : null}
-  </label>;
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
+        {t(label)}
+      </span>
+      <div className="mt-1.5">{children}</div>
+      {hint ? (
+        <p className="mt-1 text-[11px] text-themeTextGray/70">{t(hint)}</p>
+      ) : null}
+    </label>
+  );
 };
 
 const inputClass =
@@ -53,10 +56,10 @@ const ConfigPage = () => {
   const { config, updateConfig } = useRuntimeConfig();
   const [form, setForm] = useState(config);
   const [notifPermission, setNotifPermission] = useState(
-    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+    typeof Notification !== "undefined"
+      ? Notification.permission
+      : "unsupported",
   );
-  const { profiles, addProfile, removeProfile } = useRobotProfiles();
-  const [profileName, setProfileName] = useState("");
   const { reportHealth, reportLifecycle, issues, overall, overallLabel } =
     useSystemDiagnostics();
 
@@ -81,13 +84,20 @@ const ConfigPage = () => {
   const handleSave = () => {
     updateConfig({
       rosbridgeHost: form.rosbridgeHost.trim(),
-      rosbridgePort: String(form.rosbridgePort || DEFAULT_RUNTIME_CONFIG.rosbridgePort),
+      rosbridgePort: String(
+        form.rosbridgePort || DEFAULT_RUNTIME_CONFIG.rosbridgePort,
+      ),
       cameraPort: String(form.cameraPort || DEFAULT_RUNTIME_CONFIG.cameraPort),
-      maxLinearSpeed: parseFloat(form.maxLinearSpeed) || DEFAULT_RUNTIME_CONFIG.maxLinearSpeed,
-      maxAngularSpeed: parseFloat(form.maxAngularSpeed) || DEFAULT_RUNTIME_CONFIG.maxAngularSpeed,
+      maxLinearSpeed:
+        parseFloat(form.maxLinearSpeed) ||
+        DEFAULT_RUNTIME_CONFIG.maxLinearSpeed,
+      maxAngularSpeed:
+        parseFloat(form.maxAngularSpeed) ||
+        DEFAULT_RUNTIME_CONFIG.maxAngularSpeed,
       notificationsEnabled: Boolean(form.notificationsEnabled),
       lowBatteryThreshold:
-        parseFloat(form.lowBatteryThreshold) || DEFAULT_RUNTIME_CONFIG.lowBatteryThreshold,
+        parseFloat(form.lowBatteryThreshold) ||
+        DEFAULT_RUNTIME_CONFIG.lowBatteryThreshold,
     });
     toast.success(t("Settings saved"));
   };
@@ -95,45 +105,15 @@ const ConfigPage = () => {
   const handleReset = () => {
     if (
       !window.confirm(
-        t("Reset connection address/port, camera port, speed limits, and the low-battery alert back to defaults? If you're currently connected to a robot at a custom address, this will disconnect you."),
+        t(
+          "Reset connection address/port, camera port, speed limits, and the low-battery alert back to defaults? If you're currently connected to a robot at a custom address, this will disconnect you.",
+        ),
       )
     )
       return;
     setForm(DEFAULT_RUNTIME_CONFIG);
     updateConfig(DEFAULT_RUNTIME_CONFIG);
     toast.info(t("Settings reset to defaults"));
-  };
-
-  const handleSaveProfile = () => {
-    const trimmed = profileName.trim();
-    if (!trimmed) {
-      toast.warn(t("Enter a name for this robot"));
-      return;
-    }
-    if (!form.rosbridgeHost.trim()) {
-      toast.warn(
-        t("Set a specific host above first — “auto” always resolves to whichever page you're on, so it can't be saved as a switchable profile."),
-      );
-      return;
-    }
-    addProfile(trimmed, {
-      rosbridgeHost: form.rosbridgeHost.trim(),
-      rosbridgePort: String(form.rosbridgePort || DEFAULT_RUNTIME_CONFIG.rosbridgePort),
-      cameraPort: String(form.cameraPort || DEFAULT_RUNTIME_CONFIG.cameraPort),
-    });
-    setProfileName("");
-    toast.success(`Saved "${trimmed}"`);
-  };
-
-  const handleConnectProfile = (profile) => {
-    const next = {
-      rosbridgeHost: profile.rosbridgeHost,
-      rosbridgePort: profile.rosbridgePort,
-      cameraPort: profile.cameraPort,
-    };
-    setForm((prev) => ({ ...prev, ...next }));
-    updateConfig(next);
-    toast.success(`Connecting to "${profile.name}"`);
   };
 
   return (
@@ -143,24 +123,6 @@ const ConfigPage = () => {
         title="Configuration"
         description="Connection and safety defaults for this browser, saved locally — nothing here is shared with other operators or persisted on the robot."
       />
-
-      <DashboardCard className="p-4">
-        <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          {t("Demo mode")}
-        </p>
-        <p className="mt-1 text-sm text-themeTextGray">
-          {t("Explore the whole interface with simulated telemetry — no robot or robot connection required. Every page shows a permanent Demo mode badge while this is on. Turning it off returns to the connection settings below.")}
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <Switcher
-            switcherValue={Boolean(config.demoMode)}
-            onChange={(next) => updateConfig({ demoMode: next })}
-          />
-          <span className="text-sm text-textWhiteHover">
-            {t(config.demoMode ? "Demo mode is on" : "Demo mode is off")}
-          </span>
-        </div>
-      </DashboardCard>
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
@@ -183,7 +145,9 @@ const ConfigPage = () => {
               type="text"
               value={form.rosbridgeHost}
               onChange={setField("rosbridgeHost")}
-              placeholder={`Auto — ${resolveRosbridgeHost({ rosbridgeHost: "" })}`}
+              placeholder={`${t("Auto")} — ${resolveRosbridgeHost({
+                rosbridgeHost: "",
+              })}`}
               className={inputClass}
             />
           </Field>
@@ -199,7 +163,10 @@ const ConfigPage = () => {
             />
           </Field>
 
-          <Field label="Camera stream port" hint="Port used to stream the camera feed.">
+          <Field
+            label="Camera stream port"
+            hint="Port used to stream the camera feed."
+          >
             <input
               type="number"
               min="1"
@@ -225,7 +192,9 @@ const ConfigPage = () => {
           </div>
         </div>
         <p className="mt-1 text-sm text-themeTextGray">
-          {t("The same health summary as the Health Centre; connection problems appear here too.")}
+          {t(
+            "The same health summary as the Health Centre; connection problems appear here too.",
+          )}
         </p>
 
         {issues.length > 0 && (
@@ -237,14 +206,14 @@ const ConfigPage = () => {
                   to={issue.linkTo}
                   className="rounded-lg border border-borderSubtle bg-bgSurface px-2.5 py-1.5 text-xs text-textWhiteHover hover:border-themeBlue hover:text-themeBlue"
                 >
-                  {issue.message}
+                  {t(issue.message)}
                 </Link>
               ) : (
                 <span
                   key={issue.id}
                   className="rounded-lg border border-borderSubtle bg-bgSurface px-2.5 py-1.5 text-xs text-themeTextGray"
                 >
-                  {issue.message}
+                  {t(issue.message)}
                 </span>
               ),
             )}
@@ -270,66 +239,12 @@ const ConfigPage = () => {
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          {t("Saved robots")}
-        </p>
-        <p className="mt-1 text-sm text-themeTextGray">
-          {t("Name and save a robot connection, then switch without retyping its address and port.")}
-        </p>
-
-        <div className="mt-4 flex gap-2">
-          <input
-            type="text"
-            value={profileName}
-            onChange={(e) => setProfileName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSaveProfile()}
-            placeholder={t("e.g. Warehouse Robot 3")}
-            className={inputClass}
-          />
-          <button
-            onClick={handleSaveProfile}
-            className="shrink-0 rounded-lg border border-themeBlue px-3 py-1.5 text-xs font-semibold text-themeBlue transition-colors hover:bg-themeBlue hover:text-white"
-          >
-            {t("Save as profile")}
-          </button>
-        </div>
-
-        {profiles.length === 0 ? (
-          <p className="mt-3 text-xs text-themeTextGray opacity-70">
-            {t("No saved robots yet.")}
-          </p>
-        ) : (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {profiles.map((profile) => (
-              <div
-                key={profile.id}
-                className="flex items-center gap-1.5 rounded-lg border border-borderSubtle bg-bgSurface px-2 py-1 text-xs"
-              >
-                <button
-                  onClick={() => handleConnectProfile(profile)}
-                  className="text-themeBlue hover:underline"
-                  title={`${profile.rosbridgeHost}:${profile.rosbridgePort}`}
-                >
-                  ▸ {profile.name}
-                </button>
-                <button
-                  onClick={() => removeProfile(profile.id)}
-                  className="text-themeTextGray hover:text-statusRed"
-                  aria-label={`Delete ${profile.name}`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </DashboardCard>
-
-      <DashboardCard className="p-4">
-        <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
           {t("Manual-drive safety limits")}
         </p>
         <p className="mt-1 text-sm text-themeTextGray">
-          {t("Maximum joystick and map speed settings. Changes apply to new manual commands.")}
+          {t(
+            "Maximum joystick and map speed settings. Changes apply to new manual commands.",
+          )}
         </p>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -364,7 +279,9 @@ const ConfigPage = () => {
           {t("Notifications")}
         </p>
         <p className="mt-1 text-sm text-themeTextGray">
-          {t("Browser notifications for navigation, docking, and low battery require browser permission.")}
+          {t(
+            "Browser notifications for navigation, docking, and low battery require browser permission.",
+          )}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -383,16 +300,21 @@ const ConfigPage = () => {
             onClick={requestNotificationPermission}
             className="ml-auto rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeBlue hover:border-themeBlue"
           >
-            {t(notifPermission === "granted"
-              ? "Permission granted"
-              : notifPermission === "denied"
-              ? "Permission blocked — check browser settings"
-              : "Request permission")}
+            {t(
+              notifPermission === "granted"
+                ? "Permission granted"
+                : notifPermission === "denied"
+                ? "Permission blocked — check browser settings"
+                : "Request permission",
+            )}
           </button>
         </div>
 
         <div className="mt-4 max-w-xs">
-          <Field label="Low battery threshold" hint="Notify once battery drops to or below this level, %">
+          <Field
+            label="Low battery threshold"
+            hint="Notify once battery drops to or below this level, %"
+          >
             <input
               type="number"
               min="0"
@@ -411,10 +333,14 @@ const ConfigPage = () => {
           {t("Keep-out zones")}
         </p>
         <p className="mb-3 mt-1 text-sm font-semibold text-statusYellow">
-          {t("These zones are visual markers only. They do not stop the robot. Confirm obstacle avoidance with the integrator.")}
+          {t(
+            "These zones are visual markers only. They do not stop the robot. Confirm obstacle avoidance with the integrator.",
+          )}
         </p>
         <p className="mb-3 text-sm text-themeTextGray">
-          {t("Rectangular no-go areas are drawn on the map. Toggle them with the Zones layer.")}
+          {t(
+            "Rectangular no-go areas are drawn on the map. Toggle them with the Zones layer.",
+          )}
         </p>
         <KeepoutZones />
       </DashboardCard>

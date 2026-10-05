@@ -296,9 +296,15 @@ const RoutePage = () => {
           data: { group: selectedGroup, map: selectedMap },
           preActions: () => window.NAV2D.ClearMap(),
           postActions: () => {
-            setSelectedFile({ group: selectedGroup, map: selectedMap, route: "Null" });
+            setSelectedFile({
+              group: selectedGroup,
+              map: selectedMap,
+              route: "Null",
+            });
             toast.info(
-              "Map loaded — set the robot's initial pose before navigating; its old localization no longer matches the new map.",
+              t(
+                "Map loaded — set the robot's initial pose before navigating; its old localization no longer matches the new map.",
+              ),
             );
           },
         },
@@ -435,13 +441,13 @@ const RoutePage = () => {
 
   const onPlanRouteClick = () => {
     if (!ros) {
-      toast.error("Robot connection is offline!");
+      toast.error(t("Robot connection is offline!"));
       return;
     }
 
     if (!pointsSettable) {
       toast.warn(
-        "Please click 'Edit' or 'Create' first to enable path planning!",
+        t("Please click 'Edit' or 'Create' first to enable path planning!"),
       );
       return;
     }
@@ -449,13 +455,17 @@ const RoutePage = () => {
     const startPose = window.NAV2D.currentPose;
     if (!startPose) {
       toast.error(
-        "Waiting for the robot's current position — make sure it's localized on the map, then try again.",
+        t(
+          "Waiting for the robot's current position — make sure it's localized on the map, then try again.",
+        ),
       );
       return;
     }
 
     toast.info(
-      "Click and drag on the map to set the Goal pose for automatic path planning.",
+      t(
+        "Click and drag on the map to set the Goal pose for automatic path planning.",
+      ),
     );
 
     const originalPoseCallback = window.NAV2D._poseCallback;
@@ -466,7 +476,7 @@ const RoutePage = () => {
       // Remove the goal marker we just placed temporarily
       removePointFromCanvas();
 
-      toast.info("Calculating a route...");
+      toast.info(t("Calculating a route..."));
 
       const toPoseStamped = (pose) => ({
         header: { frame_id: "map", stamp: { secs: 0, nsecs: 0 } },
@@ -477,7 +487,12 @@ const RoutePage = () => {
       });
 
       const handlePlannedPath = (poses) => {
-        toast.success(`Successfully planned path with ${poses.length} points!`);
+        toast.success(
+          t("Successfully planned path with {count} points!").replace(
+            "{count}",
+            poses.length,
+          ),
+        );
 
         const downsampled = downsamplePath(poses, 1.0);
 
@@ -521,7 +536,9 @@ const RoutePage = () => {
       // navigate_to_pose's feedback/cancel topics. Planning is fast/local,
       // so we call get_result immediately after an accepted send_goal
       // rather than also wringing the status/feedback topics.
-      const goalId = { uuid: Array.from({ length: 16 }, () => Math.floor(Math.random() * 256)) };
+      const goalId = {
+        uuid: Array.from({ length: 16 }, () => Math.floor(Math.random() * 256)),
+      };
 
       const sendGoalClient = new window.ROSLIB.Service({
         ros,
@@ -543,7 +560,7 @@ const RoutePage = () => {
         sendGoalRequest,
         (sendGoalResult) => {
           if (!sendGoalResult || !sendGoalResult.accepted) {
-            toast.error("Nav2 planner rejected the path request.");
+            toast.error(t("Nav2 planner rejected the path request."));
             return;
           }
 
@@ -562,20 +579,22 @@ const RoutePage = () => {
               } else {
                 toast.error(
                   getResult?.result?.error_msg ||
-                    "Couldn't find a route to that point.",
+                    t("Couldn't find a route to that point."),
                 );
               }
             },
             (error) => {
               console.error("Nav2 get_result service error:", error);
-              toast.error("Failed to retrieve the planned path from Nav2.");
+              toast.error(t("Failed to retrieve the planned path from Nav2."));
             },
           );
         },
         (error) => {
           console.error("Nav2 planning service error:", error);
           toast.error(
-            "Couldn't reach the robot's navigation system — is it turned on?",
+            t(
+              "Couldn't reach the robot's navigation system — is it turned on?",
+            ),
           );
         },
       );
@@ -613,8 +632,8 @@ const RoutePage = () => {
     }
 
     modalKey.current = "SAVE_ROUTE";
-    textInputHeader.current = "Enter new route name";
-    textInputPlaceholder.current = "Name...";
+    textInputHeader.current = t("Enter new route name");
+    textInputPlaceholder.current = t("Name...");
     setOpenInputModal(true);
   };
 
@@ -626,7 +645,7 @@ const RoutePage = () => {
     modalKey.current = "CHANGE_ROUTE";
     routesModalType.current = "selectRoute";
     isRoutesModalWithInput.current = false;
-    routesModalHeader.current = "Select route you want to browse";
+    routesModalHeader.current = t("Select route you want to browse");
     setOpenRouteModal(true);
   };
 
@@ -637,7 +656,7 @@ const RoutePage = () => {
     modalKey.current = "CHANGE_MAP";
     routesModalType.current = "selectMap";
     isRoutesModalWithInput.current = false;
-    routesModalHeader.current = "Select map you want to load";
+    routesModalHeader.current = t("Select map you want to load");
     setOpenRouteModal(true);
   };
 
@@ -704,8 +723,8 @@ const RoutePage = () => {
     // console.log(!pointsSettable || selectedFile.route === "New route");
     // if (selectedFile.route === "New route") return;
     modalKey.current = "RENAME_ROUTE";
-    textInputHeader.current = "Enter route new name";
-    textInputPlaceholder.current = "Name...";
+    textInputHeader.current = t("Enter route new name");
+    textInputPlaceholder.current = t("Name...");
     setOpenInputModal(true);
   };
 
@@ -721,7 +740,9 @@ const RoutePage = () => {
   // than teaching that modal a second selection level.
   const mapOptions = allStructure.flatMap((groupObj) =>
     Object.entries(groupObj).flatMap(([group, maps]) =>
-      maps.flatMap((mapObj) => Object.keys(mapObj).map((mapName) => `${group} / ${mapName}`)),
+      maps.flatMap((mapObj) =>
+        Object.keys(mapObj).map((mapName) => `${group} / ${mapName}`),
+      ),
     ),
   );
 
@@ -731,7 +752,9 @@ const RoutePage = () => {
 
       {openRouteModal && (
         <RouteModal
-          routesList={modalKey.current === "CHANGE_MAP" ? mapOptions : filesData}
+          routesList={
+            modalKey.current === "CHANGE_MAP" ? mapOptions : filesData
+          }
           headerText={routesModalHeader.current}
           modalHandler={onRouteFormSubmitHandler}
         />
@@ -802,9 +825,11 @@ const RoutePage = () => {
                 {t("Route operations")}
               </p>
               <p className="mt-2 text-sm leading-6 text-themeTextGray">
-                {t(pointsSettable
-                  ? "Click the map to add or adjust waypoints, then save your changes."
-                  : "Choose an operation to begin editing the current route or create a new one.")}
+                {t(
+                  pointsSettable
+                    ? "Click the map to add or adjust waypoints, then save your changes."
+                    : "Choose an operation to begin editing the current route or create a new one.",
+                )}
               </p>
             </div>
 

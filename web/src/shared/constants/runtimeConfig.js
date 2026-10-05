@@ -14,12 +14,12 @@ export const DEFAULT_RUNTIME_CONFIG = {
   maxAngularSpeed: AppConfig.MAX_ANGULAR_SPEED,
   notificationsEnabled: false,
   lowBatteryThreshold: 20,
-  demoMode: false,
 };
 
 export function loadRuntimeConfig() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    delete stored.demoMode;
     return { ...DEFAULT_RUNTIME_CONFIG, ...stored };
   } catch {
     return { ...DEFAULT_RUNTIME_CONFIG };

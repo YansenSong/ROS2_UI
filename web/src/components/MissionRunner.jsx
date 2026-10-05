@@ -6,7 +6,12 @@ import { AppConfig } from "../shared/constants";
 import { addEvent } from "../shared/events/eventLog";
 import { loadWaypoints } from "../shared/hooks/useSavedWaypoints";
 import { getMission } from "../shared/missions/missions";
-import { getRun, setRun, subscribeCommands } from "../shared/missions/missionRunner";
+import {
+  getRun,
+  setRun,
+  subscribeCommands,
+} from "../shared/missions/missionRunner";
+import { translate as t } from "../shared/i18n/i18n";
 
 // Generous timeouts so a silent Nav2/dock stack can't hang a mission forever —
 // these are "something is clearly wrong" backstops, not tuned durations.
@@ -151,7 +156,9 @@ const MissionRunner = () => {
 
       const triggerTopic = new window.ROSLIB.Topic({
         ros: activeRos,
-        name: undo ? AppConfig.UNDOCK_TRIGGER_TOPIC : AppConfig.DOCK_TRIGGER_TOPIC,
+        name: undo
+          ? AppConfig.UNDOCK_TRIGGER_TOPIC
+          : AppConfig.DOCK_TRIGGER_TOPIC,
         messageType: "std_msgs/Bool",
       });
       const statusTopic = new window.ROSLIB.Topic({
@@ -202,12 +209,12 @@ const MissionRunner = () => {
 
   const startMission = async (missionId) => {
     if (getRun()?.status === "running") {
-      toast.warn("A mission is already running — stop it first.");
+      toast.warn(t("A mission is already running — stop it first."));
       return;
     }
     const mission = getMission(missionId);
     if (!mission || !mission.steps.length) {
-      toast.error("That mission has no steps to run.");
+      toast.error(t("That mission has no steps to run."));
       return;
     }
 
@@ -244,13 +251,21 @@ const MissionRunner = () => {
       // Steps are inherently sequential — each depends on the previous one finishing.
       const ok = await runStep(step);
       const label = labelFor(step);
-      setRun({ ...getRun(), log: [...getRun().log, { label, ok, time: Date.now() }] });
+      setRun({
+        ...getRun(),
+        log: [...getRun().log, { label, ok, time: Date.now() }],
+      });
 
       if (!ok) {
         const status = stopRequestedRef.current ? "stopped" : "failed";
         setRun({ ...getRun(), status });
         if (status === "failed") {
-          toast.error(`Mission "${mission.name}" failed at step ${i + 1}: ${label}`);
+          toast.error(
+            t('Mission "{name}" failed at step {step}: {label}')
+              .replace("{name}", mission.name)
+              .replace("{step}", i + 1)
+              .replace("{label}", t(label)),
+          );
           addEvent({
             type: "navigation",
             severity: "error",
@@ -262,7 +277,9 @@ const MissionRunner = () => {
     }
 
     setRun({ ...getRun(), status: "succeeded" });
-    toast.success(`Mission "${mission.name}" complete`);
+    toast.success(
+      t('Mission "{name}" complete').replace("{name}", mission.name),
+    );
     addEvent({
       type: "navigation",
       severity: "success",

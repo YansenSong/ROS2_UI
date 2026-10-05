@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n/i18n";
 import React from "react";
 
 import { useRosStatus } from "../app/App";
@@ -29,8 +30,11 @@ const ConsolePage = () => {
 
       {!connected && (
         <p className="dashboard-card px-4 py-2 font-[RobotoMono] text-xs text-themeTextGray">
-          Not connected to the robot — logs and topic echo will start streaming
-          once the connection is live. Check the host/port on the Config page.
+          <T>
+            {
+              "Not connected to the robot — logs and topic echo will start streaming once the connection is live. Check the host/port on the Config page."
+            }
+          </T>{" "}
         </p>
       )}
 

@@ -32,7 +32,7 @@ SEGMENT_DURATIONS=(
   3.5 3.5 3.5 3.5
   3.5 3.5 3.5 3.5
   3.5 3.5 3.5 3.5
-  3.5 3.5 3.5 3.5
+  3.5
   4
 )
 
@@ -41,11 +41,9 @@ NARRATIONS=(
   "View the map, drive manually, send goals, and dock."
   "Build and edit reusable waypoint routes for each map."
   "Create, switch, rename, and manage robot maps."
-  "Build validated robot routines visually with Blockly."
   "Schedule routine browser-side actions for selected times."
   "Build missions with waypoints, waits, and docking."
   "Monitor the camera, battery, motion, and status."
-  "Explore the robot model, joints, and live overlays."
   "Register external hardware and network devices."
   "Check readiness, battery, devices, and faults."
   "Track distance, uptime, navigation, and docking."
@@ -53,8 +51,7 @@ NARRATIONS=(
   "Review navigation, battery, and safety events."
   "Inspect logs and live topics in the browser."
   "Update selected Nav two runtime parameters."
-  "Choose which robot profile this browser controls."
-  "Explore safely in Demo Mode, then self-host when you are ready."
+  "Connect to a R O S two robot to view live data."
 )
 
 AUDIO_TMP_DIR="$(mktemp -d)"

@@ -1,123 +1,71 @@
-# Lesson 04 — Data Flow and Relays
+# 课程 04——数据流与 relay 节点
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| ROS developers and maintainers | 10 minutes | [Lesson 03](03-how-the-browser-talks-to-ros.md) |
+| ROS 开发者和维护者 | 10 分钟 | [课程 03](03-how-the-browser-talks-to-ros.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn why QoS compatibility can require a relay and how `/ui/*`
-topics expose browser-friendly copies without changing robot-side publishers.
+了解 QoS compatibility 为什么可能需要 relay，以及 `/ui/*` topics 如何提供适合浏览器使用的数据副本，同时不更改机器人侧 publisher。
 
-This is the most important lesson for anyone planning to connect a new
-external device, sensor, or actuator to the UI (see
-[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md)).
-It explains a pattern that repeats every time robot-side data needs to reach
-the browser reliably: **robot topic → relay node → browser-safe topic**.
+计划把新外部设备、sensor 或 actuator 接入 UI 的读者应重点阅读本课（另见[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md)）。本课介绍一种反复使用的数据转发模式：**机器人 topic → relay node → 浏览器可用的 topic**。
 
-## The problem: QoS, not code
+<a id="the-problem-qos-not-code"></a>
+## 问题出在 QoS，而不是代码
 
-ROS 2 topics carry a Quality of Service (QoS) profile alongside their data —
-a set of delivery-behavior settings each publisher and subscriber must agree
-on (close enough) to actually connect. QoS has several independent settings;
-the only one that matters for this lesson is **durability**, which has two
-values:
+ROS 2 topic 会附带 Quality of Service（QoS）profile，即 publisher 和 subscriber 要大致一致的一组传递行为设置。QoS 有多项设置；本课只讨论 **durability**，它有两个取值：
 
-- **TRANSIENT_LOCAL** ("latched"): a late-joining subscriber still receives
-  the last published message, not just future ones. The map server publishes
-  `/map` this way — the map doesn't change every frame, so it's published
-  once (or infrequently) and any node that starts up later still gets it.
-- **VOLATILE**: only subscribers that are already listening receive new
-  messages. Nothing is replayed for late joiners.
+- **TRANSIENT_LOCAL**（常称为“锁存”）：晚加入的 subscriber 仍能收到最近一次发布的消息，而不只是后续消息。map server 以此方式发布 `/map`。地图不会每帧变化，通常只发布一次或偶尔发布，因此后启动的节点也要能取得它。
+- **VOLATILE**：只有当时正在监听的 subscriber 能收到新消息；不会为晚加入者重放之前的数据。
 
-(There's a separate setting called *reliability* — RELIABLE vs BEST_EFFORT,
-about whether dropped packets get retried — but it isn't the source of the
-problem this lesson solves, so it's not discussed further here.)
+另一个独立设置叫 *reliability*，取值为 RELIABLE 或 BEST_EFFORT，决定丢包后是否重试。它不是本课所讨论问题的根源。
 
-Nav2 nodes expect and handle TRANSIENT_LOCAL correctly. A browser client
-connecting through rosbridge, though, is much more likely to subscribe
-*after* a TRANSIENT_LOCAL topic's one-time publish already happened — and
-depending on timing, it can miss it. The fix used throughout this workspace
-is a small relay node: subscribe to the robot-side TRANSIENT_LOCAL topic,
-republish the same data as VOLATILE (and, for the map, on a timer so
-late-connecting browser clients still get it) on a separate topic name.
+Nav2 节点能够正确处理 TRANSIENT_LOCAL topic。但经 rosbridge 连接的浏览器客户端，很可能在该 topic 首次发布后才订阅，因此可能错过消息。此工作区通过一个小型 relay node 解决：订阅机器人侧的 TRANSIENT_LOCAL topic，再以 VOLATILE 方式将相同数据发布到另一个 topic；对于 map，还会使用 timer 定期重发，让较晚连接的浏览器也能收到。
 
-**The symptom this actually prevents:** without the relay, if you open the
-Map page a few seconds after `map_server` started (which is the normal case —
-the robot stack is almost always already running before you open the UI),
-the map panel could stay blank forever, even though the map server published
-correctly and `ros2 topic echo /map` on the command line would show the data
-was there. The relay's 2-second republish timer is what guarantees a
-just-opened browser tab gets a copy no matter when it subscribed.
+**它避免的实际问题：**如果 `map_server` 启动几秒后才打开 Map 页面（通常机器人栈会先启动，操作员之后才打开 UI），没有 relay 时，地图面板可能一直空白。即使 map server 已正确发布，命令行运行 `ros2 topic echo /map` 也能看到数据，浏览器仍可能收不到。relay 每 2 秒重发一次，确保新打开的浏览器标签页无论何时订阅都能取得副本。
 
-## The pattern in this codebase
+## 本代码库中的模式
 
 ```text
-Robot / simulation stack            This UI workspace                Browser
---------------------------          ------------------------         ---------
-/map (TRANSIENT_LOCAL)      --->    map_relay node          --->    subscribes to
-  published by map_server           republishes as VOLATILE          /ui/map
-                                     on /ui/map, every 2s
+机器人/仿真栈                         本 UI 工作区                    浏览器
+-----------------                     -------------                    ------
+/map (TRANSIENT_LOCAL)  --->           map_relay node       --->         订阅 /ui/map
+由 map_server 发布                       以 VOLATILE 重发                   每 2 秒发布一次
+                                         到 /ui/map
 ```
 
-See
-[`ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)
-for the exact implementation — it is intentionally small and is a good
-template to copy for a new relay.
+具体实现见[`ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)。该实现刻意保持精简，可作为新增 relay 的参考。
 
-The same pattern covers navigation and docking status, all handled by one
-node:
-[`ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py),
-which relays:
+同一模式也用于 navigation 和 docking status，由[`ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py)这个节点统一处理：
 
-| Robot-side topic (TRANSIENT_LOCAL) | UI-facing topic (VOLATILE) |
+| 机器人侧 topic（TRANSIENT_LOCAL） | UI 侧 topic（VOLATILE） |
 | --- | --- |
 | `/amcl_pose` | `/ui/amcl_pose` |
 | `/navigate_to_pose/_action/status` | `/ui/navigate_to_pose/status` |
 | `/dock_robot/_action/status` | `/ui/dock_robot/status` |
 | `/undock_robot/_action/status` | `/ui/undock_robot/status` |
 
-Both relay nodes are started alongside Flask and rosbridge in
-[`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py),
-under the `ui` namespace.
+两个 relay 节点与 Flask 和 rosbridge 一起由[`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)启动，并放在 `ui` namespace 下。
 
-## Not every topic needs a relay
+## 并非每个 topic 都需要 relay
 
-Plenty of topics the UI subscribes to — `/odom`, `/scan_filtered`,
-`/global_costmap/costmap`, `/plan`, `/tf`, `/tf_static` — are already VOLATILE
-or don't have the late-subscriber problem in practice, so they're subscribed
-to directly with no relay in between. A relay is a targeted fix for a
-specific QoS mismatch, not a mandatory hop for every topic. Whether a new
-topic needs one is exactly the question
-[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md)
-walks through.
+UI 订阅的许多 topics——例如 `/odom`、`/scan_filtered`、`/global_costmap/costmap`、`/plan`、`/tf` 和 `/tf_static`——本身就是 VOLATILE，或实际使用中没有晚订阅者收不到数据的问题，因此直接订阅，不经 relay。relay 是针对特定 QoS mismatch 的解决方法，不是每个 topic 都必须经过的环节。新增 topic 是否需要 relay，正是[`docs/extending/connect-external-device.md`](../extending/connect-external-device.md)会协助判断的问题。
 
-## The naming convention
+<a id="the-naming-convention"></a>
+## 命名约定
 
-Relayed topics live under a `/ui/` prefix (`/ui/map`, `/ui/amcl_pose`, …).
-That prefix is a convention, not a technical requirement — it exists so
-anyone reading a topic list can tell at a glance which topics are
-browser-facing relays versus original robot-side topics. Follow it when
-adding a new relay.
+relay topics 使用 `/ui/` 前缀（如 `/ui/map`、`/ui/amcl_pose`）。这是一种约定，不是技术要求；它让人查看 topic 列表时可以快速区分面向浏览器的转发 topic 和原始机器人侧 topic。添加 relay 时请沿用此约定。
 
-## Try it
+## 试一试
 
-Compare `/map` and `/ui/map` with `ros2 topic info -v` while the system is
-running. Identify the publisher, subscriber, durability, and reliability at
-each side of the relay.
+系统运行时，分别运行 `ros2 topic info -v /map` 和 `ros2 topic info -v /ui/map`。找出 relay 两侧的 publisher、subscriber、durability 和 reliability。
 
-**You're ready to continue when:** you can explain why a relay may be needed
-even when the topic name and message contents look correct.
+**完成标准：**能解释为什么即便 topic 名称和 message 内容看起来正确，有时仍需要 relay。
 
-## Next
+## 下一课
 
-[Lesson 05 — Backend Nodes in Detail](05-backend-nodes-in-detail.md) finishes
-the ROS-side tour — the rest of what `openamr_ui_package` runs beyond the two
-relays — before [Lesson 06 — A Tour of Every Page](06-the-pages.md) walks
-through what each page actually shows, and which topics (relayed or direct)
-it depends on.
+[课程 05——后端节点详解](05-backend-nodes-in-detail.md)会继续介绍 ROS 侧：除两个 relay 外，`openamr_ui_package` 还会运行什么。之后[课程 06——所有页面导览](06-the-pages.md)会逐页介绍界面显示内容，以及各页面依赖的 topics（无论是否经过 relay）。
 
 ---
 
-[← Lesson 03](03-how-the-browser-talks-to-ros.md) · [Lesson index](README.md) ·
-[Next: Lesson 05 →](05-backend-nodes-in-detail.md)
+[← 课程 03](03-how-the-browser-talks-to-ros.md) · [课程索引](README.md) · [下一课：课程 05 →](05-backend-nodes-in-detail.md)

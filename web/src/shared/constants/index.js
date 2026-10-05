@@ -1,5 +1,5 @@
 export const AppConfig = {
-  ROSBRIDGE_SERVER_IP: "192.168.0.100",
+  ROSBRIDGE_SERVER_IP: "127.0.0.1",
   ROSBRIDGE_SERVER_PORT: "9090",
   CAMERA_PORT: "8080",
   RECONNECTION_TIME: 1000,
@@ -10,7 +10,7 @@ export const AppConfig = {
   MAP_TOPIC: "/ui/map",
   GLOBAL_COSTMAP_TOPIC: "/global_costmap/costmap",
   LOCAL_COSTMAP_TOPIC: "/local_costmap/costmap",
-  SCAN_TOPIC: "/scan_filtered",
+  SCAN_TOPIC: "/scan",
   PLAN_TOPIC: "/plan",
   TF_TOPIC: "/tf",
   TF_STATIC_TOPIC: "/tf_static",
@@ -34,7 +34,7 @@ export const AppConfig = {
   BATTERY_TOPIC: "/battery_status",
   CHARGE_STATION_CONNECTED: "/charge_station_connected",
 
-  // Robot Description page — Live Mode joint telemetry (sensor_msgs/JointState)
+  // 关节状态遥测（sensor_msgs/JointState），可供其他状态视图使用。
   JOINT_STATES_TOPIC: "/joint_states",
 
   // Route editor: file/waypoint exchange with openamr_ui_package's folders_handler node
@@ -58,11 +58,13 @@ export const AppConfig = {
 // topic actually published by the robot/simulation stack or web_video_server
 // will just show nothing for that selection.
 export const CAMERA_TOPIC_OPTIONS = [
-  { value: "/camera/color/image_raw", label: "Color" },
-  { value: "/rgb_image", label: "RGB Sim" },
-  { value: "/camera/image_raw", label: "Raw" },
+  { value: "/depth_camera/image_raw", label: "/depth_camera/image_raw" },
+  {
+    value: "/depth_camera/depth/image_raw",
+    label: "/depth_camera/depth/image_raw",
+  },
 ];
-export const DEFAULT_CAMERA_TOPIC = "/rgb_image";
+export const DEFAULT_CAMERA_TOPIC = "/depth_camera/image_raw";
 
 // Nav2 lifecycle-managed nodes polled/controlled from the Health page.
 // `base` is the ROS node namespace exposing get_state/change_state services.

@@ -30,16 +30,6 @@ export const PAGE_HELP = {
       "Change map switches which map this route belongs to; Auto-plan asks Nav2 to compute a path between two points for you.",
     ],
   },
-  "/blocks": {
-    title: "Programs",
-    summary:
-      "A visual, block-based way to script a sequence of robot actions — navigate, wait, change speed, repeat — without writing code.",
-    tips: [
-      "Drag blocks from the palette and snap them together to build a program.",
-      "Run executes the program step by step against the real robot; run history keeps a record of past runs.",
-      "Named locations (set on the Config-adjacent locations list) let you say \"go to Charging Station\" instead of typing coordinates.",
-    ],
-  },
   "/info": {
     title: "Status",
     summary:
@@ -47,16 +37,6 @@ export const PAGE_HELP = {
     tips: [
       "The camera panel is paused by default to save bandwidth — press Start when you need to actually see through it.",
       "The battery trend sparkline shows the last several readings, not just the instantaneous value.",
-    ],
-  },
-  "/robot": {
-    title: "Robot",
-    summary:
-      "A 3D model of the robot from its real URDF description — Description Mode is a safe, offline visualization; Live Mode overlays real robot data.",
-    tips: [
-      "Description Mode needs no robot connection — joint sliders here only move the on-screen model, nothing is published anywhere.",
-      "Live Mode positions the model at its real map-frame pose and draws Nav2's planned path — but joint sliders become read-only telemetry, since this robot only has /cmd_vel (no per-joint position command).",
-      "The kinematic tree and layer toggles (TF axes, joint axes, link names, centre-of-mass, footprint) work in both modes.",
     ],
   },
   "/devices": {
@@ -92,10 +72,8 @@ export const PAGE_HELP = {
   "/config": {
     title: "Config",
     summary:
-      "Connection settings, saved robot profiles, safety limits, and notification preferences for this browser — nothing here is shared with other operators.",
+      "Connection settings, safety limits, and notification preferences for this browser — nothing here is shared with other operators.",
     tips: [
-      "Demo mode lets you explore the whole app with simulated data and no robot at all — flip it on here any time.",
-      "Save a named connection profile once you've set a host/port, so switching robots later is a single click.",
       "Changing the robot's address or port reconnects immediately.",
     ],
   },

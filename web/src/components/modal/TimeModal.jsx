@@ -3,24 +3,26 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Button from "../../shared/ui/Button";
+import { useT } from "../../shared/i18n/i18n";
 
 const TimeModal = ({ modalHandler }) => {
+  const { t } = useT();
   const [hoursValue, setHoursValue] = useState(0);
   const [minutesValue, setMinutesValue] = useState(0);
 
   const handleSubmitClick = () => {
     if (hoursValue === "" && minutesValue === "") {
-      toast.warn("Enter hours and minutes");
+      toast.warn(t("Enter hours and minutes"));
       return;
     }
 
     if (hoursValue < 0 || hoursValue > 23) {
-      toast.warn("Hours can't be less then 0 and more then 23");
+      toast.warn(t("Hours can't be less then 0 and more then 23"));
       return;
     }
 
     if (minutesValue < 0 || minutesValue > 59) {
-      toast.warn("Minutes can't be less then 0 and more then 59");
+      toast.warn(t("Minutes can't be less then 0 and more then 59"));
       return;
     }
 
@@ -50,29 +52,30 @@ const TimeModal = ({ modalHandler }) => {
           id="time-dialog-title"
           className="text-xl font-bold text-textWhiteHover"
         >
-          Waypoint wait time
+          {t("Waypoint wait time")}
         </h2>
 
         <p className="text-sm leading-6 text-themeTextGray">
-          How long should the robot pause here before continuing? Leave both
-          at 0 for no pause.
+          {t(
+            "How long should the robot pause here before continuing? Leave both at 0 for no pause.",
+          )}
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
             type="number"
             value={hoursValue}
-            aria-label="Hours"
+            aria-label={t("Hours")}
             className="min-h-[46px] w-full rounded-xl border border-borderSubtle bg-bgSurface px-4 py-3 text-base text-textWhiteHover placeholder:text-themeTextGray focus:border-themeBlue"
-            placeholder="hours..."
+            placeholder={t("hours...")}
             onChange={(e) => setHoursValue(e.target.value)}
           />
           <input
             type="number"
             value={minutesValue}
-            aria-label="Minutes"
+            aria-label={t("Minutes")}
             className="min-h-[46px] w-full rounded-xl border border-borderSubtle bg-bgSurface px-4 py-3 text-base text-textWhiteHover placeholder:text-themeTextGray focus:border-themeBlue"
-            placeholder="minutes..."
+            placeholder={t("minutes...")}
             onChange={(e) => setMinutesValue(e.target.value)}
           />
         </div>
@@ -80,7 +83,7 @@ const TimeModal = ({ modalHandler }) => {
         <div className="grid w-full grid-cols-2 gap-3">
           <div>
             <Button type={"gray"} onBtnClick={handleCancelClick}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
           <div>

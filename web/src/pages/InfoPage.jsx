@@ -130,7 +130,7 @@ const InfoPage = () => {
                 <div
                   className="premium-progress"
                   role="progressbar"
-                  aria-label="Battery charge"
+                    aria-label={t("Battery charge")}
                   aria-valuemin="0"
                   aria-valuemax="100"
                   aria-valuenow={batteryPct}

@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import moment from "moment";
@@ -29,19 +30,19 @@ const RobotLog = () => {
     <article className="dashboard-card flex h-full w-full flex-col overflow-hidden font-[RobotoMono]">
       <header className="flex items-center justify-between border-b border-borderSubtle bg-bgSurface px-4 py-2">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-themeBlue">
-          Messages
+          <T>{"Messages"}</T>{" "}
         </h2>
         <button
           className="rounded-lg border border-borderSubtle px-3 py-1 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue"
           onClick={() => dispatch(setLogs([]))}
         >
-          Clear
+          <T>{"Clear"}</T>{" "}
         </button>
       </header>
       <ul className="flex flex-1 flex-col-reverse gap-0.5 overflow-y-auto px-3 py-2 text-xs text-themeTextGray">
         {logs.length === 0 ? (
           <li className="flex h-full items-center justify-center text-themeTextGray opacity-50">
-            No messages
+            <T>{"No messages"}</T>{" "}
           </li>
         ) : (
           logs.map((msgItem, i) => (

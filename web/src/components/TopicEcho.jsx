@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { useRos } from "../app/App";
 
@@ -11,6 +12,7 @@ const MAX_MESSAGES = 50;
  * avoids a lookup and works for topics that aren't advertised yet.
  */
 const TopicEcho = () => {
+  const { t } = useT();
   const ros = useRos();
   const [topicName, setTopicName] = useState("");
   const [msgType, setMsgType] = useState("");
@@ -72,10 +74,14 @@ const TopicEcho = () => {
     <article className="dashboard-card flex h-full min-h-0 w-full flex-col overflow-hidden font-[RobotoMono]">
       <header className="flex flex-wrap items-center gap-2 border-b border-borderSubtle bg-bgSurface px-3 py-2">
         <h2 className="mr-1 text-sm font-semibold uppercase tracking-wider text-themeBlue">
-          Topic Echo
+          <T>{"Topic Echo"}</T>{" "}
         </h2>
         <p className="w-full text-[11px] text-themeTextGray">
-          For advanced troubleshooting only — ask your integrator for the exact topic names to type here.
+          <T>
+            {
+              "For advanced troubleshooting only — ask your integrator for the exact topic names to type here."
+            }
+          </T>{" "}
         </p>
         <input
           value={topicName}
@@ -88,7 +94,7 @@ const TopicEcho = () => {
           value={msgType}
           onChange={(e) => setMsgType(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && start()}
-          placeholder="msg type (optional)"
+          placeholder={t("msg type (optional)")}
           className="w-40 rounded-lg border border-borderSubtle bg-bgCard px-2 py-1 text-xs text-textWhiteHover placeholder:text-themeTextGray"
         />
         {active ? (
@@ -96,14 +102,14 @@ const TopicEcho = () => {
             onClick={stop}
             className="rounded-lg border border-statusRed px-3 py-1 text-xs text-statusRed transition-colors hover:bg-statusRed hover:text-white"
           >
-            Stop
+            <T>{"Stop"}</T>{" "}
           </button>
         ) : (
           <button
             onClick={start}
             className="rounded-lg border border-themeBlue px-3 py-1 text-xs text-themeBlue transition-colors hover:bg-themeBlue hover:text-white"
           >
-            Echo
+            <T>{"Echo"}</T>{" "}
           </button>
         )}
       </header>
@@ -111,15 +117,19 @@ const TopicEcho = () => {
       <div className="flex-1 overflow-y-auto px-2 py-1 text-xs">
         {!active ? (
           <div className="flex h-full items-center justify-center px-4 text-center text-themeTextGray opacity-50">
-            Enter a topic name and press Echo to stream its messages.
+            <T>{"Enter a topic name and press Echo to stream its messages."}</T>{" "}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-themeTextGray opacity-50">
-            Subscribed to {active.name} — waiting for a message…
+            <T>{"Subscribed to"}</T> {active.name}{" "}
+            <T>{"— waiting for a message…"}</T>{" "}
           </div>
         ) : (
           messages.map((m) => (
-            <div key={m.id} className="border-b border-borderSubtle/20 py-1 last:border-0">
+            <div
+              key={m.id}
+              className="border-b border-borderSubtle/20 py-1 last:border-0"
+            >
               <span className="text-[10px] uppercase text-themeTextGray opacity-70">
                 {m.t}
               </span>
@@ -133,7 +143,7 @@ const TopicEcho = () => {
 
       {active && (
         <footer className="border-t border-borderSubtle bg-bgSurface px-3 py-1 text-[10px] uppercase tracking-wider text-themeTextGray">
-          {active.name} · {count} msgs
+          {active.name} · {count} <T>{"msgs"}</T>{" "}
         </footer>
       )}
     </article>

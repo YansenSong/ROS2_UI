@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n/i18n";
 import React from "react";
 import { Link } from "react-router-dom";
 import { DashboardCard, EmptyState } from "../shared/ui/Dashboard";
@@ -14,7 +15,7 @@ const NotFoundPage = () => {
               to="/"
               className="inline-flex min-h-[42px] items-center rounded-xl bg-themeBlue px-4 py-2 text-sm font-semibold text-white hover:bg-themeMediumBlue"
             >
-              Return to map
+              <T>{"Return to map"}</T>{" "}
             </Link>
           }
         />

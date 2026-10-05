@@ -3,6 +3,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Button from "../../shared/ui/Button";
+import { T, useT } from "../../shared/i18n/i18n";
 
 const isGroupExists = (dataList, groupName) => {
   return dataList.some((group) => groupName in group);
@@ -99,6 +100,7 @@ const FilesModal = ({
   mode,
   modalHandler,
 }) => {
+  const { t } = useT();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
@@ -132,7 +134,7 @@ const FilesModal = ({
 
     if (mode === "selectGroup") {
       if (isGroupExists(filesList, inputValue)) {
-        toast.warn("Group with current name is already exist");
+        toast.warn(t("Group with current name is already exist"));
         return;
       }
 
@@ -192,7 +194,7 @@ const FilesModal = ({
           <div className="w-full overflow-y-auto rounded-xl border border-borderSubtle bg-bgSurface p-3">
             {filesList.length === 0 && (
               <p className="py-8 text-center text-sm text-themeTextGray">
-                No files available
+                <T>{"No files available"}</T>
               </p>
             )}
             <div>
@@ -248,7 +250,7 @@ const FilesModal = ({
           <div className="grid w-full grid-cols-2 gap-3">
             <div>
               <Button type={"gray"} onBtnClick={handleCancelClick}>
-                Cancel
+                <T>{"Cancel"}</T>
               </Button>
             </div>
             <div>

@@ -98,9 +98,6 @@ make_slide "routes/routes.png" \
 make_slide "maps/maps.png" \
   "Map Management" \
   "Build, save, switch, rename, and organize maps"
-make_slide "programs/blockly.png" \
-  "Visual Robot Programs" \
-  "Build validated navigation and motion routines with Blockly"
 make_slide "scheduler/scheduler.png" \
   "Scheduling" \
   "Trigger routine browser-side robot actions at selected times"
@@ -110,9 +107,6 @@ make_slide "missions/missions.png" \
 make_slide "status/status.png" \
   "Live Status" \
   "Monitor camera, battery, position, velocity, and system health"
-make_slide "robot-description/image.png" \
-  "Robot Description" \
-  "Explore the URDF model, kinematic tree, joints, and live overlays"
 make_slide "devices/devices.png" \
   "External Devices" \
   "Register USB, CAN, network, and Raspberry Pi hardware"
@@ -134,13 +128,9 @@ make_slide "console/console.png" \
 make_slide "parameters/parameters.png" \
   "Runtime Parameters" \
   "Read and update selected Nav2 parameters on running nodes"
-make_slide "fleet/fleet.png" \
-  "Fleet Profiles" \
-  "Maintain a robot roster and choose which robot this browser controls"
-
 make_card \
-  "Explore safely in Demo Mode" \
-  "No robot required — then self-host the full UI when you are ready for ROS 2"
+  "Explore the OpenAMRobot UI" \
+  "Connect to a ROS 2 robot to view live data"
 
 VIDEO_ONLY="${VIDEO_TMP_DIR}/video-only.mp4"
 ffmpeg -hide_banner -loglevel error \

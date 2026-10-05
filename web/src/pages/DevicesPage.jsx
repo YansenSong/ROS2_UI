@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -24,15 +25,20 @@ const STATUS_DISPLAY = {
   unmonitored: { status: "unknown", label: "No status topic" },
 };
 
-const Field = ({ label, hint, children }) => (
-  <label className="block">
-    <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
-      {label}
-    </span>
-    <div className="mt-1.5">{children}</div>
-    {hint ? <p className="mt-1 text-[11px] text-themeTextGray/70">{hint}</p> : null}
-  </label>
-);
+const Field = ({ label, hint, children }) => {
+  const { t } = useT();
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-themeTextGray">
+        {t(label)}
+      </span>
+      <div className="mt-1.5">{children}</div>
+      {hint ? (
+        <p className="mt-1 text-[11px] text-themeTextGray/70">{t(hint)}</p>
+      ) : null}
+    </label>
+  );
+};
 
 const inputClass =
   "w-full rounded-lg border border-borderSubtle bg-bgCard px-3 py-2 text-sm text-textWhiteHover outline-none focus:border-themeBlue";
@@ -47,6 +53,7 @@ const EMPTY_FORM = {
 };
 
 const DevicesPage = () => {
+  const { t } = useT();
   const ros = useRos();
   const { devices, addDevice, removeDevice } = useDevices();
   const statuses = useDeviceStatuses(ros, devices);
@@ -93,7 +100,7 @@ const DevicesPage = () => {
     const name = form.name.trim();
     const target = form.target.trim();
     if (!name || !target) {
-      toast.warn("Name and connection target are both required");
+      toast.warn(t("Name and connection target are both required"));
       return;
     }
     addDevice({
@@ -105,10 +112,12 @@ const DevicesPage = () => {
       notes: form.notes.trim(),
     });
     setForm(EMPTY_FORM);
-    toast.success(`Registered "${name}"`);
+    toast.success(`${t("Registered")} "${name}"`);
   };
 
-  const activeType = CONNECTION_TYPES.find((t) => t.value === form.connectionType);
+  const activeType = CONNECTION_TYPES.find(
+    (t) => t.value === form.connectionType,
+  );
 
   return (
     <div className="sectionHeight space-y-5 py-4 sm:space-y-6 sm:py-6">
@@ -120,25 +129,32 @@ const DevicesPage = () => {
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          Detected serial ports
+          <T>{"Detected serial ports"}</T>{" "}
         </p>
         <p className="mt-1 text-sm text-themeTextGray">
-          Real serial ports (e.g. USB-serial adapters, Arduino-style boards)
-          currently exposed on this robot&apos;s computer. This won&apos;t
-          see CAN interfaces, network devices, or hardware attached to a
-          different Raspberry Pi than the one hosting this UI.
+          <T>
+            {
+              "Real serial ports (e.g. USB-serial adapters, Arduino-style boards) currently exposed on this robot's computer. This won't see CAN interfaces, network devices, or hardware attached to a different Raspberry Pi than the one hosting this UI."
+            }
+          </T>{" "}
         </p>
 
         <div className="mt-3">
           {serialPortsLoading ? (
-            <p className="text-xs text-themeTextGray opacity-70">Checking…</p>
+            <p className="text-xs text-themeTextGray opacity-70">
+              <T>{"Checking…"}</T>
+            </p>
           ) : !serialPortsSupported ? (
             <p className="text-xs text-themeTextGray opacity-70">
-              Serial port detection isn&apos;t available on this robot&apos;s computer.
+              <T>
+                {
+                  "Serial port detection isn't available on this robot's computer."
+                }
+              </T>{" "}
             </p>
           ) : serialPorts.length === 0 ? (
             <p className="text-xs text-themeTextGray opacity-70">
-              No USB-serial devices currently detected on this host.
+              <T>{"No USB-serial devices currently detected on this host."}</T>{" "}
             </p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
@@ -148,7 +164,9 @@ const DevicesPage = () => {
                   type="button"
                   onClick={() => useSerialPort(port)}
                   className="rounded-lg border border-borderSubtle bg-bgSurface px-2.5 py-1.5 text-left text-xs hover:border-themeBlue"
-                  title="Use this port as the new device's connection target"
+                  title={t(
+                    "Use this port as the new device's connection target",
+                  )}
                 >
                   <span className="text-textWhiteHover">{port.device}</span>
                   {port.description ? (
@@ -165,12 +183,14 @@ const DevicesPage = () => {
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          Register a device
+          <T>{"Register a device"}</T>{" "}
         </p>
         <p className="mt-1 text-sm text-themeTextGray">
-          Status is optional — leave it blank for a device you&apos;re just
-          keeping a record of, or point it at the ROS topic its driver
-          publishes to get a live online/offline badge.
+          <T>
+            {
+              "Status is optional — leave it blank for a device you're just keeping a record of, or point it at the ROS topic its driver publishes to get a live online/offline badge."
+            }
+          </T>{" "}
         </p>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -179,7 +199,7 @@ const DevicesPage = () => {
               type="text"
               value={form.name}
               onChange={setField("name")}
-              placeholder="e.g. Gripper controller"
+              placeholder={t("e.g. Gripper controller")}
               className={inputClass}
             />
           </Field>
@@ -192,7 +212,7 @@ const DevicesPage = () => {
             >
               {CONNECTION_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
-                  {type.label}
+                  {t(type.label)}
                 </option>
               ))}
             </select>
@@ -206,7 +226,7 @@ const DevicesPage = () => {
               type="text"
               value={form.target}
               onChange={setField("target")}
-              placeholder={activeType?.placeholder}
+              placeholder={t(activeType?.placeholder)}
               className={inputClass}
             />
           </Field>
@@ -242,7 +262,9 @@ const DevicesPage = () => {
               type="text"
               value={form.notes}
               onChange={setField("notes")}
-              placeholder="Driver package, firmware version, anything worth remembering"
+              placeholder={t(
+                "Driver package, firmware version, anything worth remembering",
+              )}
               className={inputClass}
             />
           </Field>
@@ -250,14 +272,14 @@ const DevicesPage = () => {
 
         <div className="mt-4 sm:max-w-xs">
           <Button type="orange" onBtnClick={handleAddDevice}>
-            Register device
+            <T>{"Register device"}</T>{" "}
           </Button>
         </div>
       </DashboardCard>
 
       <DashboardCard className="p-4">
         <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          Registered devices
+          <T>{"Registered devices"}</T>{" "}
         </p>
 
         {devices.length === 0 ? (
@@ -282,7 +304,7 @@ const DevicesPage = () => {
                         {device.name}
                       </span>
                       <span className="shrink-0 rounded-full border border-borderSubtle px-2 py-0.5 text-[10px] uppercase tracking-wider text-themeTextGray">
-                        {connectionLabel(device.connectionType)}
+                        {t(connectionLabel(device.connectionType))}
                       </span>
                     </div>
                     <p className="mt-0.5 truncate font-[RobotoMono] text-xs text-themeTextGray">
@@ -306,15 +328,18 @@ const DevicesPage = () => {
                       onClick={() => {
                         if (
                           !window.confirm(
-                            `Remove "${device.name}" from the device list?`,
+                            t('Remove "{name}" from the device list?').replace(
+                              "{name}",
+                              device.name,
+                            ),
                           )
                         )
                           return;
                         removeDevice(device.id);
                       }}
                       className="text-themeTextGray hover:text-statusRed"
-                      aria-label={`Remove ${device.name}`}
-                      title={`Remove ${device.name}`}
+                      aria-label={`${t("Remove")} ${device.name}`}
+                      title={`${t("Remove")} ${device.name}`}
                     >
                       ×
                     </button>

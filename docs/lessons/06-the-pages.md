@@ -1,190 +1,90 @@
-# Lesson 06 — A Tour of Every Page
+# 课程 06——所有页面导览
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Operators and UI contributors | 25 minutes | [Lesson 00](00-your-first-10-minutes.md) and [Lesson 01](01-what-is-this-ui.md) |
+| 操作员和 UI 贡献者 | 25 分钟 | [课程 00](00-your-first-10-minutes.md)和[课程 01](01-what-is-this-ui.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn which page to use for a task, which controls can move the
-robot, and which pages depend on optional backend helpers or browser-side
-state.
+了解不同任务应使用哪个页面、哪些控件会使机器人移动，以及哪些页面依赖可选的后端辅助节点或浏览器侧状态。
 
-This UI started with a handful of pages. It has grown a lot since — the
-sidebar now lists 18 of them. That sounds like a lot to learn, but almost
-every page follows the same shape described in
-[Lesson 03](03-how-the-browser-talks-to-ros.md): it reads the one shared ROS
-connection, subscribes or publishes to a few named topics, and renders what
-it hears. Once you've seen a few pages, the rest read the same way.
+这个 UI 的大多数页面都遵循[课程 03](03-how-the-browser-talks-to-ros.md)介绍的相同模式：读取唯一的共享 ROS connection，订阅或发布若干命名 topics，并显示收到的数据。了解几个页面后，其他页面也能用同样的方式理解。
 
-This lesson walks each page at a glance — what it's for, what you can
-actually click, and which topics it depends on — with a real screenshot from
-the running UI (Demo Mode on, so the numbers are simulated but the layout is
-exactly what you'll see). For a deeper look at the individual panels behind
-Map/Route, see [Lesson 07](07-ui-components.md); for the group → map → route
-file model, see [Lesson 08](08-map-and-route-model.md); for the Programs
-page specifically, see
-[Lesson 09 — Blockly Visual Programming](09-blockly-programming.md).
+本课逐一概览各页面的用途、可操作的控件和依赖的 topics。Map/Route 背后的各个面板详见[课程 07](07-ui-components.md)；group → map → route 文件模型详见[课程 08](08-map-and-route-model.md)。
 
-Every page is a route registered in one place,
-[`web/src/pages/registry.js`](../../web/src/pages/registry.js) — that file
-is also what draws the sidebar, so adding a page there is the only step
-needed to make it show up everywhere. See
-[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md) if
-you're the one adding the next one.
+所有页面都在[`web/src/pages/registry.js`](../../web/src/pages/registry.js)注册为 route。侧边栏也由该文件生成，因此要让新页面显示在应用中，只需在这里注册。若要添加页面，请参阅[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md)。
 
 ## The chrome that's on every page
 
-Three things are visible no matter which page you're on, all rendered by
-[`web/src/layouts/appLayout.jsx`](../../web/src/layouts/appLayout.jsx) above
-the page itself, so every screenshot below shows them:
+无论当前打开哪个页面，都能看到以下三项内容。它们由[`web/src/layouts/appLayout.jsx`](../../web/src/layouts/appLayout.jsx)渲染在页面上方，因此下面每张截图中都会出现：
 
-- The top bar (`Header.jsx`) — the sidebar/nav, a connection dot
-  ("Connected"/"Disconnected"), and the light/dark theme toggle.
-- The status strip right under it (`StatusBar.jsx`) — live battery
-  percentage and a big red **E-STOP** button that zeroes `/cmd_vel` and
-  cancels the active Nav2 goal from anywhere, not just the Map page. This is a
-  non-latched software stop and does not replace a physical emergency stop.
-- Whichever banner applies: a purple **Demo Mode** banner when
-  [Demo Mode](#config--configpagejsx) is on, a replay banner while a
-  [recording](#recordings--recordingspagejsx) is playing back, or an
-  auth-mode banner (see the note in
-  [Lesson 01](01-what-is-this-ui.md#a-safety-note-there-is-no-authentication)).
+- 顶部栏（`Header.jsx`）：侧边栏导航、connection 状态点（“Connected”/“Disconnected”）和浅色/深色主题切换。
+- 下方的状态栏（`StatusBar.jsx`）：实时 battery 百分比和红色 **E-STOP** 按钮。该按钮会将 `/cmd_vel` 归零并取消当前 Nav2 goal，在任何页面都可使用，不只限于 Map。它是非锁存的软件停止功能，不能替代物理 emergency stop。
+- 当前适用的横幅：播放[录制内容](#recordings--recordingspagejsx)时显示 replay 横幅；也可能显示 auth-mode 横幅（见[课程 01](01-what-is-this-ui.md#a-safety-note-there-is-no-authentication)的说明）。
 
-## Quick map
+## 页面速查
 
-| Group | Pages |
+| 类别 | 页面 |
 | --- | --- |
-| Operate the robot | [Map](#map--mappagejsx), [Routes](#routes--routepagejsx), [Maps](#maps--mapspagejsx), [Programs](#programs--blockspagejsx), [Scheduler](#scheduler--schedulerpagejsx), [Missions](#missions--missionspagejsx) |
-| Keep an eye on it | [Status](#status--infopagejsx), [Robot](#robot--robotdescriptionpagejsx), [Devices](#devices--devicespagejsx), [Health](#health--healthpagejsx), [Metrics](#metrics--metricspagejsx), [Recordings](#recordings--recordingspagejsx), [Events](#events--eventspagejsx) |
-| Under the hood | [Console](#console--consolepagejsx), [Parameters](#parameters--paramspagejsx), [Fleet](#fleet--fleetpagejsx), [Config](#config--configpagejsx) |
-| Extending it | [Notes](#notes--example-plugin) |
+| 操作机器人 | [Map](#map--mappagejsx)、[Routes](#routes--routepagejsx)、[Maps](#maps--mapspagejsx)、[Scheduler](#scheduler--schedulerpagejsx)、[Missions](#missions--missionspagejsx) |
+| 查看机器人状态 | [Status](#status--infopagejsx)、[Devices](#devices--devicespagejsx)、[Health](#health--healthpagejsx)、[Metrics](#metrics--metricspagejsx)、[Recordings](#recordings--recordingspagejsx)、[Events](#events--eventspagejsx) |
+| 系统管理 | [Console](#console--consolepagejsx)、[Parameters](#parameters--paramspagejsx)、[Config](#config--configpagejsx) |
 
-## I want to...
+## 按任务查找页面
 
-| Task | Start here | Check before acting |
+| 任务 | 从这里开始 | 操作前检查 |
 | --- | --- | --- |
-| Drive manually or send one goal | [Map](#map--mappagejsx) | Physical E-stop, clear area, fresh pose and map |
-| Build or run a reusable route | [Routes](#routes--routepagejsx) | Correct group/map/route and optional helper launch |
-| Change or create a map | [Maps](#maps--mapspagejsx) | Current localization state and map-server ownership |
-| Automate a sequence | [Programs](#programs--blockspagejsx), [Scheduler](#scheduler--schedulerpagejsx), or [Missions](#missions--missionspagejsx) | Tab remains open, connection is fresh, motion area is clear |
-| Understand a warning | [Health](#health--healthpagejsx), [Events](#events--eventspagejsx), then [Console](#console--consolepagejsx) | Connection state and topic freshness are separate |
-| Change robot parameters | [Parameters](#parameters--paramspagejsx) | Correct robot and node; record the old value first |
-| Switch robots | [Fleet](#fleet--fleetpagejsx) | Which physical robot this browser will command |
-| Practice without hardware | [Config](#config--configpagejsx) → Demo Mode | Purple Demo Mode banner is visible |
+| 手动驾驶或发送单个 goal | [Map](#map--mappagejsx) | 物理 E-stop、周围空间、pose 和 map 是否为最新 |
+| 创建或运行可复用 route | [Routes](#routes--routepagejsx) | group/map/route 是否正确，以及可选 helper 是否已启动 |
+| 更换或创建 map | [Maps](#maps--mapspagejsx) | 当前 localization 状态及 map server 的管理状态 |
+| 自动执行一系列任务 | [Scheduler](#scheduler--schedulerpagejsx)或[Missions](#missions--missionspagejsx) | 浏览器标签页保持打开、connection 数据新鲜、运动区域安全 |
+| 了解警告原因 | [Health](#health--healthpagejsx)、[Events](#events--eventspagejsx)，再查看[Console](#console--consolepagejsx) | connection 状态与 topic 数据新鲜度是不同信号 |
+| 修改机器人参数 | [Parameters](#parameters--paramspagejsx) | 确认机器人和节点，并先记录旧值 |
 
 ## Map — `MapPage.jsx`
 
-The main operating page — situational awareness and manual driving in one
-place. (There used to be a separate Control page; its driving, docking, and
-telemetry panels now live here — see the note in
-[Lesson 07](07-ui-components.md#a-note-on-the-old-control-page).)
+主要操作页面，将环境态势信息和手动驾驶控件放在一起。（过去有单独的 Control 页面；其驾驶、docking 和 telemetry 面板现已移到这里，见[课程 07](07-ui-components.md#a-note-on-the-old-control-page)的说明。）
 
 
-- The map panel shows the occupancy grid, robot pose, and optional overlays
-  (costmaps, laser, path, goal, waypoints, keep-out zones, trail) via the
-  `LAYERS` row, each with its own opacity slider.
-- **Send Goal** (labeled "Goal Mode" in earlier versions of this UI)
-  publishes a navigation goal — click to send the robot there, drag before
-  releasing to set a heading. **Correct Robot's Position** (labeled "Set
-  Pose" in earlier versions) publishes a one-shot `/initialpose` correction
-  (use this after localization drifts or resets) — it's deliberately named
-  and styled to read as a different kind of action from the two navigation
-  modes next to it, since it corrects the robot's own self-localization
-  rather than sending it anywhere. **Add Waypoint** queues up several goals
-  to run in order via **Execute Queue**. **Go Home** sends the robot to
-  `(0, 0)`.
-- Right-clicking the map is a shortcut for the same three actions (send a
-  goal, save a waypoint, correct the robot's position) without switching
-  modes first.
-- The controls row combines a manual joystick with its own **STOP** button, a
-  max-speed slider with quick presets, live velocity/position (`RobotState`,
-  compact), dock/undock controls and status (`DockingControl`, compact), and
-  your saved waypoint library (go to one, or save the robot's current spot).
-- `SystemAlerts` near the top only appears when something specific is stale
-  (map, localization, plan, or the connection itself) — silence there is a
-  good sign, not a missing feature.
+- map panel 显示 occupancy grid、robot pose 及可选叠加层（costmaps、laser、path、goal、waypoints、keep-out zones、trail）；可通过 `LAYERS` 行分别调整每层的 opacity。
+- **Send Goal**（旧版 UI 称为 “Goal Mode”）会发布 navigation goal：点击地图即可发送目标，也可在松开前拖动以设置 heading。**Correct Robot's Position**（旧版称为 “Set Pose”）会单次发布 `/initialpose` correction，可用于 localization 漂移或重置后校正机器人自身定位。此操作的名称和样式与旁边的 navigation modes 明确区分，因为它校正定位，不会发送导航目标。**Add Waypoint** 可排入多个 goals，再通过 **Execute Queue** 按顺序执行。**Go Home** 会将机器人发送到 `(0, 0)`。
+- 右键点击地图可以直接执行相同的三种操作（发送 goal、保存 waypoint、修正机器人位置），无需先切换模式。
+- 控件行包含带独立 **STOP** 按钮的手动 joystick、带快捷预设的最高速度 slider、实时速度/位置（紧凑版 `RobotState`）、dock/undock 控件及状态（紧凑版 `DockingControl`），以及已保存的 waypoint 列表（可导航到某点，或保存机器人当前位置）。
+- 顶部的 `SystemAlerts` 只会在特定数据过期时显示，例如 map、localization、plan 或 connection。没有警报表示状态正常，并非功能缺失。
 
 ## Routes — `RoutePage.jsx`
 
-The route-authoring page: build and manage named, reusable waypoint
-sequences for a given map, as opposed to Map's one-off goals.
+Route 编辑页面：为指定 map 创建和管理可复用的命名 waypoint 序列，与 Map 页面一次性的 goal 不同。
 
 
-- The `GROUP` / `MAP` / `CURRENT ROUTE` header shows exactly which route
-  you're editing — always check it before saving, since a route only makes
-  sense for the map it was drawn on (see
-  [Lesson 08](08-map-and-route-model.md)).
-- **Create** starts a new route; click the map to drop waypoints. **Edit**
-  reopens the current route for changes. **Switch route** (labeled "Change"
-  in earlier versions) picks a different saved route. **Switch map**
-  (labeled "Change map") switches which map you're routing on — the two
-  are now named distinctly on purpose, since switching the map is a much
-  bigger change than switching the route. **Auto-plan** asks Nav2 to compute
-  a path between two points and turns it into waypoints automatically.
-  **Save**, **Rename**, and **Delete** act on the current route; **Clear
-  waypoints** (labeled "Clear points") wipes the in-progress editor only.
-- Exchanges file state with the `folders_handler` backend node over
-  `/nav_data_req`, `/nav_data_resp`, and `/ui_operation` — this only works
-  if the optional
+- `GROUP` / `MAP` / `CURRENT ROUTE` 标题会显示当前编辑的 route。保存前请先确认，因为 route 只适用于创建它的 map（见[课程 08](08-map-and-route-model.md)）。
+- **Create** 新建 route，点击地图即可放置 waypoints。**Edit** 重新打开当前 route 以便修改。**Switch route**（旧版称为 “Change”）选择另一条已保存的 route。**Switch map**（旧版称为 “Change map”）切换所用 map。两项操作现使用不同名称，因为切换 map 的影响远大于切换 route。**Auto-plan** 会让 Nav2 计算两点之间的路径，并自动转换为 waypoints。**Save**、**Rename** 和 **Delete** 操作当前 route；**Clear waypoints**（旧版称为 “Clear points”）只清除正在编辑的内容。
+- 它通过 `/nav_data_req`、`/nav_data_resp` 和 `/ui_operation` 与 `folders_handler` backend node 交换文件状态。只有启动可选的
   [`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)
   helper is running (see [Lesson 05](05-backend-nodes-in-detail.md)).
 
 ## Maps — `MapsPage.jsx`
 
-Map management: build a brand-new map from scratch, save the one currently
-loaded, and organize saved maps into groups.
+Map 管理页面：从头创建新 map、保存当前加载的 map，并将已保存的 maps 分组管理。
 
 
-- **Start mapping** launches mapping mode (SLAM) and stops
-  navigation/localization — drive the robot around the space (with the
-  joystick on the Map page, for example), then come back here and use
-  **Save current map** once you're done.
-- The saved-maps list lets you **Switch** the active map (reloads it on the
-  robot immediately — set the initial pose again afterward, since old
-  localization won't match a new map), **Rename**, or **Delete** it, and add
-  or delete groups.
-- This is the same `folders_handler` node and `/ui_operation` protocol the
+- **Start mapping** 会启动 mapping mode（SLAM）并停止 navigation/localization。使用 Map 页的 joystick 等方式驾驶机器人探索环境，完成后返回此处点击 **Save current map**。
+- 在已保存 maps 列表中可 **Switch** 当前 map（会立即在机器人上重新加载；由于旧 localization 不适用于新 map，之后要重新设置 initial pose）、**Rename** 或 **Delete** map，也可以添加或删除 groups。
+- 此页面与 Routes 页面使用相同的 `folders_handler` node 和 `/ui_operation` protocol（见
   Routes page uses (see [Lesson 05](05-backend-nodes-in-detail.md) and
   [Lesson 08](08-map-and-route-model.md)) — this page is what finally
   exposes that node's mapping functions through an actual button, rather
   than requiring a raw topic publish.
 
-## Programs — `BlocksPage.jsx`
-
-The visual-programming page (the sidebar calls it "Programs"; the file,
-code, and the rest of this lesson series still call it "Blocks" or
-"Blockly" — same page). Build a robot program by dragging blocks instead of
-writing code, then press `Run`.
-
-
-- The left toolbox groups blocks into `Program`, `Navigation`, `Motion`,
-  `Docking`, and `Robot State`. Only blocks connected below `start robot
-  program` run.
-- The right panel covers connection status ("Robot connected"/"Robot
-  offline"), `Run`/`Stop`, **Voice Command**
-  (speak a command after the wake word "Monsieur"), **Program Templates**
-  (ready-made starter programs), **Run History**, **Backend Programs**
-  (save/load workspaces on the server, not just in this browser), **Named
-  Locations**, **Plan Checks** (safety warnings before running), and the
-  **Generated Plan** (the exact steps that will execute).
-- This page is different enough — a full visual-programming pipeline, not
-  just a set of panels — that it gets its own full lesson:
-  [Lesson 09 — Blockly Visual Programming](09-blockly-programming.md), plus
-  the practical
-  [`web/src/features/blocks/README.md`](../../web/src/features/blocks/README.md)
-  guide.
-
 ## Scheduler — `SchedulerPage.jsx`
 
-Trigger navigation at set times of day.
+在每天指定时间触发 navigation。
 
 
-- A schedule has a name, a time of day, a repeat (`Daily` or `Once`), and a
-  target — go home, navigate to a saved waypoint, or run a whole
+- schedule 包含名称、执行时间、重复方式（`Daily` 或 `Once`）和目标：回到 home、导航到已保存的 waypoint，或运行完整的
   [mission](#missions--missionspagejsx).
-- Enable/disable a schedule without deleting it, or delete it outright.
-- Honest caveat right in the page description: this fires from
+- 可启用/停用 schedule 而不删除；也可以直接删除。
+- 页面说明也清楚指出：任务由
   [`SchedulerRunner`](../../web/src/components/SchedulerRunner.jsx), a
   component mounted in `AppLayout` that only runs while a browser tab with
   this UI open is actually open. It is a convenience scheduler, not
@@ -192,138 +92,57 @@ Trigger navigation at set times of day.
 
 ## Missions — `MissionsPage.jsx`
 
-Chain several actions into one ordered sequence — go here, wait, dock — and
-run the whole thing as a "mission."
+将多个操作按顺序串成一组（例如导航到某处、等待、dock），并以一个 “mission” 运行。
 
 
-- A mission is an ordered list of steps: go to a saved waypoint, go home,
-  wait N seconds, dock, or undock. Reorder steps with the up/down arrows,
-  or remove one.
-- **Run** executes the mission live, one step at a time, via the headless
+- mission 是有序的 step list：前往已保存的 waypoint、回到 home、等待 N 秒、dock 或 undock。可用上下箭头调整顺序，也可移除 step。
+- **Run** 会通过 headless
   [`MissionRunner`](../../web/src/components/MissionRunner.jsx) component
-  (mounted in `AppLayout`, same "needs an open tab" caveat as the
-  Scheduler). Each step gets a ✓/✗ next to it as it completes.
-- A mission is itself a valid Scheduler target — build it here, then trigger
-  it on a timer from the [Scheduler page](#scheduler--schedulerpagejsx).
+  执行 mission，每次运行一个 step。它挂载在 `AppLayout` 中，与 Scheduler 一样需要保持浏览器标签页打开。每个 step 完成后会显示 ✓/✗。
+- mission 本身也可以作为 Scheduler target：在此页面创建后，即可在[Scheduler 页面](#scheduler--schedulerpagejsx)设置定时运行。
 
 ## Status — `InfoPage.jsx`
 
-The calm diagnostics page (the sidebar calls it "Status"; the file is
-`InfoPage.jsx`) — camera, battery, charging, and system health, with no
-drive controls to accidentally bump.
+用于查看诊断信息的页面（侧边栏称为 “Status”，对应文件为 `InfoPage.jsx`），提供 camera、battery、充电和系统健康信息，不包含可能误触的驾驶控件。
 
 
-- Battery shows a live percentage plus a small rolling **trend** sparkline
-  of the last 40 readings — useful for spotting "draining faster than
-  usual" at a glance, not just the instantaneous number.
-- Charging station status is a simple connected/not-connected read from
-  `/charge_station_connected`.
-- The full-detail `SystemHealth` panel here is the same component shown
-  compact elsewhere (Fleet, Config) — see
-  [Lesson 07](07-ui-components.md#systemhealth--systemhealthjsx) for exactly
-  what it checks.
-- No battery data just means no node is publishing `/battery_status` (the
-  standard launch doesn't start `battery.py` by default) — the page keeps
-  working fine either way, it just shows "No battery telemetry."
-
-## Robot — `RobotDescriptionPage.jsx`
-
-A 3D digital twin of the robot, built directly from its real URDF/Xacro
-description — no physical robot required to look at it.
-
-
-- **Description Mode** vs **Live Mode** (the switch near the top): Description
-  Mode loads the model locally and needs no ROS connection at all — joint
-  sliders just pose the 3D viewer. Live Mode instead subscribes to real
-  `/joint_states` and pose topics, so the model reflects the actual robot —
-  its joint sliders become read-only, since this robot only has one coupled
-  `/cmd_vel` for both drive wheels, not a per-joint position command a
-  slider could safely drive.
-- The **Kinematic Tree** shows every link and joint, `FIXED` or movable, in
-  parent → child order; clicking one selects it in both the tree and the 3D
-  view.
-
-
-- Selecting a link or joint fills in **Link/Joint Information** — parent,
-  children, geometry, mass, inertia, or (for a joint) type, axis, limits, and
-  origin — read directly from the parsed URDF.
-
-
-- **Joint Controls** only ever shows sliders for the robot's actual movable
-  joints — on this robot, that's exactly two continuous wheel joints, since
-  every other joint (casters, lidar, camera) is fixed and correctly gets no
-  slider.
-
-
-- **Display Layers** toggles what's drawn on the model: visual mesh,
-  collision geometry, TF/frame axes, joint axes, link names, joint names,
-  center-of-mass markers, and a computed footprint outline.
-
-
+- Battery 显示实时电量百分比，以及最近 40 次读数的滚动 **trend** sparkline，可快速发现电量消耗是否异常加快，而不只看当前数值。
+- 充电站状态通过 `/charge_station_connected` 判断是否已连接。
+- 此处完整显示的 `SystemHealth` panel 与 Config 中的紧凑版相同；具体检查项见[课程 07](07-ui-components.md#systemhealth--systemhealthjsx)。
+- 没有 battery data 表示没有节点发布 `/battery_status`（标准 launch 默认不会启动 `battery.py`）。页面仍可正常使用，只会显示 “No battery telemetry.”。
 
 ## Devices — `DevicesPage.jsx`
 
-A manual registry for external hardware — USB, CAN, network, or
-Raspberry-Pi-attached devices — with a live status badge wherever a ROS
-topic is available.
+用于手动登记外部硬件的页面，可记录 USB、CAN、network 或连接到 Raspberry Pi 的设备；如果有可用的 ROS topic，还会显示实时状态标记。
 
 
-- **Detected serial ports** lists real USB-serial devices currently plugged
-  into the machine running the Flask backend — click one to prefill the
-  registration form. This only sees serial ports on that one host; it won't
-  see CAN interfaces, network devices, or hardware on a different Pi.
-- Registering a device just needs a name and a connection target (serial
-  path, CAN interface, or host:port). The status topic is optional — leave
-  it blank for a device you're just keeping a record of, or point it at
-  whatever topic that device's driver publishes to get a live
-  online/offline badge.
-- There is deliberately no plug-and-play auto-detection beyond serial ports —
-  you register what's connected.
+- **Detected serial ports** 列出当前插在运行 Flask backend 的机器上的真实 USB-serial devices。点击某项可预填登记表单。它只能发现此 host 上的 serial ports，无法发现 CAN interfaces、network devices 或另一台 Pi 上的硬件。
+- 登记设备时只需提供名称和 connection target（serial path、CAN interface 或 host:port）。status topic 为可选项：只需记录设备时可留空；也可以填写该设备 driver 发布的 topic，以显示实时 online/offline badge。
+- 除 serial ports 外，页面不会自动 plug-and-play 检测设备；需要手动登记已连接的硬件。
 
 ## Health — `HealthPage.jsx`
 
-"Health Centre" — one place to answer "is the whole robot actually ready?",
-aggregating signals that are otherwise scattered across several pages.
+“Health Centre” 汇总分散在多个页面中的信号，帮助判断“整台机器人是否已就绪”。
 
 
-- The banner at the top rolls everything up into one label — Ready, Ready
-  with warnings, Needs attention, or Not ready — with a short reason
-  underneath when it isn't simply "Ready."
-- Below that: `SystemHealth` (topics/TF), `LifecycleStatus` (Nav2 lifecycle
-  nodes), a Devices summary (with a link to [Devices](#devices--devicespagejsx)
-  to fix anything offline), Battery, whether the robot's URDF is available
-  (feeds [Robot](#robot--robotdescriptionpagejsx)), raw `/diagnostics`
-  messages, and whether all expected topics are present.
-- A session-scoped **Recent faults** log records exactly when something went
-  from fine to not-fine — a broken TF chain, an unknown lifecycle node, a
-  topic that's gone silent — color-coded by severity, so you can tell "this
-  happened once and recovered" from "this is still broken" at a glance.
+- 顶部 banner 汇总为一种状态：Ready、Ready with warnings、Needs attention 或 Not ready；不是单纯 “Ready” 时会显示简短原因。
+- 下方显示 `SystemHealth`（topics/TF）、`LifecycleStatus`（Nav2 lifecycle nodes）、Devices summary（并链接到[Devices](#devices--devicespagejsx)以处理离线设备）、Battery、原始 `/diagnostics` messages，以及所有预期 topics 是否都存在。
+- 当前 session 的 **Recent faults** log 会记录状态由正常转为异常的时间，例如 TF chain 断开、lifecycle node 未知或 topic 停止发布。记录按 severity 着色，便于区分“曾出错后已恢复”和“仍然故障”。
 
 
-- **Export support package** bundles all of the above — connection info,
-  health rollup, recent events, a metrics snapshot, runtime config, and a
-  best-effort Nav2 parameter snapshot — into one file, handy for sharing
-  with someone debugging remotely.
+- **Export support package** 会将上述信息（connection info、health 汇总、近期事件、metrics snapshot、runtime config 和尽可能获取的 Nav2 parameter snapshot）打包到一个文件，方便远程协助调试。
 
 ## Metrics — `MetricsPage.jsx`
 
-The robot's track record: distance, uptime, and how often goals and docking
-actually succeed — all derived client-side from telemetry the stack already
-publishes, no extra instrumentation needed.
+查看机器人的运行记录：行驶距离、运行时间，以及 goal 和 docking 的成功次数。数据由客户端根据系统已经发布的 telemetry 计算，无需额外 instrumentation。
 
 
-- Counters (distance, goal/dock outcomes, peak speed) accumulate across
-  page reloads — they're kept in the browser, not reset just because you
-  refreshed. **Reset counters** zeroes them explicitly, with a confirmation
-  first since it can't be undone.
-- Distance and speed integrate the robot's own odometry; goal/dock outcomes
-  come from watching the same navigation-status and docking-status topics
-  covered in [Lesson 07](07-ui-components.md).
+- Counters（距离、goal/dock 结果、最高速度）会跨页面刷新保留，存放在浏览器中。**Reset counters** 会将它们清零；由于操作不可撤销，会先要求确认。
+- 距离和速度由机器人的 odometry 积分得出；goal/dock 结果来自[课程 07](07-ui-components.md)介绍的 navigation-status 和 docking-status topics。
 
 ## Recordings — `RecordingsPage.jsx`
 
-Record real `ros2 bag` sessions and replay them later — useful for
-debugging, demos, and dataset collection.
+录制真实的 `ros2 bag` sessions，之后可以回放，适用于 debugging、demo 和 dataset 收集。
 
 
 - Record **all topics** or hand-pick from a checklist (scan, odometry, map,
@@ -339,8 +158,7 @@ debugging, demos, and dataset collection.
 
 ## Events — `EventsPage.jsx`
 
-A reviewable, persisted timeline of what happened — navigation outcomes,
-docking, low battery, emergency stops — for looking back after the fact.
+持久保存可供查看的事件时间线，记录 navigation 结果、docking、低电量和 emergency stop 等，方便事后回顾。
 
 
 - Recorded automatically by
@@ -353,9 +171,7 @@ docking, low battery, emergency stops — for looking back after the fact.
 
 ## Console — `ConsolePage.jsx`
 
-A live `/rosout` log console plus an "echo any topic" panel — debug the
-running stack from the browser instead of needing a sourced terminal
-alongside it.
+实时 `/rosout` log console，并提供 “echo any topic” 面板。可以直接在浏览器中调试运行中的系统，无需另开已 source ROS 环境的 terminal。
 
 
 - `ROSOUT` streams ROS log messages with a level filter, node filter, and
@@ -368,7 +184,7 @@ alongside it.
 
 ## Parameters — `ParamsPage.jsx`
 
-Live Nav2 parameter tuning without a terminal.
+无需使用 terminal，即可实时调整 Nav2 parameters。
 
 
 - Each row is one parameter on one node — add a row, type the node name
@@ -381,34 +197,9 @@ Live Nav2 parameter tuning without a terminal.
 - Changes are **runtime-only**: they revert the moment the target node
   restarts, exactly like running `ros2 param set` by hand would.
 
-## Fleet — `FleetPage.jsx`
-
-Manage more than one robot from this UI, and switch which one it's actually
-talking to.
-
-
-- This app holds exactly one live rosbridge connection at a time — the
-  robot marked **active**. The roster's other entries only get a
-  lightweight reachability ping (can a WebSocket even open to that
-  host:port?), not a full health rollup, until you actually connect to
-  them.
-- **Connect** repoints the app's runtime config at that robot's host/port —
-  the same mechanism as the [Config page's](#config--configpagejsx)
-  connection fields, just one click instead of retyping them.
-- **Active robot health** mirrors the [Health Centre](#health--healthpagejsx)
-  rollup for whichever robot is currently connected, so you don't have to
-  leave this page to notice a problem.
-
 ## Config — `ConfigPage.jsx`
 
-Connection and safety defaults for this browser — saved locally, never
-shared with other operators or persisted on the robot itself.
-
-
-- **Demo mode** — explore the whole interface with simulated telemetry, no
-  robot or robot connection required. Every page shows a permanent badge
-  while it's on, and nothing simulated is ever presented as live. (Every
-  screenshot in this lesson was taken with Demo Mode on.)
+配置此浏览器的 connection 和 safety defaults。这些设置保存在本地，不会与其他操作员共享，也不会写入机器人。
 
 
 - **Connection** — the "Robot address override"/"Robot connection port"
@@ -419,11 +210,6 @@ shared with other operators or persisted on the robot itself.
   Centre rollup, so a bad setting shows its effect right where you'd go to
   fix it — including its "Ready with warnings" state, not just the nominal
   one.
-
-
-- **Saved robots** — name the current connection and save it as a profile,
-  then switch with one click (the same profiles the Fleet page's roster
-  builds on).
 
 
 - **Manual-drive safety limits** — ceiling values for the joystick and the
@@ -442,62 +228,22 @@ shared with other operators or persisted on the robot itself.
   side.
 
 
-## Notes — example plugin
-
-Not in the static page list at all — `/notes` is added by a real, working
-example plugin at
-[`web/src/plugins/notesPlugin/`](../../web/src/plugins/notesPlugin/), wired
-up with a single `installNotesPlugin()` call in
-[`web/src/index.js`](../../web/src/index.js). It's a small localStorage
-scratchpad, deliberately simple, whose only job is to prove the plugin
-registry works end to end without touching `Header.jsx` or
-`pages/index.jsx` directly.
-
-
-If you're building your own page as a plugin instead of editing the core
-registry, this folder is the template to copy — see
-[Lesson 13 — Extending the System](13-extending-the-system.md) for where
-that fits into the bigger picture.
-
 ## The pattern across every page
 
-Most pages above follow the same shape: read the shared ROS connection (see
-[Lesson 10](10-topics-as-the-contract.md)), create `ROSLIB.Topic`/`Service`
-instances bound to names pulled from the shared constants file, subscribe or
-publish, and clean up on unmount. None of them open their own connection —
-they all share the one described in
-[Lesson 03](03-how-the-browser-talks-to-ros.md). This is exactly the shape
-[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md) asks
-you to follow for a new page or panel.
+上面多数页面使用相同模式：读取共享 ROS connection（见[课程 10](10-topics-as-the-contract.md)），创建绑定到共享 constants file 中名称的 `ROSLIB.Topic`/`Service` instances，进行 subscribe 或 publish，并在卸载时清理。页面不会自行创建 connection，而是共用[课程 03](03-how-the-browser-talks-to-ros.md)介绍的连接。新增页面或 panel 时请遵循[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md)中的模式。
 
-A few pages reach that same shared connection through one extra layer of
-indirection instead of wiring topics directly into the page component,
-because what needs to run isn't known until later: Programs goes through
-`robotActions.js` (the workspace isn't read until you press `Run` — see
-[Lesson 09](09-blockly-programming.md)), and Scheduler/Missions go through
-their own headless runner components (`SchedulerRunner`/`MissionRunner`,
-mounted in `AppLayout` so they keep working even if you navigate away from
-the page that created them). The underlying rule is identical either way:
-one shared connection, no page or runner creates its own.
+Scheduler/Missions 通过各自的 runner components（`SchedulerRunner`/`MissionRunner`）使用共享 connection。它们挂载在 `AppLayout` 中，因此离开创建 schedule/mission 的页面后仍会运行。全应用共用一个 connection，页面和 runner 均不自行创建连接。
 
-## Try it
+## 试一试
 
-In Demo Mode, use the task table to visit Map, Health, Config, and one
-automation page. On each page, identify whether its data comes from ROS, the
-backend REST API, or browser-local storage.
+根据任务表依次打开 Map、Health、Config 和一个自动化页面。分别确认各页面的数据来自 ROS、backend REST API，还是浏览器本地存储。
 
-**You're ready to continue when:** you can choose the correct page for a
-single goal, reusable route, map change, health warning, and automated
-mission—and identify which of those can move real hardware.
+**完成标准：**能为单个 goal、可复用 route、map 变更、健康警告和自动 mission 选择合适页面，并判断其中哪些操作会使真实硬件移动。
 
-## Next
+## 下一课
 
-[Lesson 07 — UI Components in Detail](07-ui-components.md) drills into the
-individual panels behind Map and Route specifically — what each one
-renders, exactly which topics/services it uses, and how its internal state
-works.
+[课程 07——UI 组件详解](07-ui-components.md)会深入介绍 Map 和 Route 背后的各个面板：它们显示什么、具体使用哪些 topics/services，以及内部 state 如何工作。
 
 ---
 
-[← Lesson 05](05-backend-nodes-in-detail.md) · [Lesson index](README.md) ·
-[Next: Lesson 07 →](07-ui-components.md)
+[← 课程 05](05-backend-nodes-in-detail.md) · [课程索引](README.md) · [下一课：课程 07 →](07-ui-components.md)

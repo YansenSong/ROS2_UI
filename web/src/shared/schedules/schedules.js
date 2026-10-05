@@ -1,11 +1,7 @@
-// Persisted mission schedules, shared between the headless runner (which fires
-// them) and the Scheduler page (which edits them) via a module-level store —
-// same pattern as shared/events/eventLog.js.
-//
-// A schedule fires a simple, client-side navigation action at a wall-clock
-// time. This runs only while a browser tab is open — it is NOT robot-side
-// autonomy (that would need a backend cron + a way to run programs headless).
-// The Scheduler page states this plainly.
+// 持久化任务日程通过模块级 store 在 Scheduler 页面与后台 runner 之间共享，
+// 与 shared/events/eventLog.js 使用相同模式。
+// 日程按本地时间在浏览器端触发导航操作，只有浏览器标签页打开时才会运行。
+// 若要在机器人侧独立运行，还需要后端定时器和机器人侧执行器。
 
 const STORAGE_KEY = "openamrSchedules";
 

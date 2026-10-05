@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRos, useRosStatus, useRuntimeConfig } from "../../app/App";
 import { AppConfig, LIFECYCLE_NODES } from "../constants";
-import { fetchRobotDescriptionManifest } from "../../features/robotDescription/api/robotDescriptionApi";
 import { FRIENDLY_NAMES as LIFECYCLE_FRIENDLY_NAMES } from "../../components/LifecycleStatus";
 import useDevices from "./useDevices";
 import useDeviceStatuses from "./useDeviceStatuses";
@@ -22,7 +21,7 @@ const TOPIC_FRIENDLY_NAMES = {
 
 // Topics this app's own pages already depend on being alive — a reasonable,
 // honest definition of "expected", since it's exactly what SystemHealth,
-// InfoPage, and the Robot Description page already assume is publishing.
+// and InfoPage already assume is publishing.
 const EXPECTED_TOPICS = [
   { topic: AppConfig.SCAN_TOPIC, label: "Laser scan" },
   { topic: AppConfig.ROBOT_POSE_TOPIC, label: "Odometry" },
@@ -50,7 +49,7 @@ const FAULT_LOG_LIMIT = 30;
 /**
  * Aggregates every health signal this app already computes elsewhere
  * (SystemHealth's topic/TF checks, LifecycleStatus's nav2 states, battery,
- * registered-device status, URDF availability, /diagnostics, and a
+ * registered-device status, /diagnostics, and a
  * best-effort rosapi topic-graph check) into one overall Ready / Ready with
  * warnings / Partially connected / Not ready rollup, plus a list of the
  * specific issues driving that rollup so the Health Centre page can link
@@ -72,7 +71,6 @@ export default function useSystemDiagnostics() {
   const [tfLinks, setTfLinks] = useState({});
   const [lifecycle, setLifecycle] = useState({});
   const [battery, setBattery] = useState({ pct: null, charging: false });
-  const [urdf, setUrdf] = useState({ checked: false, available: null });
   const [diagnosticsMsgs, setDiagnosticsMsgs] = useState([]);
   const [missingTopics, setMissingTopics] = useState([]);
   const [faultLog, setFaultLog] = useState([]);
@@ -140,22 +138,6 @@ export default function useSystemDiagnostics() {
 
     return () => topic.unsubscribe();
   }, [ros]);
-
-  // Robot description availability — one-shot HTTP check, independent of
-  // rosbridge (it's served by Flask directly).
-  useEffect(() => {
-    let cancelled = false;
-    fetchRobotDescriptionManifest()
-      .then((data) => {
-        if (!cancelled) setUrdf({ checked: true, available: Boolean(data.available) });
-      })
-      .catch(() => {
-        if (!cancelled) setUrdf({ checked: true, available: false });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Best-effort rosapi check for whether this app's expected topics are
   // currently in the ROS graph at all. If rosapi itself isn't reachable,
@@ -269,15 +251,6 @@ export default function useSystemDiagnostics() {
       }
     });
 
-    if (urdf.checked && urdf.available === false) {
-      list.push({
-        id: "urdf",
-        severity: 1,
-        message: "Robot description (URDF) isn't available on this install.",
-        linkTo: "/robot",
-      });
-    }
-
     diagnosticsMsgs.forEach((entry, index) => {
       list.push({
         id: `diagnostic-${index}-${entry.name}`,
@@ -306,7 +279,6 @@ export default function useSystemDiagnostics() {
     config.lowBatteryThreshold,
     devices,
     deviceStatuses,
-    urdf,
     diagnosticsMsgs,
     missingTopics,
   ]);
@@ -339,7 +311,6 @@ export default function useSystemDiagnostics() {
     reportHealth,
     reportLifecycle,
     battery,
-    urdf,
     diagnosticsMsgs,
     missingTopics,
     devices,

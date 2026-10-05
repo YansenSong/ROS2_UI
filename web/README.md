@@ -13,11 +13,11 @@ npm ci
 npm run dev
 ```
 
-Vite 在 `http://localhost:3000/` 提供服务，并绑定到 `0.0.0.0`。在 Config 中启用
-Demo Mode，即可在无需连接机器人或 rosbridge 的情况下查看浏览器端模拟的 ROS 遥测数据。
+Vite 在 `http://localhost:3000/` 提供服务，并绑定到 `0.0.0.0`。要查看实时
+ROS 数据，必须能通过配置的主机和端口访问 rosbridge。
 
-Vite 服务器不提供 Flask `/api/*` endpoint。要使用相关功能，需单独运行 ROS UI 后端。要获取实时
-ROS 数据，必须能通过配置的主机和端口访问 rosbridge。可在应用的 Config 页面覆盖运行时连接设置；
+Vite 服务器不提供 Flask `/api/*` endpoint。要使用相关功能，需单独运行 ROS UI 后端。可在应用的
+Config 页面覆盖运行时连接设置；默认值位于
 默认值位于
 [`src/shared/constants/index.js`](src/shared/constants/index.js) and
 [`src/shared/constants/runtimeConfig.js`](src/shared/constants/runtimeConfig.js).
@@ -47,9 +47,9 @@ ROS 软件包的 `static/app/` 目录。之后请构建 ROS 工作区，以便�
 
 - `src/app/` — 应用框架、共享 ROS 连接和 providers。
 - `src/components/` — 共用面板和控件。
-- `src/features/` — Programs、设备、录制和机器人描述等功能模块。
+- `src/features/` — 设备、录制等功能模块。
 - `src/pages/` — 路由页面和 `registry.js` 导航注册表。
-- `src/shared/` — 常量、hooks、Demo Mode 数据、样式和共用辅助工具。
+- `src/shared/` — 常量、hooks、样式和共用辅助工具。
 - `public/ros/` — 应用构建时包含的浏览器端 ROS 库。
 
 Topic 名称集中定义在 `src/shared/constants/index.js`；消息类型和订阅在各组件中声明。

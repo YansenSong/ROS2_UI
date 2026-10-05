@@ -1,108 +1,63 @@
-# Lesson 08 — The Map and Route File Model
+# 课程 08——Map 和 Route 文件模型
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Mapping operators and backend developers | 10 minutes | [Lesson 05](05-backend-nodes-in-detail.md) |
+| 建图操作员和后端开发者 | 10 分钟 | [课程 05](05-backend-nodes-in-detail.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn the group → map → route hierarchy, where files live, and how
-the single active context affects editing and navigation.
+了解 group → map → route 的层级、文件存放位置，以及单一 active context 如何影响编辑和 navigation。
 
-[Lesson 07](07-ui-components.md) covered the Route page's modals as UI
-pieces. This lesson covers the file model underneath them — the concept that
-makes the Route page's `Group`/`Map`/`Route` header make sense, and the one
-most likely to confuse someone debugging "why does my saved route not show
-up." It's owned entirely by
-[`folders_handler.py`](05-backend-nodes-in-detail.md#folders_handlerpy--the-node-behind-the-route-page)
-on the ROS side.
+[课程 07](07-ui-components.md)介绍了 Route 页面的 modals。本课介绍其背后的文件模型，解释 Route 页 `Group`/`Map`/`Route` 标题的含义，也说明调试“保存的 route 为什么没有出现”时最需要检查什么。此模型完全由 ROS 侧的[`folders_handler.py`](05-backend-nodes-in-detail.md#folders_handlerpy--the-node-behind-the-route-page)管理。
 
-## Three levels: group → map → route
+## 三层结构：group → map → route
 
-Everything is organized in a fixed three-level hierarchy:
+所有内容都按固定的三层层级组织：
 
 ```text
-Group        (e.g. "Warehouse", "Welcome")
-  Map          (e.g. "FloorA", "Start" — one saved occupancy grid)
-    Route        (e.g. "MorningPatrol" — one saved waypoint sequence)
+Group        （例如 "Warehouse"、"Welcome"）
+  Map          （例如 "FloorA"、"Start"，一个已保存的 occupancy grid）
+    Route        （例如 "MorningPatrol"，一组已保存的 waypoint 序列）
 ```
 
-A **group** is a folder-level container — typically a building or site. A
-**map** is one saved occupancy grid inside a group — typically one floor or
-room layout. A **route** is one saved, named sequence of waypoints that only
-makes sense for the specific map it was drawn on. This is the concept behind
-[Lesson 07](07-ui-components.md#the-route-page-modals)'s note that a route
-drawn for one map isn't valid on another — the hierarchy enforces that by
-construction: routes physically live *inside* their map's folder, not
-alongside it.
+**group** 是文件夹级别的容器，通常代表建筑物或场地。**map** 是 group 中保存的一张 occupancy grid，通常对应一层楼或房间布局。**route** 是一组已命名的 waypoint 序列，只对它绘制所在的 map 有意义。[课程 07](07-ui-components.md#the-route-page-modals)提到某张 map 上创建的 route 不能直接用于另一张 map；文件层级保证了这一点：route 实际存放在 map 的文件夹中，而不是与 map 并列。
 
-## Where the files actually live
+## 文件实际存放位置
 
 ```text
-ros2/src/openamr_ui_package/maps/<group>/<map>.yaml       # standard ROS map_server YAML
-ros2/src/openamr_ui_package/maps/<group>/<map>.png        # the occupancy grid image
-ros2/src/openamr_ui_package/maps/<group>/<map>_ros.yaml   # per-map launch parameter override
+ros2/src/openamr_ui_package/maps/<group>/<map>.yaml       # 标准 ROS map_server YAML
+ros2/src/openamr_ui_package/maps/<group>/<map>.png        # occupancy grid 图像
+ros2/src/openamr_ui_package/maps/<group>/<map>_ros.yaml   # 每张 map 的 launch 参数覆盖文件
 ros2/src/openamr_ui_package/paths/<group>/<map>/<route>.csv
 ```
 
-See [`maps/README.md`](../../ros2/src/openamr_ui_package/maps/README.md) and
-[`paths/README.md`](../../ros2/src/openamr_ui_package/paths/README.md) for
-the short folder-level notes. Renaming a map (`folders_handler.py`'s
-`rename_map_func`) has to touch all three map files *and* move the matching
-route folder — a good illustration of why this is a dedicated backend node
-rather than the frontend just calling `os.rename` through some generic file
-API: keeping four related paths in sync is exactly the kind of bookkeeping
-you want one owner responsible for.
+文件夹说明见[`maps/README.md`](../../ros2/src/openamr_ui_package/maps/README.md)和[`paths/README.md`](../../ros2/src/openamr_ui_package/paths/README.md)。重命名 map（`folders_handler.py` 的 `rename_map_func`）需要处理三个 map files，并移动对应的 route folder。这说明此操作由专门的 backend node 管理更合适，不应让 frontend 通过通用文件 API 调用 `os.rename`：保持四条相关路径一致，需要由一个明确的负责人完成。
 
-Each row in a route CSV is one waypoint: position (`x,y,z`), orientation as
-a quaternion (`x,y,z,w`), three reserved numeric fields, and a trailing
-"purpose" marker — eleven comma-separated values in total. The Route page
-and `folders_handler.py` are the only things that need to agree on this
-exact layout; nothing else in the UI reads route CSVs directly.
+route CSV 的每一行代表一个 waypoint：位置（`x,y,z`）、四元数形式的方向（`x,y,z,w`）、三个预留数值字段，以及结尾的 “purpose” 标记，共 11 个逗号分隔值。Route 页面和 `folders_handler.py` 需要遵循这一格式；UI 其他部分不会直接读取 route CSV。
 
-## The active context: one file, always current
+<a id="the-active-context-one-file-always-current"></a>
+## Active context：始终只有一个文件
 
-Only one map and one route can be "active" at a time — the ones currently
-shown on the Route page and driven by
-[`waypoint_nav.py`](05-backend-nodes-in-detail.md#waypoint_navpy--a-second-subscriber-on-the-same-topic).
-That state lives in exactly one file:
+任一时刻只有一张 map 和一条 route 处于 active 状态；它们显示在 Route 页面，并由[`waypoint_nav.py`](05-backend-nodes-in-detail.md#waypoint_navpy--a-second-subscriber-on-the-same-topic)使用。状态保存在唯一文件中：
 
 ```text
 ros2/src/openamr_ui_package/param/current_map_route.yaml
 ```
 
-with two keys, `map_file` and `route_file`, each holding a full filesystem
-path. Every operation — `Change`, `Save`, `Delete`, opening the Route page at
-all — reads or rewrites this one file. The `Group`/`Map`/`Route` names shown
-in the Route page header aren't stored anywhere separately; they're derived
-by splitting the last two or three segments off whichever full path is
-currently in this file (see `get_paths()` in `folders_handler.py`).
+其中有 `map_file` 和 `route_file` 两个 key，各自保存完整文件系统路径。每项操作（`Change`、`Save`、`Delete`，以及打开 Route 页面）都会读取或重写此文件。Route 页面标题中显示的 `Group`/`Map`/`Route` 名称不会另行保存，而是从当前文件路径末尾拆分得出（参见 `folders_handler.py` 中的 `get_paths()`）。
 
-Worth knowing if a map or route keeps unexpectedly resetting: on startup,
-`folders_handler.py` checks whether the stored `map_file`/`route_file` paths
-still exist on disk, and also resets them if the path contains the literal
-string `"darkadius"` — a legacy check left over from a stale absolute path
-baked in from a different development machine. Either condition falls back
-to a built-in default (`Welcome/Start`). If your active map/route keeps
-reverting to `Welcome/Start` for no obvious reason, check
-`current_map_route.yaml` for a stale or foreign absolute path before
-assuming something else is broken.
+如果 map 或 route 意外重置，需留意启动时 `folders_handler.py` 会检查 `map_file`/`route_file` 指向的路径是否存在；如果路径包含字面字符串 `"darkadius"`，也会重置。这是遗留的路径检查，用于处理从另一台开发机留下的过期绝对路径。任一情况都会回退到内置默认项（`Welcome/Start`）。如果 active map/route 总是无故回到 `Welcome/Start`，先检查 `current_map_route.yaml` 是否保存了过期或来自其他机器的绝对路径。
 
-## Try it
+## 试一试
 
-Inspect the current map/route configuration and trace one active route to its
-CSV file without changing it. Confirm which group and map contain it.
+查看当前 map/route 配置，并在不修改文件的情况下追踪一条 active route 对应的 CSV。确认其所属的 group 和 map。
 
-**You're ready to continue when:** you can identify the active group, map, and
-route and explain why a route cannot safely be assumed to fit another map.
+**完成标准：**能指出当前 active group、map 和 route，并说明为什么不能假定一条 route 适用于其他 map。
 
-## Next
+## 下一课
 
-[Lesson 09 — Blockly Visual Programming](09-blockly-programming.md) is the
-deep dive on Blocks, the same way Lesson 07 was the deep dive on
-the components behind Map and Route.
+[课程 10——Topic 作为接口契约](10-topics-as-the-contract.md)将说明 UI 与机器人之间的 topic 命名约定。
 
 ---
 
-[← Lesson 07](07-ui-components.md) · [Lesson index](README.md) ·
-[Next: Lesson 09 →](09-blockly-programming.md)
+[← 课程 07](07-ui-components.md) · [课程索引](README.md) · [下一课：课程 10 →](10-topics-as-the-contract.md)

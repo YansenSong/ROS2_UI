@@ -1,6 +1,6 @@
+import { T } from "../shared/i18n/i18n";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRuntimeConfig } from "../app/App";
 
 /**
  * First-run wizard, gated on localStorage (see AppLayout.jsx) so it only
@@ -10,7 +10,6 @@ import { useRuntimeConfig } from "../app/App";
  * hands off to Config, since that form already exists and works.
  */
 const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
-  const { updateConfig } = useRuntimeConfig();
   const navigate = useNavigate();
   const [step, setStep] = useState("welcome");
   const [connectKind, setConnectKind] = useState("robot");
@@ -29,29 +28,30 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
         {step === "welcome" && (
           <>
             <p className="font-[RobotoMono] text-[11px] uppercase tracking-[0.14em] text-themeBlue">
-              Welcome
+              <T>{"Welcome"}</T>{" "}
             </p>
             <h2 className="mt-1 text-xl font-bold text-textWhiteHover">
-              Welcome to OpenAMRobot
+              <T>{"Welcome to OpenAMRobot"}</T>{" "}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-themeTextGray">
-              This is a browser-based control and monitoring interface for a
-              real ROS 2 mobile robot — driving, mapping, route planning,
-              visual programming, diagnostics, and more, all from here.
-              Let&apos;s get you oriented.
+              <T>
+                {
+                  "This is a browser-based control and monitoring interface for a real ROS 2 mobile robot — driving, mapping, route planning, diagnostics, and more, all from here. Let's get you oriented."
+                }
+              </T>{" "}
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => finish(null)}
                 className="text-xs text-themeTextGray hover:text-textWhiteHover"
               >
-                Skip
+                <T>{"Skip"}</T>{" "}
               </button>
               <button
                 onClick={() => setStep("choose")}
                 className="rounded-lg bg-themeBlue px-4 py-2 text-sm font-semibold text-white hover:bg-themeMediumBlue"
               >
-                Get started
+                <T>{"Get started"}</T>{" "}
               </button>
             </div>
           </>
@@ -60,19 +60,25 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
         {step === "choose" && (
           <>
             <p className="font-[RobotoMono] text-[11px] uppercase tracking-[0.14em] text-themeBlue">
-              How do you want to start?
+              <T>{"How do you want to start?"}</T>{" "}
             </p>
             <div className="mt-4 space-y-2">
               <button
-                onClick={() => setStep("explore-confirm")}
+                onClick={() => {
+                  onRequestTour?.();
+                  finish("/");
+                }}
                 className="w-full rounded-xl border border-borderSubtle p-4 text-left hover:border-themeBlue"
               >
                 <p className="text-sm font-semibold text-textWhiteHover">
-                  Explore without a robot
+                  <T>{"Take the guided Map tour"}</T>{" "}
                 </p>
                 <p className="mt-1 text-xs text-themeTextGray">
-                  See every page with simulated data — no hardware or ROS
-                  connection needed.
+                  <T>
+                    {
+                      "Learn where to find navigation, connection status, map layers, goals, and manual drive."
+                    }
+                  </T>{" "}
                 </p>
               </button>
               <button
@@ -83,10 +89,10 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
                 className="w-full rounded-xl border border-borderSubtle p-4 text-left hover:border-themeBlue"
               >
                 <p className="text-sm font-semibold text-textWhiteHover">
-                  Connect a robot
+                  <T>{"Connect a robot"}</T>{" "}
                 </p>
                 <p className="mt-1 text-xs text-themeTextGray">
-                  Point this UI at a real robot&apos;s connection.
+                  <T>{"Point this UI at a real robot's connection."}</T>{" "}
                 </p>
               </button>
               <button
@@ -97,87 +103,15 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
                 className="w-full rounded-xl border border-borderSubtle p-4 text-left hover:border-themeBlue"
               >
                 <p className="text-sm font-semibold text-textWhiteHover">
-                  Connect to a simulation
+                  <T>{"Connect to a simulation"}</T>{" "}
                 </p>
                 <p className="mt-1 text-xs text-themeTextGray">
-                  Point this UI at a simulated ROS 2 stack (e.g. Gazebo) the
-                  same way you would a real robot.
+                  <T>
+                    {
+                      "Point this UI at a simulated ROS 2 stack (e.g. Gazebo) the same way you would a real robot."
+                    }
+                  </T>{" "}
                 </p>
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === "explore-confirm" && (
-          <>
-            <p className="font-[RobotoMono] text-[11px] uppercase tracking-[0.14em] text-themeBlue">
-              Demo mode
-            </p>
-            <h2 className="mt-1 text-lg font-bold text-textWhiteHover">
-              You&apos;re all set — try a few things
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-themeTextGray">
-              Demo mode is now on — every page shows believable simulated
-              telemetry, always clearly labeled with a Demo mode banner.
-              A few guided tasks to get a feel for it, or skip straight in.
-            </p>
-            <div className="mt-4 space-y-2">
-              <button
-                onClick={() => {
-                  updateConfig({ demoMode: true });
-                  onRequestTour?.();
-                  finish("/");
-                }}
-                className="w-full rounded-xl border border-borderSubtle p-3 text-left hover:border-themeBlue"
-              >
-                <p className="text-sm font-semibold text-textWhiteHover">
-                  1. Take the guided Map tour
-                </p>
-                <p className="mt-0.5 text-xs text-themeTextGray">
-                  Six quick steps: navigation, connection status, map layers,
-                  goals, and manual drive.
-                </p>
-              </button>
-              <button
-                onClick={() => {
-                  updateConfig({ demoMode: true });
-                  finish("/health");
-                }}
-                className="w-full rounded-xl border border-borderSubtle p-3 text-left hover:border-themeBlue"
-              >
-                <p className="text-sm font-semibold text-textWhiteHover">
-                  2. Check the Health Centre
-                </p>
-                <p className="mt-0.5 text-xs text-themeTextGray">
-                  See the Ready / Warnings rollup this simulated robot reports,
-                  and how issues link back to where you&apos;d fix them.
-                </p>
-              </button>
-              <button
-                onClick={() => {
-                  updateConfig({ demoMode: true });
-                  finish("/metrics");
-                }}
-                className="w-full rounded-xl border border-borderSubtle p-3 text-left hover:border-themeBlue"
-              >
-                <p className="text-sm font-semibold text-textWhiteHover">
-                  3. Watch the track record build
-                </p>
-                <p className="mt-0.5 text-xs text-themeTextGray">
-                  Distance travelled, uptime, and goal outcomes accumulate
-                  live as the simulated robot moves.
-                </p>
-              </button>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => {
-                  updateConfig({ demoMode: true });
-                  finish("/");
-                }}
-                className="text-xs text-themeTextGray hover:text-textWhiteHover"
-              >
-                Just start exploring →
               </button>
             </div>
           </>
@@ -191,28 +125,34 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
                 : "Connect a robot"}
             </p>
             <h2 className="mt-1 text-lg font-bold text-textWhiteHover">
-              Three steps
+              <T>{"Three steps"}</T>{" "}
             </h2>
             <ol className="mt-3 space-y-2.5 text-sm text-themeTextGray">
               <li>
                 <span className="font-semibold text-textWhiteHover">
-                  1. Configure the connection —
+                  <T>{"1. Configure the connection —"}</T>{" "}
                 </span>{" "}
-                set the host and port on the Config page.
+                <T>{"set the host and port on the Config page."}</T>{" "}
               </li>
               <li>
                 <span className="font-semibold text-textWhiteHover">
-                  2. Test the connection —
+                  <T>{"2. Test the connection —"}</T>{" "}
                 </span>{" "}
-                watch the status dot in the sidebar, or check the Health page
-                for a full rollup.
+                <T>
+                  {
+                    "watch the status dot in the sidebar, or check the Health page for a full rollup."
+                  }
+                </T>{" "}
               </li>
               <li>
                 <span className="font-semibold text-textWhiteHover">
-                  3. Detect available devices —
+                  <T>{"3. Detect available devices —"}</T>{" "}
                 </span>{" "}
-                the Devices page can find real serial ports if you have USB
-                hardware attached.
+                <T>
+                  {
+                    "the Devices page can find real serial ports if you have USB hardware attached."
+                  }
+                </T>{" "}
               </li>
             </ol>
             <div className="mt-5 flex justify-end">
@@ -220,7 +160,7 @@ const OnboardingWizard = ({ open, onClose, onRequestTour }) => {
                 onClick={() => finish("/config")}
                 className="rounded-lg bg-themeBlue px-4 py-2 text-sm font-semibold text-white hover:bg-themeMediumBlue"
               >
-                Go to Config
+                <T>{"Go to Config"}</T>{" "}
               </button>
             </div>
           </>

@@ -1,13 +1,34 @@
+import { T, useT } from "../shared/i18n/i18n";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRos } from "../app/App";
 
 // rcl_interfaces/msg/Log 的严重程度级别（ROS 2）。低于所选最低级别的消息会在客户端过滤。
 const LEVELS = {
-  10: { label: "DEBUG", color: "text-themeTextGray", chip: "border-borderSubtle text-themeTextGray" },
-  20: { label: "INFO", color: "text-statusGreen", chip: "border-statusGreen/40 text-statusGreen" },
-  30: { label: "WARN", color: "text-statusYellow", chip: "border-statusYellow/40 text-statusYellow" },
-  40: { label: "ERROR", color: "text-statusRed", chip: "border-statusRed/40 text-statusRed" },
-  50: { label: "FATAL", color: "text-statusRed", chip: "border-statusRed/60 text-statusRed" },
+  10: {
+    label: "DEBUG",
+    color: "text-themeTextGray",
+    chip: "border-borderSubtle text-themeTextGray",
+  },
+  20: {
+    label: "INFO",
+    color: "text-statusGreen",
+    chip: "border-statusGreen/40 text-statusGreen",
+  },
+  30: {
+    label: "WARN",
+    color: "text-statusYellow",
+    chip: "border-statusYellow/40 text-statusYellow",
+  },
+  40: {
+    label: "ERROR",
+    color: "text-statusRed",
+    chip: "border-statusRed/40 text-statusRed",
+  },
+  50: {
+    label: "FATAL",
+    color: "text-statusRed",
+    chip: "border-statusRed/60 text-statusRed",
+  },
 };
 
 const LEVEL_OPTIONS = [
@@ -25,8 +46,11 @@ const fmtTime = (stamp) => {
   const ms = stamp.sec * 1000 + Math.round((stamp.nanosec || 0) / 1e6);
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString(undefined, { hour12: false }) +
-    "." + String(d.getMilliseconds()).padStart(3, "0");
+  return (
+    d.toLocaleTimeString(undefined, { hour12: false }) +
+    "." +
+    String(d.getMilliseconds()).padStart(3, "0")
+  );
 };
 
 /**
@@ -35,6 +59,7 @@ const fmtTime = (stamp) => {
  * /rosout 的消息突发速率可能远高于合理的重新渲染频率。
  */
 const RosoutConsole = () => {
+  const { t } = useT();
   const ros = useRos();
   const [logs, setLogs] = useState([]);
   const [minLevel, setMinLevel] = useState(20);
@@ -84,7 +109,9 @@ const RosoutConsole = () => {
       bufferRef.current = [];
       setLogs((prev) => {
         const next = prev.concat(incoming);
-        return next.length > MAX_LOGS ? next.slice(next.length - MAX_LOGS) : next;
+        return next.length > MAX_LOGS
+          ? next.slice(next.length - MAX_LOGS)
+          : next;
       });
     }, 200);
     return () => clearInterval(id);
@@ -114,7 +141,7 @@ const RosoutConsole = () => {
           className="mr-1 text-sm font-semibold uppercase tracking-wider text-themeBlue"
           title="/rosout"
         >
-          System Log
+          <T>{"System Log"}</T>{" "}
         </h2>
 
         <select
@@ -124,7 +151,7 @@ const RosoutConsole = () => {
         >
           {LEVEL_OPTIONS.map(([v, l]) => (
             <option key={v} value={v}>
-              {l}
+              {t(l)}
             </option>
           ))}
         </select>
@@ -132,13 +159,13 @@ const RosoutConsole = () => {
         <input
           value={nodeFilter}
           onChange={(e) => setNodeFilter(e.target.value)}
-          placeholder="node…"
+          placeholder={t("node…")}
           className="w-24 rounded-lg border border-borderSubtle bg-bgCard px-2 py-1 text-xs text-textWhiteHover placeholder:text-themeTextGray"
         />
         <input
           value={textFilter}
           onChange={(e) => setTextFilter(e.target.value)}
-          placeholder="search text…"
+          placeholder={t("search text…")}
           className="min-w-[100px] flex-1 rounded-lg border border-borderSubtle bg-bgCard px-2 py-1 text-xs text-textWhiteHover placeholder:text-themeTextGray"
         />
 
@@ -149,7 +176,7 @@ const RosoutConsole = () => {
             onChange={(e) => setAutoscroll(e.target.checked)}
             className="accent-themeBlue"
           />
-          Follow
+          <T>{"Follow"}</T>{" "}
         </label>
 
         <button
@@ -160,7 +187,7 @@ const RosoutConsole = () => {
               : "border-borderSubtle text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
           }`}
         >
-          {paused ? "Resume" : "Pause"}
+          {t(paused ? "Resume" : "Pause")}
         </button>
         <button
           onClick={() => {
@@ -169,7 +196,7 @@ const RosoutConsole = () => {
           }}
           className="rounded-lg border border-borderSubtle px-3 py-1 text-xs text-themeTextGray transition-colors hover:border-themeBlue hover:text-themeBlue"
         >
-          Clear
+          <T>{"Clear"}</T>{" "}
         </button>
       </header>
 
@@ -179,7 +206,11 @@ const RosoutConsole = () => {
       >
         {filtered.length === 0 ? (
           <div className="flex h-full items-center justify-center text-themeTextGray opacity-50">
-            {logs.length === 0 ? "Waiting for /rosout…" : "No messages match the filters"}
+            {t(
+              logs.length === 0
+                ? "Waiting for /rosout…"
+                : "No messages match the filters",
+            )}
           </div>
         ) : (
           filtered.map((l) => {
@@ -206,8 +237,8 @@ const RosoutConsole = () => {
       </div>
 
       <footer className="border-t border-borderSubtle bg-bgSurface px-3 py-1 text-[10px] uppercase tracking-wider text-themeTextGray">
-        {filtered.length} shown · {logs.length}/{MAX_LOGS} buffered
-        {paused && " · paused"}
+        {filtered.length} <T>{"shown ·"}</T> {logs.length}/{MAX_LOGS}{" "}
+        <T>{"buffered"}</T> {paused && " · paused"}
       </footer>
     </article>
   );

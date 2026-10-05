@@ -1,174 +1,68 @@
-# Lesson 05 — Backend Nodes in Detail
+# 课程 05——后端节点详解
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Backend developers and maintainers | 15 minutes | [Lesson 04](04-data-flow-and-relays.md) |
+| 后端开发者和维护者 | 15 分钟 | [课程 04](04-data-flow-and-relays.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn the responsibilities of the Flask server and optional helper
-nodes, and why frontend assets must be built, synchronized, and installed.
+了解 Flask server 和可选辅助节点各自的职责，以及为什么 frontend assets 必须经过构建、同步和安装。
 
-[Lesson 04](04-data-flow-and-relays.md) covered two of the nodes in
-[`ros2/src/openamr_ui_package/openamr_ui_package/`](../../ros2/src/openamr_ui_package/openamr_ui_package/) —
-`map_relay.py` and `nav_relays.py`. This lesson covers the rest of what that
-package runs: the web server itself, the two nodes behind the Route page's
-file operations, and the battery node. Same idea as
-[Lesson 07](07-ui-components.md) — one node at a time, what it does, and
-anything non-obvious about it.
+[课程 04](04-data-flow-and-relays.md)介绍了[`ros2/src/openamr_ui_package/openamr_ui_package/`](../../ros2/src/openamr_ui_package/openamr_ui_package/)中的两个节点：`map_relay.py` 和 `nav_relays.py`。本课介绍该 package 其余会运行的内容：web server、Route 页文件操作所用的两个节点，以及 battery 节点。与[课程 07](07-ui-components.md)一样，本课会逐个说明节点及其容易忽略的细节。
 
+<a id="flask_apppy--two-unrelated-jobs-in-one-process"></a>
 ## flask_app.py — two unrelated jobs in one process
 
-`flask_app.py` (executable `flask`, ROS node name `flask_app`) does two
-things that have nothing to do with each other, bundled into one process
-because they both need to run on the UI computer:
+`flask_app.py`（可执行入口 `flask`，ROS node 名称 `flask_app`）把两项互不相关、但都需要在 UI 计算机上运行的工作放进同一个进程。
 
-**Job 1 — serve the compiled React app.** `serve_spa()` is a catch-all route:
-if the requested path matches a real file in the build output, it serves
-that file; otherwise it always serves `index.html`. That's what makes deep
-links like `/control` or `/blocks` work on a hard refresh — there's no
-`/control` file on disk, React Router just takes over once `index.html`
-loads and reads the URL itself.
+**工作一：提供编译后的 React 应用。** `serve_spa()` 是一个 catch-all route：请求路径对应 build 输出中的真实文件时就提供该文件；否则一律返回 `index.html`。因此，直接刷新 `/health` 等 deep link 也能正常工作：磁盘上并没有 `/health` 文件，`index.html` 加载后由 React Router 读取 URL 并显示相应页面。
 
-Here's the detail that explains the single most common "I edited the code
-and nothing changed" confusion: `REACT_BUILD_DIR` isn't `web/build/` — it's
-`get_package_share_directory("openamr_ui_package")/app`, a path inside the
-*installed* ROS package. That directory only gets populated by a three-step
-pipeline: `npm run build` (or `scripts/build_frontend.sh`) compiles
-`web/src` into `web/build/`; `scripts/sync_frontend_to_ros.sh` copies that
-into
-`ros2/src/openamr_ui_package/openamr_ui_package/static/app/`; then
-`colcon build` installs *that* into the package share directory Flask
-actually reads from. Editing `web/src` alone changes none of those three
-copies — Flask keeps serving whatever was last installed. This is why every
-frontend change in this workspace needs the full rebuild-and-reinstall flow
-(see the
-[development guide](../development.md#production-frontend-workflow)), and why `npm run
-dev` exists as a separate path entirely: it serves straight from `web/src`
-on port `3000`, bypassing this pipeline (and, as a result, Flask's REST API
-and rosbridge's usual host-based connection logic) for fast iteration.
+理解最常见的“我改了代码，为什么没变化”问题，关键是 `REACT_BUILD_DIR` 并不是 `web/build/`，而是 `get_package_share_directory("openamr_ui_package")/app`，即**已安装** ROS package 内的目录。该目录由三步流程更新：`npm run build`（或 `scripts/build_frontend.sh`）将 `web/src` 编译到 `web/build/`；`scripts/sync_frontend_to_ros.sh` 将内容复制到 `ros2/src/openamr_ui_package/openamr_ui_package/static/app/`；随后 `colcon build` 将其安装到 Flask 实际读取的 package share directory。只编辑 `web/src` 不会改变这三份副本中的任何一份，Flask 仍会提供上一次安装的内容。
 
-**Job 2 — a small REST API, unrelated to rosbridge.** Everything the Blocks
-page's `Backend Programs`, `Named Locations`, `Run History`, and
-`Voice Command` panels do goes through plain HTTP JSON endpoints
-(`/api/block-programs`, `/api/block-locations`, `/api/block-run-history`,
-`/api/voice-plan`) — not ROS topics, not rosbridge. This is a genuinely
-different communication path from everything covered in
-[Lesson 03](03-how-the-browser-talks-to-ros.md): the frontend code for this
-lives in `web/src/features/blocks/backendPrograms.js`,
-`backendLocations.js`, and `backendRunHistory.js`, calling `fetch()`
-directly rather than `window.ROSLIB`. See
-[Lesson 09](09-blockly-programming.md) for what those panels do.
+因此，本工作区的 frontend 改动需要完整的 rebuild-and-reinstall 流程（见[开发指南](../development.md#production-frontend-workflow)）。`npm run dev` 是另一条独立路径：它直接从 `web/src` 在 `3000` 端口提供页面，跳过上述流程以便快速迭代；相应地，它也绕过 Flask REST API 以及 rosbridge 通常基于 host 的连接逻辑。
 
-`flask_app.py` is *also* a ROS node — the `ParamFlask` class declares
-`appAddress`/`portApp` parameters, populated from
-[`ros2/src/openamr_ui_package/param/config.yaml`](../../ros2/src/openamr_ui_package/param/config.yaml)
-by the launch file — so its host and port are configured the same way every
-other node's parameters are, even though Flask itself has nothing to do with
-ROS messaging.
+**工作二：提供小型 REST API，与 rosbridge 无关。** Flask 仍保留设备登记、录制等功能所用的 HTTP JSON endpoints，也保留早期 Blockly 和机器人描述页面所用的接口；当前前端已不再使用后两类接口。这些请求使用普通 HTTP，而不是 ROS topics 或 rosbridge，通信路径与[课程 03](03-how-the-browser-talks-to-ros.md)介绍的 WebSocket 不同。
 
-One more detail worth knowing: `flask_app.py` can optionally serve over
-HTTPS if it finds a cert/key pair at `~/.openamr_ui/certs/`, falling back to
-plain HTTP if they're missing. This is the actual mechanism behind Voice
-Command's "secure origin" requirement mentioned in the
-[Blockly guide](../../web/src/features/blocks/README.md#voice-command-requirements) —
-browsers refuse microphone access on a plain-HTTP LAN address, so this is the
-opt-in fix for that, not a separate system.
+`flask_app.py` 同时也是 ROS node。`ParamFlask` class 声明了 `appAddress` 和 `portApp` 参数，由 launch file 从[`ros2/src/openamr_ui_package/param/config.yaml`](../../ros2/src/openamr_ui_package/param/config.yaml)读取。因此，即使 Flask 本身不处理 ROS messaging，它的 host 和 port 仍像其他节点的参数一样配置。
 
+还有一个细节：如果 `~/.openamr_ui/certs/` 下存在 cert/key pair，`flask_app.py` 可以使用 HTTPS；如果证书缺失，则回退到普通 HTTP。
+
+<a id="folders_handlerpy--the-node-behind-the-route-page"></a>
 ## folders_handler.py — the node behind the Route page
 
-Executable `handler`, started only by
-[`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)
-(the optional helper launch). The class defaults to ROS node name
-`ui_folders` internally, but `physnode_launch.py` overrides that to
-`folders_handler` — that's the name you'll actually see in `ros2 node
-list`/`ros2 node info` when it's running. This is what actually reads and
-writes map/route files when you use `Save`, `Rename`, `Delete`, `Change`, or
-`Create` on the Route page.
+可执行入口是 `handler`，仅由可选辅助 launch [`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)启动。class 内部默认 ROS node 名称是 `ui_folders`，但 `physnode_launch.py` 会将其覆盖为 `folders_handler`。节点运行时，在 `ros2 node list`/`ros2 node info` 中看到的就是后者。Route 页上的 `Save`、`Rename`、`Delete`、`Change` 或 `Create` 操作，实际由它读写 map/route files。
 
-It listens on one topic, `ui_operation`, but the messages on it aren't
-free-form — they're a lightweight command format: the string before the
-first `/` is a command name (`save_route`, `change_map`, `delete_group`, …),
-and everything after it is a JSON payload. `RoutePage.jsx` builds these
-strings and `folders_handler.py`'s `ui_callback()` dispatches on the command
-name to one of ~14 handler methods. It's worth noticing that this is a
-hand-rolled RPC-style pattern layered on top of a plain `std_msgs/String`
-topic — not a ROS service ([Lesson 02](02-ros2-core-concepts.md)) — which
-means there's no built-in request/response pairing or error reporting; the
-node just publishes human-readable status strings back on `ui_message` and
-the frontend's `Logs` panel is the only place those are visible.
+节点监听 `ui_operation` topic，但消息不是任意文本格式：第一个 `/` 之前是 command name（如 `save_route`、`change_map`、`delete_group`），之后是 JSON payload。`RoutePage.jsx` 会构造这些字符串，`folders_handler.py` 的 `ui_callback()` 根据 command name 分派到约 14 个 handler methods。
 
-Every map/route operation reads or updates one file,
-`param/current_map_route.yaml`, which tracks which map and route are
-*currently active* — see [Lesson 08](08-map-and-route-model.md) for the full
-file model this node manages.
+这是一种建立在普通 `std_msgs/String` topic 上的手写 RPC 风格模式，而不是 ROS service（见[课程 02](02-ros2-core-concepts.md)）。因此没有内置的 request/response 配对或错误报告机制；节点会把人类可读的状态字符串发布到 `ui_message`，前端只有 `Logs` 面板会显示这些内容。
 
-Beyond route file CRUD, this same node also has mapping-mode functions
-(`build_map_func`, `save_map_func`) that shut down AMCL/map_server/move_base
-lifecycle-wise and launch a separate mapping launch file. These are what the
-Maps page's **Start mapping**/**Save current map** buttons actually trigger
-(see [Lesson 06](06-the-pages.md#maps--mapspagejsx)) — for a long time this
-was functionality present in the node with no button wired to it; it has one
-now.
+每项 map/route 操作都会读取或更新 `param/current_map_route.yaml`，用于记录当前激活的 map 和 route。完整文件模型见[课程 08](08-map-and-route-model.md)。
 
+除 route 文件的 CRUD 外，该节点还有 mapping mode 函数 `build_map_func` 和 `save_map_func`：它们会停止 AMCL/map_server/move_base 的 lifecycle nodes，并启动单独的 mapping launch file。Maps 页的 **Start mapping**/**Save current map** 按钮会触发这些函数（见[课程 06](06-the-pages.md#maps--mapspagejsx)）。这些功能曾经存在于节点中，但没有对应按钮；现在已接上线。
+
+<a id="waypoint_navpy--a-second-subscriber-on-the-same-topic"></a>
 ## waypoint_nav.py — a second subscriber on the same topic
 
-Executable `nav`, also started only by `physnode_launch.py`. The class
-defaults to ROS node name `Way_points_handler` internally, but
-`physnode_launch.py` overrides that to `waypoint_nav` — same pattern as
-`folders_handler.py` above. This is the optional route-*following* helper — it
-reads the same active route CSV and drives the robot through it point by
-point using Nav2's `BasicNavigator` (`nav2_simple_commander`) directly,
-rather than publishing to `/goal_pose` the way every panel covered in
-[Lesson 07](07-ui-components.md) does. That's a second, independent way this
-codebase commands Nav2 — worth knowing if you're tracing "why did the robot
-just start moving."
+可执行入口是 `nav`，同样只由 `physnode_launch.py`启动。class 内部默认 ROS node 名称为 `Way_points_handler`，而 launch file 会覆盖为 `waypoint_nav`，与上面的 `folders_handler.py`相同。它是可选的 route-following helper：读取同一个 active route CSV，并通过 Nav2 的 `BasicNavigator`（`nav2_simple_commander`）逐点控制机器人，而不是像[课程 07](07-ui-components.md)介绍的那些面板一样发布到 `/goal_pose`。这是本代码库中第二种独立控制 Nav2 的方式；排查“机器人为什么开始移动”时要记得这一点。
 
-The subtle part: `waypoint_nav.py` *also* subscribes to `ui_operation` —
-same topic name as `folders_handler.py` above — but recognizes a completely
-different, non-overlapping vocabulary: plain strings like `follow_route`,
-`next_point`, `previous_point`, `home`, `stop`, with no JSON payload. Both
-nodes get every message published on `ui_operation`; each one simply ignores
-strings it doesn't recognize. Two nodes sharing one topic name only works
-safely because their command vocabularies never collide — if you're adding a
-new `ui_operation` command (for either node), check both files, not just the
-one you're editing.
+需要留意的是，`waypoint_nav.py` 也订阅 `ui_operation`，但识别的是完全不同且不重叠的一组命令：`follow_route`、`next_point`、`previous_point`、`home`、`stop` 等普通字符串，不带 JSON payload。两个节点都会收到发布到 `ui_operation` 的每条消息，各自忽略无法识别的字符串。它们能安全共用一个 topic，是因为命令词汇不会冲突。新增 `ui_operation` command 时，请同时检查这两个文件。
 
 ## battery.py — no launch path exists yet
 
-This one is more than "off by default": there is currently no way to start
-it at all short of writing your own launch entry or `rclpy` script.
-`setup.py`'s `console_scripts` registers `flask`, `handler`, `nav`,
-`map_relay`, and `nav_relay` — `battery.py`'s `main()` isn't one of them, so
-`ros2 run openamr_ui_package battery` doesn't exist. It also has no
-`if __name__ == "__main__":` guard at the bottom of the file, so running
-`python3 battery.py` directly does nothing either — `main()` is defined but
-never called. If it were wired up, it would read a serial port
-(`/dev/ttyUSB0`) for battery data and publish `Float32` on `battery_status`;
-absent the serial device (the common case off a real battery-equipped
-robot), it falls back to a simulated battery that slowly drains from 100,
-purely so the Status page's battery panel
-([Lesson 06](06-the-pages.md#status--infopagejsx)) has *something* to show
-during development. This is the concrete mechanism behind that page's "no
-battery data just means no node is publishing it" behavior — currently,
-that's every deployment, since nothing starts this node yet.
+这个节点不只是默认关闭，目前也没有启动方式；除非自行编写 launch entry 或 `rclpy` script。`setup.py` 的 `console_scripts` 注册了 `flask`、`handler`、`nav`、`map_relay` 和 `nav_relay`，但没有注册 `battery.py` 的 `main()`，所以 `ros2 run openamr_ui_package battery` 不存在。文件末尾也没有 `if __name__ == "__main__":` guard，因此直接运行 `python3 battery.py` 也不会执行任何操作：`main()` 只定义了，从未被调用。
 
-## Try it
+如果接入启动流程，它会从串口（`/dev/ttyUSB0`）读取电量并在 `battery_status` 发布 `Float32`。找不到串口设备时（不接真实电池机器人的常见情况），它会改用模拟电池，从 100 开始缓慢下降，让开发时 Status 页的 battery panel（见[课程 06](06-the-pages.md#status--infopagejsx)）有数据显示。这也解释了该页面“没有 battery data 只表示没有节点发布”的提示：目前所有 deployment 都是这种情况，因为尚无任何启动流程运行此节点。
 
-From the launch files, list which nodes start during normal UI bringup and
-which require `physnode_launch.py`. Then locate where the installed React
-bundle is served from.
+## 试一试
 
-**You're ready to continue when:** you can predict which page features remain
-available when the optional map/route helpers are not running.
+查看 launch files，列出普通 UI 启动时会运行哪些节点，以及哪些节点需要 `physnode_launch.py`。然后找出 Flask 提供的已安装 React bundle 所在位置。
 
-## Next
+**完成标准：**能判断可选 map/route helpers 未运行时，哪些页面功能仍可使用。
 
-[Lesson 06 — A Tour of Every Page](06-the-pages.md) picks the frontend side
-back up, covering what each page shows and which of these backend nodes and
-topics it depends on.
+## 下一课
+
+[课程 06——所有页面导览](06-the-pages.md)回到 frontend，介绍每个页面的内容，以及它依赖的后端节点和 topics。
 
 ---
 
-[← Lesson 04](04-data-flow-and-relays.md) · [Lesson index](README.md) ·
-[Next: Lesson 06 →](06-the-pages.md)
+[← 课程 04](04-data-flow-and-relays.md) · [课程索引](README.md) · [下一课：课程 06 →](06-the-pages.md)

@@ -1,3 +1,4 @@
+import { T, useT } from "../shared/i18n/i18n";
 import { useRef, useEffect, useState } from "react";
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants";
@@ -51,6 +52,7 @@ const STATUSES = {
 };
 
 const DockingControl = ({ compact = false }) => {
+  const { t } = useT();
   const ros = useRos();
   const [status, setStatus] = useState("idle");
   const [events, setEvents] = useState([]);
@@ -203,7 +205,7 @@ const DockingControl = ({ compact = false }) => {
       <div className="flex min-h-0 flex-col justify-between font-[RobotoMono]">
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-xs uppercase tracking-wider text-themeTextGray">
-            Docking
+            <T>{"Docking"}</T>{" "}
           </p>
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -216,11 +218,11 @@ const DockingControl = ({ compact = false }) => {
                 className={`relative inline-flex h-2 w-2 rounded-full ${dotCls}`}
               />
             </span>
-            <span className={`text-xs ${textCls}`}>{label}</span>
+            <span className={`text-xs ${textCls}`}>{t(label)}</span>
           </div>
         </div>
         <div className="mb-3 rounded-lg bg-bgSurface px-3 py-2">
-          <p className="text-xs text-themeTextGray">{detail}</p>
+          <p className="text-xs text-themeTextGray">{t(detail)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -229,14 +231,14 @@ const DockingControl = ({ compact = false }) => {
             disabled={busy || status === "docked"}
             className="rounded-lg border border-themeBlue bg-themeBlue/10 py-2 text-xs font-semibold text-themeBlue transition-colors hover:bg-themeBlue hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Dock
+            <T>{"Dock"}</T>{" "}
           </button>
           <button
             onClick={handleUndock}
             disabled={busy || status === "idle"}
             className="rounded-lg border border-borderSubtle bg-bgCard py-2 text-xs font-semibold text-textWhiteHover transition-colors hover:border-themeBlue hover:text-themeBlue disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Undock
+            <T>{"Undock"}</T>{" "}
           </button>
         </div>
       </div>
@@ -249,7 +251,7 @@ const DockingControl = ({ compact = false }) => {
     >
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-themeTextGray">
-          Docking
+          <T>{"Docking"}</T>{" "}
         </p>
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
@@ -262,10 +264,10 @@ const DockingControl = ({ compact = false }) => {
               className={`relative inline-flex h-2 w-2 rounded-full ${dotCls}`}
             />
           </span>
-          <span className={`text-xs ${textCls}`}>{label}</span>
+          <span className={`text-xs ${textCls}`}>{t(label)}</span>
         </div>
       </div>
-      <p className="mb-2 text-xs text-themeTextGray">{detail}</p>
+      <p className="mb-2 text-xs text-themeTextGray">{t(detail)}</p>
 
       <div className="flex gap-2">
         <button
@@ -273,14 +275,14 @@ const DockingControl = ({ compact = false }) => {
           disabled={busy || status === "docked"}
           className="flex-1 rounded-lg border border-themeBlue bg-themeBlue/10 py-1.5 text-xs font-semibold text-themeBlue transition-colors hover:bg-themeBlue hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
-          ⚓ Dock
+          <T>{"⚓ Dock"}</T>{" "}
         </button>
         <button
           onClick={handleUndock}
           disabled={busy || status === "idle"}
           className="flex-1 rounded-lg border border-borderSubtle bg-bgCard py-1.5 text-xs font-semibold text-textWhiteHover transition-colors hover:border-themeBlue hover:text-themeBlue disabled:cursor-not-allowed disabled:opacity-40"
         >
-          ↩ Undock
+          <T>{"↩ Undock"}</T>{" "}
         </button>
       </div>
 
@@ -289,14 +291,14 @@ const DockingControl = ({ compact = false }) => {
           onClick={() => setStatus("idle")}
           className="mt-2 w-full text-center text-[10px] text-statusRed opacity-70 hover:opacity-100"
         >
-          Dismiss
+          <T>{"Dismiss"}</T>{" "}
         </button>
       )}
 
       {!compact && events.length > 0 && (
         <div className="mt-3 border-t border-borderSubtle pt-2">
           <p className="mb-1 text-[10px] uppercase tracking-wider text-themeTextGray">
-            Recent Dock Events
+            <T>{"Recent Dock Events"}</T>{" "}
           </p>
           <div className="space-y-1">
             {events.map((event, index) => (
@@ -304,7 +306,7 @@ const DockingControl = ({ compact = false }) => {
                 key={`${event.stamp}-${index}`}
                 className="flex justify-between gap-3 text-[10px]"
               >
-                <span className="text-textWhiteHover">{event.label}</span>
+                <span className="text-textWhiteHover">{t(event.label)}</span>
                 <span className="text-themeTextGray">{event.stamp}</span>
               </div>
             ))}

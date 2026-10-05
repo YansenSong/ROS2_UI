@@ -8,7 +8,7 @@ import SystemHealth from "../components/SystemHealth";
 import LifecycleStatus from "../components/LifecycleStatus";
 import SupportPackageButton from "../components/SupportPackageButton";
 import useSystemDiagnostics from "../shared/hooks/useSystemDiagnostics";
-import { useT } from "../shared/i18n/i18n";
+import { useT, T } from "../shared/i18n/i18n";
 import {
   DashboardCard,
   EmptyState,
@@ -61,7 +61,6 @@ const HealthPage = () => {
     reportHealth,
     reportLifecycle,
     battery,
-    urdf,
     diagnosticsMsgs,
     missingTopics,
     devices,
@@ -79,8 +78,10 @@ const HealthPage = () => {
       <SectionHeader
         eyebrow="System overview"
         title="Health Centre"
-        description="Combines connection status, sensor data, navigation health, hardware, battery, and robot model into one ready/not-ready check."
-        action={<SupportPackageButton health={{ overall, overallLabel, issues }} />}
+        description="Combines connection status, sensor data, navigation health, hardware, and battery into one ready/not-ready check."
+        action={
+          <SupportPackageButton health={{ overall, overallLabel, issues }} />
+        }
       />
 
       <DashboardCard className={`border p-5 ${style.border} ${style.bg}`}>
@@ -113,14 +114,14 @@ const HealthPage = () => {
                   to={issue.linkTo}
                   className="rounded-lg border border-borderSubtle bg-bgSurface px-2.5 py-1.5 text-xs text-textWhiteHover hover:border-themeBlue hover:text-themeBlue"
                 >
-                  {issue.message}
+                  {t(issue.message)}
                 </Link>
               ) : (
                 <span
                   key={issue.id}
                   className="rounded-lg border border-borderSubtle bg-bgSurface px-2.5 py-1.5 text-xs text-themeTextGray"
                 >
-                  {issue.message}
+                  {t(issue.message)}
                 </span>
               ),
             )}
@@ -180,17 +181,17 @@ const HealthPage = () => {
             to="/devices"
             className="mt-3 inline-block text-xs text-themeBlue hover:underline"
           >
-            Manage devices →
+            <T>{"Manage devices →"}</T>{" "}
           </Link>
         </DashboardCard>
 
         <DashboardCard className="p-4">
           <p className="mb-2 font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray">
-            Battery
+            <T>{"Battery"}</T>{" "}
           </p>
           {battery.pct === null ? (
             <p className="text-xs text-themeTextGray opacity-70">
-              No battery telemetry.
+              <T>{"No battery telemetry."}</T>{" "}
             </p>
           ) : (
             <div className="flex items-center justify-between">
@@ -208,37 +209,7 @@ const HealthPage = () => {
             to="/info"
             className="mt-3 inline-block text-xs text-themeBlue hover:underline"
           >
-            Full telemetry →
-          </Link>
-        </DashboardCard>
-
-        <DashboardCard className="p-4">
-          <p className="mb-2 font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray">
-            Robot description
-          </p>
-          <div>
-            <StatusBadge
-              status={
-                !urdf.checked
-                  ? "unknown"
-                  : urdf.available
-                  ? "connected"
-                  : "disconnected"
-              }
-              label={
-                !urdf.checked
-                  ? "Checking…"
-                  : urdf.available
-                  ? "Model available"
-                  : "Model missing"
-              }
-            />
-          </div>
-          <Link
-            to="/robot"
-            className="mt-3 inline-block text-xs text-themeBlue hover:underline"
-          >
-            Open Robot page →
+            <T>{"Full telemetry →"}</T>{" "}
           </Link>
         </DashboardCard>
 
@@ -247,11 +218,11 @@ const HealthPage = () => {
             className="mb-2 font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray"
             title="/diagnostics"
           >
-            Diagnostics
+            <T>{"Diagnostics"}</T>{" "}
           </p>
           {diagnosticsMsgs.length === 0 ? (
             <p className="text-xs text-themeTextGray opacity-70">
-              No warning/error-level diagnostics reported.
+              <T>{"No warning/error-level diagnostics reported."}</T>{" "}
             </p>
           ) : (
             <div className="space-y-1.5">
@@ -274,13 +245,13 @@ const HealthPage = () => {
 
         <DashboardCard className="p-4">
           <p className="mb-2 font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray">
-            Expected topics
+            <T>{"Expected topics"}</T>{" "}
           </p>
           {missingTopics.length === 0 ? (
             <p className="text-xs text-themeTextGray opacity-70">
               {rosbridgeStatus === "connected"
-                ? "All expected topics are present in the ROS graph."
-                : "Checked once the robot connection is established."}
+                ? t("All expected topics are present in the ROS graph.")
+                : t("Checked once the robot connection is established.")}
             </p>
           ) : (
             <div className="space-y-1.5">
@@ -289,7 +260,8 @@ const HealthPage = () => {
                   key={topic}
                   className="rounded-lg bg-statusYellow/10 px-2.5 py-1.5 text-xs text-statusYellow"
                 >
-                  {label} <span className="text-themeTextGray">({topic})</span>
+                  {t(label)}{" "}
+                  <span className="text-themeTextGray">({topic})</span>
                 </div>
               ))}
             </div>
@@ -298,11 +270,11 @@ const HealthPage = () => {
 
         <DashboardCard className="p-4 lg:col-span-2 xl:col-span-3">
           <p className="mb-2 font-[RobotoMono] text-xs uppercase tracking-wider text-themeTextGray">
-            Recent faults (this session)
+            <T>{"Recent faults (this session)"}</T>{" "}
           </p>
           {faultLog.length === 0 ? (
             <p className="text-xs text-themeTextGray opacity-70">
-              Nothing new has gone wrong since this page loaded.
+              <T>{"Nothing new has gone wrong since this page loaded."}</T>{" "}
             </p>
           ) : (
             <div className="space-y-1.5">
@@ -313,10 +285,12 @@ const HealthPage = () => {
                   </span>
                   <span
                     className={
-                      fault.severity >= 2 ? "text-statusRed" : "text-statusYellow"
+                      fault.severity >= 2
+                        ? "text-statusRed"
+                        : "text-statusYellow"
                     }
                   >
-                    {fault.message}
+                    {t(fault.message)}
                   </span>
                 </div>
               ))}

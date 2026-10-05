@@ -1,145 +1,89 @@
-# Lesson 03 — How the Browser Talks to ROS
+# 课程 03——浏览器如何与 ROS 通信
 
-| Audience | Time | Prerequisites |
+| 适读对象 | 阅读时间 | 前置知识 |
 | --- | --- | --- |
-| Operators and developers | 12 minutes | [Lesson 02](02-ros2-core-concepts.md) |
+| 操作员和开发者 | 12 分钟 | [课程 02](02-ros2-core-concepts.md) |
 
-## What you'll learn
+## 学习目标
 
-You will learn how Flask, roslibjs, rosbridge, and web_video_server form three
-independent browser communication paths.
+了解 Flask、roslibjs、rosbridge 和 web_video_server 如何构成三条彼此独立的浏览器通信链路。
 
-A browser tab cannot speak the native ROS 2 middleware protocol directly.
-This UI bridges that gap with a specific, fixed chain of pieces. Understanding
-the chain matters because when something doesn't show up in the UI, the fix
-is almost always "which link in this chain is broken," not "the React code is
-wrong."
+浏览器标签页不能直接使用 ROS 2 的原生中间件协议。本 UI 通过一条固定链路弥补这一差异。理解各环节很有用：界面没有显示某项内容时，通常要检查链路中的哪一环出了问题，而不是先认定 React 代码有误。
 
-## The chain
+## 通信链路
 
 ```text
-React app in the browser
+浏览器中的 React 应用
         |
         v
-roslibjs  (a JavaScript library, loaded as a plain <script> tag)
+roslibjs（通过普通 <script> 标签加载的 JavaScript 库）
         |
         v
-WebSocket connection  (a single, long-lived, two-way socket — unlike a
-                        normal HTTP request, either side can send a message
-                        on it at any time without the other asking first)
+WebSocket 连接（长期保持的双向连接；与普通 HTTP 请求不同，任一端都可以随时发送消息）
         |
         v
-rosbridge_server  (a ROS 2 node: rosbridge_websocket)
+rosbridge_server（ROS 2 节点：rosbridge_websocket）
         |
         v
-The ROS 2 graph  (topics, services, actions on the robot/simulation side)
+ROS 2 graph（机器人/仿真一侧的 topics、services 和 actions）
 ```
 
-The same chain, extended one level further in each direction — the relay
-nodes ([Lesson 04](04-data-flow-and-relays.md)) on the UI side, and the
-robot/simulation workspace ([Lesson 01](01-what-is-this-ui.md#the-two-workspace-model))
-on the other:
+再向两侧各延伸一层，可以看到 UI 一侧的 relay 节点（见[课程 04](04-data-flow-and-relays.md)）以及另一侧的机器人/仿真工作区（见[课程 01 的双工作区模型](01-what-is-this-ui.md#the-two-workspace-model)）：
 
 ```text
-Browser tab                     This UI workspace                 Robot / simulation workspace
-------------                     -----------------                 -----------------------------
-React app
+浏览器标签页                   本 UI 工作区                   机器人/仿真工作区
+------------                   ------------                   ----------------
+React 应用
   |
   v
-roslibjs  <---- WebSocket ---->  rosbridge_websocket
-                                       |
-                                       v
-                                 map_relay / nav_relays  <---- topics ---->  Nav2, AMCL, map_server,
-                                 (republish for late-                       drivers, sensors, ...
-                                  joining browsers)
+roslibjs  <---- WebSocket ----> rosbridge_websocket
+                                      |
+                                      v
+                                map_relay / nav_relays  <---- topics ----> Nav2、AMCL、map_server、
+                                （为迟加入的浏览器                         drivers、sensors……
+                                  重新发布消息）
 ```
 
-`roslibjs` is not npm-installed — it's a browser script loaded directly in
-[`web/index.html`](../../web/index.html), alongside `ros2d.js`,
-`nav2d.js`, `easeljs.js`, and `eventemitter2.min.js` (map-rendering helper
-libraries built on top of it). Once loaded, it's available globally as
-`window.ROSLIB`.
+`roslibjs` 不通过 npm 安装，而是作为浏览器脚本直接加载，位置在 [`web/index.html`](../../web/index.html)，与 `ros2d.js`、`nav2d.js`、`easeljs.js` 和 `eventemitter2.min.js` 一起引入。这些辅助库用于地图渲染。加载后，`roslibjs` 可通过全局对象 `window.ROSLIB` 使用。
 
-## Where the connection is opened
+<a id="where-the-connection-is-opened"></a>
+## 连接在哪里建立
 
-There is exactly one `ROSLIB.Ros()` connection for the whole app, created
-once in [`web/src/app/App.jsx`](../../web/src/app/App.jsx). It figures out
-the rosbridge host from the page's own URL (falling back to a configured IP
-only when running the React dev server on `localhost:3000`), opens a
-WebSocket to it, and tracks connected/disconnected/error state. That
-connection object and its status are handed down through **React context** —
-a React feature that publishes a value from one component so any component
-below it in the tree can read it, without passing it down manually through
-every layer of props in between — so every page and panel can use the same
-connection instead of each one making its own. See
-[Lesson 10](10-topics-as-the-contract.md) and
-[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md) for how a
-panel actually consumes it.
+整个应用只创建一个 `ROSLIB.Ros()` 连接，创建位置是 [`web/src/app/App.jsx`](../../web/src/app/App.jsx)。它会根据页面自身的 URL 确定 rosbridge 主机；只有通过 `localhost:3000` 运行 React 开发服务器时，才会回退到配置的 IP。连接会跟踪已连接、断开和错误状态。
 
-Once connected, a page or component creates a `ROSLIB.Topic` (or `Service`,
-or action-related topic) bound to that shared connection, and either
-`.publish()`s messages to it or `.subscribe()`s to receive them. This is the
-same publish/subscribe model described in
-[Lesson 02](02-ros2-core-concepts.md) — roslibjs is just the JavaScript-side
-client for it. Concretely: when you click the map in Send Goal mode, the Map
-page builds a message matching `geometry_msgs/PoseStamped` from the click
-coordinates and publishes it on the `/goal_pose` topic name; roslibjs turns
-that into a JSON message and sends it down the WebSocket; rosbridge turns it
-back into a real ROS 2 message and publishes it on the actual `/goal_pose`
-topic, exactly as if a native ROS 2 node had published it.
+连接对象及状态通过 **React context** 向下传递。React context 可以让组件树中较上层的组件提供一个值，供下层组件读取，而不必逐层通过 props 转交。因此，各页面和面板共用同一个连接，不会各自新建连接。面板如何使用连接，见[课程 10](10-topics-as-the-contract.md)和[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md)。
 
-## Flask's separate job: serving the page itself
+连接建立后，页面或组件会创建绑定到该共享连接的 `ROSLIB.Topic`（也可能是 `Service` 或 action 相关 topic），然后调用 `.publish()` 发布消息，或调用 `.subscribe()` 接收消息。这与[课程 02](02-ros2-core-concepts.md)介绍的 publish/subscribe 模型相同；roslibjs 是 JavaScript 侧的客户端。例如，在 Send Goal 模式下点击地图时，Map 页面会根据点击坐标构造符合 `geometry_msgs/PoseStamped` 的消息，并发布到 `/goal_pose`。roslibjs 将消息转换成 JSON 后通过 WebSocket 发送；rosbridge 再将它还原成 ROS 2 消息并发布到真正的 `/goal_pose` topic，效果与原生 ROS 2 节点发布相同。
 
-Before any of the above can happen, the browser has to load the React app's
-HTML/JS/CSS in the first place. That's a plain HTTP job, unrelated to ROS
-messaging, done by a Flask node:
-[`ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py).
-It serves the compiled React build and a small number of HTTP API endpoints
-(used by the Blockly page's voice-command feature). Flask is what puts the
-page in the browser; rosbridge is what lets that page talk to ROS once it's
-there. They are two different servers on two different ports.
+## Flask 的独立职责：提供网页
 
-## The camera stream is a third, separate path
+开始 ROS 通信前，浏览器必须先通过 HTTP 加载 React 应用的 HTML、JS 和 CSS。这项工作由 Flask 节点完成：[`ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)。它负责提供编译后的 React build 和少量 HTTP API。Flask 负责把网页送到浏览器；网页加载后，rosbridge 才负责让它与 ROS 通信。两者是不同的服务器，使用不同端口。
 
-Camera images do **not** go through rosbridge/roslibjs. Sending image data
-over the same WebSocket as everything else would be slow and heavy, so
-`web_video_server` exposes ROS image topics as plain MJPEG HTTP streams
-instead. The Camera panel builds a normal `<img>` URL pointing at that
-server — see
-[`web/src/components/Camera.jsx`](../../web/src/components/Camera.jsx). This
-is why camera topic names and the camera HTTP port are configured separately
-from the rosbridge topic constants (see `CAMERA_PORT` and
-`CAMERA_TOPIC_OPTIONS` in
-[`web/src/shared/constants/index.js`](../../web/src/shared/constants/index.js)).
+<a id="the-camera-stream-is-a-third-separate-path"></a>
+## Camera stream 使用第三条独立链路
 
-## Summary of the three independent connections
+Camera images **不会**经过 rosbridge/roslibjs。若把图像数据与其他内容放在同一个 WebSocket 中传输，速度会很慢且开销很大。因此，`web_video_server` 会把 ROS image topics 暴露为普通 MJPEG HTTP stream。Camera 面板会创建指向该服务器的 `<img>` URL，见[`web/src/components/Camera.jsx`](../../web/src/components/Camera.jsx)。所以 camera topic 名称和 camera HTTP port 与 rosbridge 的 topic 常量分开配置，见 [`CAMERA_PORT` 和 `CAMERA_TOPIC_OPTIONS`](../../web/src/shared/constants/index.js)。
 
-| Connection | Protocol | Purpose | Port (default) |
+## 三条独立连接小结
+
+| 连接 | 协议 | 用途 | 默认端口 |
 | --- | --- | --- | --- |
-| Flask | HTTP | Serves the compiled React app and a few HTTP APIs | `5050` |
-| rosbridge | WebSocket | Publish/subscribe/service calls from the browser into ROS | `9090` |
-| web_video_server | HTTP | Camera image streaming (MJPEG) | `8080` |
+| Flask | HTTP | 提供编译后的 React 应用和少量 HTTP API | `5050` |
+| rosbridge | WebSocket | 浏览器向 ROS 发布/订阅消息及调用 service | `9090` |
+| web_video_server | HTTP | Camera image stream（MJPEG） | `8080` |
 
-If the page loads but nothing updates, suspect rosbridge. If the page doesn't
-load at all, suspect Flask. If everything works except the camera, suspect
-`web_video_server` or the selected image topic. Practical troubleshooting
-steps for each are in the main [README](../../README.md#troubleshooting).
+如果网页能打开但内容不更新，先检查 rosbridge；如果网页完全打不开，先检查 Flask；如果其他功能正常但 camera 没画面，检查 `web_video_server` 或所选 image topic。具体排查步骤见主 [README](../../README.md#troubleshooting)。
 
-## Try it
+## 试一试
 
-Open the UI and identify the HTTP page URL, WebSocket rosbridge address, and
-camera HTTP port. Predict which visible features fail if only one path stops.
+打开 UI，分别找出 HTTP 网页 URL、WebSocket rosbridge 地址和 camera HTTP port。设想其中一条链路中断时，哪些可见功能会失效。
 
-**You're ready to continue when:** you can explain why a page may load while
-ROS data is disconnected, or ROS data may work while the camera is blank.
+**完成标准：**能解释为什么网页加载成功时 ROS data 仍可能断开，也能解释 ROS data 正常但 camera 仍可能没有画面。
 
-## Next
+## 下一课
 
-[Lesson 04 — Data Flow and Relays](04-data-flow-and-relays.md) explains why a
-few robot-side topics get republished under `/ui/*` names before the browser
-ever sees them.
+[课程 04——数据流与 relay 节点](04-data-flow-and-relays.md)会解释为什么部分机器人侧 topics 会在浏览器接收前，以 `/ui/*` 名称重新发布。
 
 ---
 
-[← Lesson 02](02-ros2-core-concepts.md) · [Lesson index](README.md) ·
-[Next: Lesson 04 →](04-data-flow-and-relays.md)
+[← 课程 02](02-ros2-core-concepts.md) · [课程索引](README.md) · [下一课：课程 04 →](04-data-flow-and-relays.md)
