@@ -11,11 +11,9 @@ import Joystick from "../components/Joystick";
 import RobotState from "../components/RobotState";
 import DockingControl from "../components/DockingControl";
 import NavStatus from "../components/NavStatus";
-import LocalizationStatus from "../components/LocalizationStatus";
 import MapLayers from "../components/MapLayers";
 import SystemAlerts from "../components/SystemAlerts";
 import WaypointLibrary from "../components/WaypointLibrary";
-import SpeedPresets from "../components/SpeedPresets";
 import useSavedWaypoints from "../shared/hooks/useSavedWaypoints";
 import useKeepoutZones from "../shared/hooks/useKeepoutZones";
 import { addEvent } from "../shared/events/eventLog";
@@ -105,18 +103,18 @@ const MapPage = () => {
       messageType: "geometry_msgs/Twist",
     });
 
-    const amclTopic = new window.ROSLIB.Topic({
+    const localizationTopic = new window.ROSLIB.Topic({
       ros,
-      name: AppConfig.AMCL_POSE_TOPIC,
-      messageType: "geometry_msgs/PoseWithCovarianceStamped",
+      name: AppConfig.LOCALIZATION_POSE_TOPIC,
+      messageType: AppConfig.LOCALIZATION_POSE_TYPE,
     });
-    amclTopic.subscribe(() => {
+    localizationTopic.subscribe(() => {
       if (!pendingInitialPoseRef.current) return;
       pendingInitialPoseRef.current = false;
       toast.success(t("Robot's position estimate updated"));
     });
 
-    return () => amclTopic.unsubscribe();
+    return () => localizationTopic.unsubscribe();
   }, [ros]);
 
   // Nav status: advance waypoint queue on Succeeded
@@ -433,10 +431,7 @@ const MapPage = () => {
 
       <div className="flex min-h-[calc(100vh-145px)] flex-col gap-2 py-2 sm:py-3">
         {!INSPECTION_PROFILE && <SystemAlerts />}
-        {!INSPECTION_PROFILE && <NavStatus onCancelGoal={cancelGoal} />}
-        {!INSPECTION_PROFILE && (
-          <LocalizationStatus onSetPoseMode={() => activateMode("pose")} />
-        )}
+        {!INSPECTION_PROFILE && <NavStatus />}
         {INSPECTION_PROFILE && (
           <p className="dashboard-card p-3 text-sm text-statusYellow">
             {t(
@@ -519,11 +514,9 @@ const MapPage = () => {
               </div>
             </div>
 
-            <SpeedPresets value={maxSpeed} onApply={setMaxSpeed} />
-
             {!INSPECTION_PROFILE && (
-              <div className="w-full shrink-0 sm:w-[380px]">
-                <RobotState compact />
+              <div className="w-full shrink-0 sm:w-[190px]">
+                <RobotState compact showPosition={false} />
               </div>
             )}
 

@@ -19,19 +19,12 @@ window.NAV2D.robotMarker = null;
 window.NAV2D.scanShape = null;
 window.NAV2D.robotTrailShape = null;
 window.NAV2D.robotTrail = [];
-// Costmaps are keyed by layer name so global and local can be toggled
-// independently. "costmap" is the global costmap (kept under that name for
-// back-compat with existing saved layer state); "costmapLocal" is the local.
-window.NAV2D.costmapItems = {};
-window.NAV2D.costmapTopics = {};
 window.NAV2D.keepoutItems = [];
 window.NAV2D.queuedWaypointItems = [];
 window.NAV2D.savedWaypointItems = [];
 window.NAV2D._savedWaypointClickCallback = null;
 window.NAV2D.layerState = {
   map: true,
-  costmap: false,
-  costmapLocal: false,
   scan: false,
   path: true,
   goal: true,
@@ -40,8 +33,6 @@ window.NAV2D.layerState = {
   robotTrail: false,
 };
 window.NAV2D.layerOpacity = {
-  costmap: 0.35,
-  costmapLocal: 0.35,
   scan: 0.32,
   path: 0.95,
   robotTrail: 0.65,
@@ -53,15 +44,8 @@ window.NAV2D.mapClient = null;
 window.NAV2D.mapClientScene = null;
 window.NAV2D.mapClientChangeBound = false;
 
-const COSTMAP_LAYERS = {
-  costmap: "/global_costmap/costmap",
-  costmapLocal: "/local_costmap/costmap",
-};
-
 const TOPICS = {
   map: "/ui/map",
-  globalCostmap: "/global_costmap/costmap",
-  localCostmap: "/local_costmap/costmap",
   waypoints: "/WayPoints_topic",
   uiMessage: "/ui_message",
   uiOperation: "/ui_operation",
@@ -69,8 +53,8 @@ const TOPICS = {
   plan: "/plan",
   tf: "/tf",
   tfStatic: "/tf_static",
-  amclPose: "/ui/amcl_pose",
-  scan: "/scan_filtered",
+  localizationPose: "/liorf_localization/mapping/odometry",
+  scan: "/scan",
 };
 
 // ------------------------------------------------------------
@@ -224,9 +208,6 @@ window.NAV2D.InitMap = (ros) => {
     });
   }
 
-  // Costmap grids are large and expensive through rosbridge, so do not stream
-  // them by default. RViz remains the better live costmap inspection tool.
-
   // Define republishWaypoints function
   window.NAV2D.republishWaypoints = (rosObject) => {
     const uiOperation = new window.ROSLIB.Topic({
@@ -272,11 +253,6 @@ window.NAV2D.InitMap = (ros) => {
   if (!window.NAV2D.mapInited) {
     window.NAV2D.mapInited = true;
     navigator(ros);
-  }
-
-  // Re-establish the costmap stream if it was left enabled across a remount.
-  if (window.NAV2D.layerState?.costmap) {
-    ensureCostmapSubscription();
   }
 };
 
@@ -335,11 +311,6 @@ const applyLayerState = () => {
   if (window.NAV2D.mapClient?.currentGrid) {
     window.NAV2D.mapClient.currentGrid.visible = state.map !== false;
   }
-  Object.entries(window.NAV2D.costmapItems || {}).forEach(([key, item]) => {
-    if (!item) return;
-    item.visible = state[key] !== false;
-    item.alpha = opacity[key] ?? opacity.costmap ?? 0.35;
-  });
   (window.NAV2D.keepoutItems || []).forEach((shape) => {
     shape.visible = state.zones !== false;
   });
@@ -368,84 +339,11 @@ const applyLayerState = () => {
   });
 };
 
-// Costmap grids are large and expensive through rosbridge, so only subscribe
-// while the layer is actually toggled on; tear down when it's hidden again.
-// Keyed by layer ("costmap" = global, "costmapLocal" = local) so each can be
-// shown independently.
-const ensureCostmapSubscription = (key) => {
-  if (window.NAV2D.costmapTopics[key]) return;
-  const ros = window.NAV2D.ros;
-  if (!ros) return;
-  const topicName = COSTMAP_LAYERS[key];
-  if (!topicName) return;
-
-  window.NAV2D.costmapTopics[key] = createSubscribeTopic(
-    ros,
-    topicName,
-    "nav_msgs/OccupancyGrid",
-    (message) => {
-      const scene = getScene();
-      if (!scene) return;
-
-      const mapGrid = window.NAV2D.mapClient?.currentGrid;
-      const prev = window.NAV2D.costmapItems[key];
-      const insertIndex = prev
-        ? scene.getChildIndex(prev)
-        : mapGrid
-          ? scene.getChildIndex(mapGrid) + 1
-          : 0;
-
-      if (prev) {
-        try {
-          scene.removeChild(prev);
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      const grid = new window.ROS2D.OccupancyGrid({ message });
-      grid.alpha =
-        window.NAV2D.layerOpacity?.[key] ?? window.NAV2D.layerOpacity?.costmap ?? 0.35;
-      grid.visible = window.NAV2D.layerState?.[key] !== false;
-      scene.addChildAt(grid, Math.max(insertIndex, 0));
-
-      window.NAV2D.costmapItems[key] = grid;
-      bringNavigationOverlaysToFront(scene);
-    },
-  );
-};
-
-const teardownCostmapSubscription = (key) => {
-  if (window.NAV2D.costmapTopics[key]) {
-    try {
-      window.NAV2D.costmapTopics[key].unsubscribe();
-    } catch (e) {
-      // ignore
-    }
-    window.NAV2D.costmapTopics[key] = null;
-  }
-
-  const scene = getScene();
-  if (scene && window.NAV2D.costmapItems[key]) {
-    try {
-      scene.removeChild(window.NAV2D.costmapItems[key]);
-    } catch (e) {
-      // ignore
-    }
-  }
-  window.NAV2D.costmapItems[key] = null;
-};
-
 window.NAV2D.setLayerVisible = (layer, visible) => {
   window.NAV2D.layerState = {
     ...window.NAV2D.layerState,
     [layer]: visible,
   };
-
-  if (COSTMAP_LAYERS[layer]) {
-    if (visible) ensureCostmapSubscription(layer);
-    else teardownCostmapSubscription(layer);
-  }
 
   applyLayerState();
 };
@@ -728,7 +626,10 @@ const drawSmoothLine = (graphics, rawPoints, breakDistance = Infinity) => {
 
   points.forEach((point) => {
     const last = segment[segment.length - 1];
-    if (last && Math.hypot(point.x - last.x, point.y - last.y) > breakDistance) {
+    if (
+      last &&
+      Math.hypot(point.x - last.x, point.y - last.y) > breakDistance
+    ) {
       flush();
     }
     segment.push(point);
@@ -923,11 +824,11 @@ const navigator = (ros) => {
     updateTfMessage,
   );
 
-  // AMCL fallback when the TF chain is not available yet.
+  // LIO-RF pose fallback when the TF chain is not available yet.
   createSubscribeTopic(
     ros,
-    TOPICS.amclPose,
-    "geometry_msgs/PoseWithCovarianceStamped",
+    TOPICS.localizationPose,
+    "nav_msgs/Odometry",
     (data) => {
       if (!canvas || !data?.pose?.pose) return;
       if (!updateRobotFromTf()) applyRobotPose(data.pose.pose);
@@ -1146,11 +1047,6 @@ const createSubscribeTopic = (ros, name, messageType, callback) => {
 
   if (name === TOPICS.tf || name === TOPICS.tfStatic || name === TOPICS.scan) {
     topicObject.throttle_rate = 1000;
-    topicObject.queue_length = 1;
-  }
-
-  if (name === TOPICS.globalCostmap) {
-    topicObject.throttle_rate = 3000;
     topicObject.queue_length = 1;
   }
 

@@ -3,8 +3,6 @@ import { useT } from "../shared/i18n/i18n";
 
 const DEFAULT_VISIBLE = {
   map: true,
-  costmap: false,
-  costmapLocal: false,
   scan: false,
   path: true,
   goal: true,
@@ -14,22 +12,13 @@ const DEFAULT_VISIBLE = {
 };
 
 const DEFAULT_OPACITY = {
-  costmap: 0.35,
-  costmapLocal: 0.35,
   scan: 0.32,
   path: 0.95,
   robotTrail: 0.65,
 };
 
-const COSTMAP_GLOBAL_TITLE =
-  "Global costmap — obstacle map covering the whole area";
-const COSTMAP_LOCAL_TITLE =
-  "Local costmap — obstacle map covering the area right around the robot";
-
 const TOGGLES = [
   ["map", "Map"],
-  ["costmap", "Obstacles (wide)", COSTMAP_GLOBAL_TITLE],
-  ["costmapLocal", "Obstacles (near)", COSTMAP_LOCAL_TITLE],
   ["scan", "Laser"],
   ["path", "Path"],
   ["goal", "Goal"],
@@ -39,8 +28,6 @@ const TOGGLES = [
 ];
 
 const OPACITY = [
-  ["costmap", "Obstacles (wide)", COSTMAP_GLOBAL_TITLE],
-  ["costmapLocal", "Obstacles (near)", COSTMAP_LOCAL_TITLE],
   ["scan", "Laser"],
   ["path", "Path"],
   ["robotTrail", "Trail"],
@@ -62,12 +49,15 @@ const MapLayers = () => {
   }, [visible, opacity]);
 
   return (
-    <div className="dashboard-card px-3 py-2 font-[RobotoMono]" data-tour="map-layers">
+    <div
+      className="dashboard-card px-3 py-2 font-[RobotoMono]"
+      data-tour="map-layers"
+    >
       <div className="mb-1.5 flex items-center gap-3">
         <p className="shrink-0 text-xs uppercase tracking-wider text-themeTextGray">
           {t("Layers")}
         </p>
-        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 sm:grid-cols-5 xl:grid-cols-9">
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 sm:grid-cols-5 xl:grid-cols-7">
           {TOGGLES.map(([key, label, title]) => (
             <label
               key={key}
@@ -101,7 +91,7 @@ const MapLayers = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 xl:grid-cols-3">
         {OPACITY.map(([key, label, title]) => (
           <label
             key={key}

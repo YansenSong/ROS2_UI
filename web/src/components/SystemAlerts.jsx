@@ -12,10 +12,10 @@ const WATCHED = [
     timeout: 12000,
   },
   {
-    key: "amcl",
+    key: "localization",
     label: "Localization pose missing",
-    topic: AppConfig.AMCL_POSE_TOPIC,
-    type: "geometry_msgs/PoseWithCovarianceStamped",
+    topic: AppConfig.LOCALIZATION_POSE_TOPIC,
+    type: AppConfig.LOCALIZATION_POSE_TYPE,
     timeout: 8000,
   },
   {
@@ -38,7 +38,11 @@ const SystemAlerts = () => {
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
     const subs = WATCHED.map(({ key, topic, type }) => {
-      const sub = new window.ROSLIB.Topic({ ros, name: topic, messageType: type });
+      const sub = new window.ROSLIB.Topic({
+        ros,
+        name: topic,
+        messageType: type,
+      });
       sub.subscribe(() => {
         seen.current[key] = Date.now();
       });

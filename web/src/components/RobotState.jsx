@@ -8,11 +8,11 @@ import { MetricCard, StatusBadge } from "../shared/ui/Dashboard";
 const quatToYaw = (q) =>
   Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
 
-const State = ({ compact = false }) => {
+const State = ({ compact = false, showPosition = true }) => {
   const ros = useRos();
 
-  const [linear, setLinear] = useState("0.00");
-  const [angular, setAngular] = useState("0.00");
+  const [linear, setLinear] = useState("0.0");
+  const [angular, setAngular] = useState("0.0");
   const [xCoord, setXCoord] = useState("—");
   const [yCoord, setYCoord] = useState("—");
   const [orientation, setOrientation] = useState("—");
@@ -23,22 +23,25 @@ const State = ({ compact = false }) => {
     if (!ros || !window.ROSLIB) return;
 
     // 使用 AMCL 位姿（精确且经过地图校正）。
-    const amclTopic = new window.ROSLIB.Topic({
-      ros,
-      name: AppConfig.AMCL_POSE_TOPIC,
-      messageType: "geometry_msgs/PoseWithCovarianceStamped",
-    });
+    let localizationTopic;
+    if (showPosition) {
+      localizationTopic = new window.ROSLIB.Topic({
+        ros,
+        name: AppConfig.LOCALIZATION_POSE_TOPIC,
+        messageType: AppConfig.LOCALIZATION_POSE_TYPE,
+      });
 
-    amclTopic.subscribe((msg) => {
-      const pos = msg?.pose?.pose?.position;
-      const ori = msg?.pose?.pose?.orientation;
-      if (!pos || !ori) return;
-      amclActiveRef.current = true;
-      setAmclActive(true);
-      setXCoord(pos.x.toFixed(2));
-      setYCoord(pos.y.toFixed(2));
-      setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
-    });
+      localizationTopic.subscribe((msg) => {
+        const pos = msg?.pose?.pose?.position;
+        const ori = msg?.pose?.pose?.orientation;
+        if (!pos || !ori) return;
+        amclActiveRef.current = true;
+        setAmclActive(true);
+        setXCoord(pos.x.toFixed(2));
+        setYCoord(pos.y.toFixed(2));
+        setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
+      });
+    }
 
     // 使用 odom 速度（连续、实时）。
     const odomTopic = new window.ROSLIB.Topic({
@@ -50,11 +53,11 @@ const State = ({ compact = false }) => {
     odomTopic.subscribe((msg) => {
       const vel = msg?.twist?.twist;
       if (!vel) return;
-      setLinear(vel.linear.x.toFixed(2));
-      setAngular(vel.angular.z.toFixed(2));
+      setLinear(vel.linear.x.toFixed(1));
+      setAngular(vel.angular.z.toFixed(1));
 
       // AMCL 未运行时，回退到 odom 位姿。
-      if (!amclActiveRef.current) {
+      if (showPosition && !amclActiveRef.current) {
         const pos = msg?.pose?.pose?.position;
         const ori = msg?.pose?.pose?.orientation;
         if (pos && ori) {
@@ -66,16 +69,16 @@ const State = ({ compact = false }) => {
     });
 
     return () => {
-      amclTopic.unsubscribe();
+      localizationTopic?.unsubscribe();
       odomTopic.unsubscribe();
     };
-  }, [ros]);
+  }, [ros, showPosition]);
 
   return (
     <div
-      className={`grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 ${
-        compact ? "gap-2" : "gap-3"
-      }`}
+      className={`grid w-full min-w-0 grid-cols-1 ${
+        showPosition ? "sm:grid-cols-2" : ""
+      } ${compact ? "gap-2" : "gap-3"}`}
     >
       <MetricCard
         compact={compact}
@@ -95,40 +98,42 @@ const State = ({ compact = false }) => {
           </span>
         }
       />
-      <MetricCard
-        compact={compact}
-        label="Map position"
-        value={`${xCoord}, ${yCoord}`}
-        unit="m"
-        meta={
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-themeTextGray/70">
-              <T>{"X / Y coordinates"}</T>{" "}
-            </span>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-[RobotoMono]">
-                <T>{"Heading"}</T>{" "}
-                <strong className="font-semibold text-textWhiteHover">
-                  {orientation}
-                  {orientation !== "—" ? "°" : ""}
-                </strong>
+      {showPosition && (
+        <MetricCard
+          compact={compact}
+          label="Map position"
+          value={`${xCoord}, ${yCoord}`}
+          unit="m"
+          meta={
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-themeTextGray/70">
+                <T>{"X / Y coordinates"}</T>{" "}
               </span>
-              <span
-                title={
-                  amclActive
-                    ? "AMCL — position corrected against the map"
-                    : "Odometry — estimated from wheel movement only, not yet corrected against the map"
-                }
-              >
-                <StatusBadge
-                  status={amclActive ? "online" : "info"}
-                  label={amclActive ? "Map-corrected" : "Estimated"}
-                />
-              </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-[RobotoMono]">
+                  <T>{"Heading"}</T>{" "}
+                  <strong className="font-semibold text-textWhiteHover">
+                    {orientation}
+                    {orientation !== "—" ? "°" : ""}
+                  </strong>
+                </span>
+                <span
+                  title={
+                    amclActive
+                      ? "AMCL — position corrected against the map"
+                      : "Odometry — estimated from wheel movement only, not yet corrected against the map"
+                  }
+                >
+                  <StatusBadge
+                    status={amclActive ? "online" : "info"}
+                    label={amclActive ? "Map-corrected" : "Estimated"}
+                  />
+                </span>
+              </div>
             </div>
-          </div>
-        }
-      />
+          }
+        />
+      )}
     </div>
   );
 };

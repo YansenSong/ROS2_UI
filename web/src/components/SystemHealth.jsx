@@ -20,10 +20,10 @@ const STREAMING = [
     timeout: 2000,
   },
   {
-    key: "amcl",
+    key: "localization",
     label: "Localization",
-    topic: AppConfig.AMCL_POSE_TOPIC,
-    type: "geometry_msgs/PoseWithCovarianceStamped",
+    topic: AppConfig.LOCALIZATION_POSE_TOPIC,
+    type: AppConfig.LOCALIZATION_POSE_TYPE,
     timeout: 8000,
   },
   {
@@ -59,14 +59,14 @@ const STREAMING = [
 const TF_LINKS = [
   ["map", "odom"],
   ["odom", "base_link"],
-  ["base_link", "lidar_link"],
+  ["base_link", "laser_link"],
 ];
 
 // 位姿跟踪链路的通俗名称，键与上方 TF_LINKS 保持一致。原始 frame 名称仍可通过悬停提示查看。
 const FRIENDLY_TF_LABELS = {
   "map->odom": "Map alignment",
   "odom->base_link": "Motion tracking",
-  "base_link->lidar_link": "Sensor mounting",
+  "base_link->laser_link": "Sensor mounting",
 };
 
 const DOT = {

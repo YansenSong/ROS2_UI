@@ -24,12 +24,12 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
 
-    const amclTopic = new window.ROSLIB.Topic({
+    const localizationTopic = new window.ROSLIB.Topic({
       ros,
-      name: AppConfig.AMCL_POSE_TOPIC,
-      messageType: "geometry_msgs/PoseWithCovarianceStamped",
+      name: AppConfig.LOCALIZATION_POSE_TOPIC,
+      messageType: AppConfig.LOCALIZATION_POSE_TYPE,
     });
-    amclTopic.subscribe((msg) => {
+    localizationTopic.subscribe((msg) => {
       const pos = msg?.pose?.pose?.position;
       const ori = msg?.pose?.pose?.orientation;
       if (!pos || !ori) return;
@@ -44,7 +44,7 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
       setHasPose(true);
     });
 
-    return () => amclTopic.unsubscribe();
+    return () => localizationTopic.unsubscribe();
   }, [ros]);
 
   const handleSave = () => {
@@ -54,7 +54,7 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
       return;
     }
     if (!currentPoseRef.current) {
-      toast.warn(t("No localized position yet — waiting for AMCL"));
+      toast.warn(t("No localized position yet — waiting for localization"));
       return;
     }
     onAdd(trimmed, currentPoseRef.current);

@@ -26,7 +26,7 @@ const EXPECTED_TOPICS = [
   { topic: AppConfig.SCAN_TOPIC, label: "Laser scan" },
   { topic: AppConfig.ROBOT_POSE_TOPIC, label: "Odometry" },
   { topic: AppConfig.MAP_TOPIC, label: "Map" },
-  { topic: AppConfig.AMCL_POSE_TOPIC, label: "Localization" },
+  { topic: AppConfig.LOCALIZATION_POSE_TOPIC, label: "Localization" },
   { topic: AppConfig.NAV_STATUS_TOPIC, label: "Navigation" },
   { topic: AppConfig.BATTERY_TOPIC, label: "Battery" },
   { topic: AppConfig.JOINT_STATES_TOPIC, label: "Joint states" },
@@ -180,16 +180,22 @@ export default function useSystemDiagnostics() {
       list.push({
         id: "rosbridge",
         severity: 3,
-        message: "Robot connection is offline — nothing else here can be verified.",
+        message:
+          "Robot connection is offline — nothing else here can be verified.",
         linkTo: "/config",
       });
     }
 
-    if (tfLinks && Object.keys(tfLinks).length && health.tfChain === "offline") {
+    if (
+      tfLinks &&
+      Object.keys(tfLinks).length &&
+      health.tfChain === "offline"
+    ) {
       list.push({
         id: "tf-chain",
         severity: 2,
-        message: "Position tracking is broken — the robot doesn't know where it is. Navigation won't work until this is fixed.",
+        message:
+          "Position tracking is broken — the robot doesn't know where it is. Navigation won't work until this is fixed.",
         linkTo: "/info",
       });
     }
@@ -255,7 +261,9 @@ export default function useSystemDiagnostics() {
       list.push({
         id: `diagnostic-${index}-${entry.name}`,
         severity: entry.level >= 2 ? 2 : 1,
-        message: `${entry.name}: ${entry.message} (${DIAGNOSTIC_LEVEL_LABEL[entry.level] || entry.level})`,
+        message: `${entry.name}: ${entry.message} (${
+          DIAGNOSTIC_LEVEL_LABEL[entry.level] || entry.level
+        })`,
         linkTo: null,
       });
     });
@@ -283,7 +291,9 @@ export default function useSystemDiagnostics() {
     missingTopics,
   ]);
 
-  const overall = issues.length ? Math.max(...issues.map((i) => i.severity)) : 0;
+  const overall = issues.length
+    ? Math.max(...issues.map((i) => i.severity))
+    : 0;
 
   // Recent faults: log an entry the first time an issue appears that wasn't
   // present a moment ago — a session-only record of "what newly went wrong

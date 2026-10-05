@@ -204,11 +204,7 @@ const ZH = {
   "Localization pose missing": "缺少定位位置数据",
   "No planned path yet": "暂无规划路径",
   "Robot connection lost": "机器人连接已断开",
-  "Speed Presets": "速度预设",
-  "Save speed preset": "保存速度预设",
   Layers: "图层",
-  "Obstacles (wide)": "全局障碍物",
-  "Obstacles (near)": "近处障碍物",
   Laser: "激光",
   Path: "路径",
   Goal: "目标",
@@ -494,7 +490,9 @@ const ZH = {
   "Didn't finish cleanly": "未正常完成",
   "Laser scan": "激光扫描",
   Odometry: "里程计",
-  "AMCL pose": "AMCL 位姿",
+  "LIO-RF pose": "LIO-RF 位姿",
+  "The robot pose estimated against the prior map":
+    "机器人相对于先验地图估计的位姿",
   "Nav status": "导航状态",
   "Joint states": "关节状态",
   "TF static": "静态 TF",
@@ -558,16 +556,16 @@ const ZH = {
     "主要操作视图：查看实时栅格地图、机器人位置，以及驾驶和发送目标的控件。",
   "Drag to pan, scroll or pinch to zoom, or use the +/− buttons.":
     "拖动平移地图，滚动或双指缩放，也可使用 +/− 按钮。",
-  "Layer toggles above the map control what's drawn — costmap, laser scan, planned path, saved waypoints, the robot's trail.":
-    "地图上方的图层开关控制代价地图、激光扫描、规划路径、已存航点和机器人轨迹的显示。",
+  "Layer toggles above the map control what's drawn — laser scan, planned path, saved waypoints, zones, and the robot's trail.":
+    "地图上方的图层开关控制激光扫描、规划路径、已存航点、禁行区域和机器人轨迹的显示。",
   "Goal Mode / Set Pose / Add Waypoint / Go Home change what a click on the map does, or send it straight to the origin.":
     "发送目标、设置位姿和添加航点会改变点击地图时的操作；返回原点会直接发送目标。",
   "Right-click the map for a quick menu — send a goal, save a waypoint, or set the initial pose — without switching modes first.":
     "右键点击地图可直接发送目标、保存航点或设置初始位姿，无需先切换模式。",
   "The joystick drives the robot manually at any time; the max-speed slider caps how fast, and STOP halts it and cancels any active goal.":
     "摇杆可手动驾驶；最高速度滑块限制速度，停止按钮会发送停车指令并取消当前目标。",
-  "Linear velocity, map position, and heading update live next to the joystick.":
-    "摇杆旁实时更新线速度、地图位置和朝向。",
+  "Linear and angular velocity update live next to the joystick.":
+    "摇杆旁实时更新线速度和角速度。",
   "Dock/Undock trigger the robot's charging-dock behaviors, when supported.":
     "机器人支持时，停靠与离开充电座按钮会触发相应动作。",
   "Author reusable waypoint sequences for the currently active map, separate from one-off goals sent from the Map page.":
@@ -622,8 +620,8 @@ const ZH = {
     "这里是主导航，可从此处打开各页面。",
   "Shows whether this browser is connected to the robot.":
     "显示此浏览器是否已连接机器人。",
-  "Toggle what's drawn on the map — costmap, laser scan, planned path, saved waypoints, the robot's trail — and adjust opacity.":
-    "切换代价地图、激光扫描、规划路径、航点和轨迹等图层，并调整透明度。",
+  "Toggle what's drawn on the map — laser scan, planned path, saved waypoints, zones, and the robot's trail — and adjust opacity.":
+    "切换激光扫描、规划路径、航点、禁行区域和轨迹等图层，并调整透明度。",
   "Drag to pan, scroll or pinch to zoom. Right-click anywhere for a quick menu — send a goal, save a waypoint, or set the initial pose.":
     "拖动平移、滚动或双指缩放地图。右键点击可发送目标、保存航点或设置初始位姿。",
   "Switch what a click on the map does: send a navigation goal, set the robot's initial pose, or drop a saved waypoint — or jump straight home.":
@@ -776,8 +774,28 @@ const ZH = {
     "任务“{name}”在第 {step} 步失败：{label}",
   'Mission "{name}" complete': "任务“{name}”已完成",
   "Enter a name for this waypoint": "请输入航点名称",
-  "No localized position yet — waiting for AMCL":
-    "尚未获得定位位置，正在等待 AMCL。",
+  "No localized position yet — waiting for localization":
+    "尚未获得定位位置，正在等待定位数据。",
+  Tracking: "正在跟踪",
+  "Navigation status": "导航状态",
+  "Waiting for goal": "等待目标",
+  Planning: "正在规划",
+  Moving: "正在移动",
+  Arrived: "已到达",
+  "No status data": "无状态数据",
+  "node started; waiting for goal": "节点已启动，正在等待目标",
+  "new goal received; waiting for global plan":
+    "已收到新目标，正在等待全局路径",
+  "global plan available; navigation active": "全局路径已生成，导航进行中",
+  "goal reached and vehicle stopped": "已到达目标且车辆已停止",
+  "failed: global planning timed out": "失败：全局路径规划超时",
+  "failed: odometry input timed out": "失败：里程计输入超时",
+  "failed: NeuPAN arrival input timed out": "失败：NeuPAN 到达信号超时",
+  "failed: planner action server unavailable": "失败：规划动作服务器不可用",
+  "failed: planner rejected goal": "失败：规划器拒绝了目标",
+  "failed: planner returned no path": "失败：规划器未返回路径",
+  "LIO-RF is publishing a current map-relative pose. This localization source does not provide confidence covariance, so confidence is unknown.":
+    "LIO-RF 正在发布当前的地图相对位姿。该定位源未提供置信度协方差，因此定位置信度未知。",
   "This will start moving the robot through this mission's steps. Continue?":
     "运行任务将使机器人按步骤移动。是否继续？",
   "Enter route name": "请输入路线名称",

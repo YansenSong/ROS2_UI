@@ -20,7 +20,7 @@ export const TOURS = {
     {
       selector: '[data-tour="map-layers"]',
       title: "Map layers",
-      body: "Toggle what's drawn on the map — costmap, laser scan, planned path, saved waypoints, the robot's trail — and adjust opacity.",
+      body: "Toggle what's drawn on the map — laser scan, planned path, saved waypoints, zones, and the robot's trail — and adjust opacity.",
     },
     {
       selector: '[data-tour="map-canvas"]',

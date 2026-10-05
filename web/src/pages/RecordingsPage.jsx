@@ -42,9 +42,9 @@ const TOPIC_CHOICES = [
     description: "The map the robot is navigating on",
   },
   {
-    topic: AppConfig.AMCL_POSE_TOPIC,
-    label: "AMCL pose",
-    description: "Where the robot thinks it is",
+    topic: AppConfig.LOCALIZATION_POSE_TOPIC,
+    label: "LIO-RF pose",
+    description: "The robot pose estimated against the prior map",
   },
   {
     topic: AppConfig.NAV_STATUS_TOPIC,

@@ -226,13 +226,6 @@ const Map = forwardRef(
             } catch (e) {}
             window.NAV2D.scanTopic = null;
           }
-          Object.keys(window.NAV2D.costmapTopics || {}).forEach((key) => {
-            try {
-              window.NAV2D.costmapTopics[key]?.unsubscribe();
-            } catch (e) {}
-            window.NAV2D.costmapTopics[key] = null;
-          });
-          window.NAV2D.costmapItems = {};
         }
       };
     }, [ros, createCanvasContainer]);

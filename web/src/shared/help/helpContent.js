@@ -12,11 +12,11 @@ export const PAGE_HELP = {
       "The main operational view: the live occupancy map, the robot's position, and every control to drive or send it somewhere.",
     tips: [
       "Drag to pan, scroll or pinch to zoom, or use the +/− buttons.",
-      "Layer toggles above the map control what's drawn — costmap, laser scan, planned path, saved waypoints, the robot's trail.",
+      "Layer toggles above the map control what's drawn — laser scan, planned path, saved waypoints, zones, and the robot's trail.",
       "Goal Mode / Set Pose / Add Waypoint / Go Home change what a click on the map does, or send it straight to the origin.",
       "Right-click the map for a quick menu — send a goal, save a waypoint, or set the initial pose — without switching modes first.",
       "The joystick drives the robot manually at any time; the max-speed slider caps how fast, and STOP halts it and cancels any active goal.",
-      "Linear velocity, map position, and heading update live next to the joystick.",
+      "Linear and angular velocity update live next to the joystick.",
       "Dock/Undock trigger the robot's charging-dock behaviors, when supported.",
     ],
   },
@@ -52,7 +52,7 @@ export const PAGE_HELP = {
   "/health": {
     title: "Health Centre",
     summary:
-      "One place to answer \"is the whole robot ready?\" — an overall rollup built from every other page's live signals.",
+      'One place to answer "is the whole robot ready?" — an overall rollup built from every other page\'s live signals.',
     tips: [
       "Click any listed issue to jump straight to the page where it can actually be fixed.",
       "Ready with warnings means nothing is broken, but something (low battery, a missing topic, an offline device) is worth a look.",
@@ -73,9 +73,7 @@ export const PAGE_HELP = {
     title: "Config",
     summary:
       "Connection settings, safety limits, and notification preferences for this browser — nothing here is shared with other operators.",
-    tips: [
-      "Changing the robot's address or port reconnects immediately.",
-    ],
+    tips: ["Changing the robot's address or port reconnects immediately."],
   },
 };
 
