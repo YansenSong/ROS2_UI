@@ -5,6 +5,7 @@ export const AppConfig = {
   RECONNECTION_TIME: 1000,
 
   CMD_VEL_TOPIC: "/cmd_vel",
+  STOP_TOPIC: "/stop",
   ROBOT_POSE_TOPIC: "/odometry/filtered",
   ROBOT_VELOCITY_TOPIC: "/odometry/filtered",
   MAP_TOPIC: "/ui/map",
@@ -43,15 +44,11 @@ export const AppConfig = {
   // Route editor: file/waypoint exchange with openamr_ui_package's folders_handler node
   NAV_DATA_REQ_TOPIC: "/nav_data_req",
   NAV_DATA_RESP_TOPIC: "/nav_data_resp",
+  ROUTE_DATA_REQ_TOPIC: "/ackermann/routes/request",
+  ROUTE_DATA_RESP_TOPIC: "/ackermann/routes/catalog",
   NEW_WAYPOINT_TOPIC: "/new_way_point",
-  // compute_path_to_pose is a ROS2 action, not a service — there is no
-  // "/compute_path_to_pose" service on the graph to call directly. Every
-  // ROS2 action implicitly exposes a goal-submission and a result-retrieval
-  // service (the same pattern NAV_FEEDBACK_TOPIC/NAV_CANCEL_GOAL_SERVICE
-  // above already rely on for navigate_to_pose), so planning goes through
-  // these two instead.
-  COMPUTE_PATH_SEND_GOAL_SERVICE: "/compute_path_to_pose/_action/send_goal",
-  COMPUTE_PATH_GET_RESULT_SERVICE: "/compute_path_to_pose/_action/get_result",
+  ROUTE_PLAN_REQUEST_TOPIC: "/ackermann/routes/plan_request",
+  ROUTE_PLAN_RESPONSE_TOPIC: "/ackermann/routes/plan_response",
 
   MAX_LINEAR_SPEED: 0.2,
   MAX_ANGULAR_SPEED: 2,

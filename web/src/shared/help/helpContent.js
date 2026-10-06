@@ -11,8 +11,9 @@ export const PAGE_HELP = {
     summary:
       "The main operational view: the live occupancy map, the robot's position, and every control to drive or send it somewhere.",
     tips: [
-      "Drag to pan, scroll or pinch to zoom, or use the +/− buttons.",
+      "Drag with the left mouse button to pan; scroll or pinch to zoom.",
       "Layer toggles above the map control what's drawn — laser scan, planned path, saved waypoints, zones, and the robot's trail.",
+      "Choose a route saved on the Routes page under Saved Routes, then Execute Route to follow its waypoints in order.",
       "Goal Mode / Set Pose / Add Waypoint / Go Home change what a click on the map does, or send it straight to the origin.",
       "Right-click the map for a quick menu — send a goal, save a waypoint, or set the initial pose — without switching modes first.",
       "The joystick drives the robot manually at any time; the max-speed slider caps how fast, and STOP halts it and cancels any active goal.",
@@ -23,11 +24,12 @@ export const PAGE_HELP = {
   "/route": {
     title: "Routes",
     summary:
-      "Author reusable waypoint sequences for the currently active map, separate from one-off goals sent from the Map page.",
+      "Create, edit, and save waypoint routes for the map currently loaded in the Ackermann simulation.",
     tips: [
-      "Pick a group and map at the top, then Create or Edit a route.",
-      "While editing, click the map to add points — Save when you're happy with the sequence.",
-      "Change map switches which map this route belongs to; Auto-plan asks Nav2 to compute a path between two points for you.",
+      "Create a route or edit one saved for the active simulation map.",
+      "Auto-plan uses the global planner to draw a path from the robot's current position through each waypoint in order.",
+      "Save stores the route under the active map so it remains available after restarting the UI.",
+      "Select and execute saved routes from the Map page.",
     ],
   },
   "/info": {

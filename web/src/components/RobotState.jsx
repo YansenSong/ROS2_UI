@@ -3,12 +3,37 @@ import React, { useState, useEffect, useRef } from "react";
 
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants/index";
-import { MetricCard, StatusBadge } from "../shared/ui/Dashboard";
+import { MetricCard } from "../shared/ui/Dashboard";
 
 const quatToYaw = (q) =>
   Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
 
-const State = ({ compact = false, showPosition = true }) => {
+const formatVelocity = (value) => {
+  const formatted = value.toFixed(1);
+  return formatted === "-0.0" ? "0.0" : formatted;
+};
+
+const formatCoordinate = (value) => {
+  const rounded = Math.abs(value) < 0.015 ? 0 : value;
+  const formatted = rounded.toFixed(2);
+  return formatted === "-0.00" ? "0.00" : formatted;
+};
+
+const angleDifference = (left, right) =>
+  Math.abs(((left - right + 540) % 360) - 180);
+
+const formatHeading = (degrees) => {
+  const formatted = degrees.toFixed(1);
+  return formatted === "-0.0" ? "0.0" : formatted;
+};
+
+const State = ({
+  compact = false,
+  showPosition = true,
+  showVelocity = true,
+  splitVelocityCards = false,
+  separateHeading = false,
+}) => {
   const ros = useRos();
 
   const [linear, setLinear] = useState("0.0");
@@ -16,11 +41,43 @@ const State = ({ compact = false, showPosition = true }) => {
   const [xCoord, setXCoord] = useState("—");
   const [yCoord, setYCoord] = useState("—");
   const [orientation, setOrientation] = useState("—");
-  const [amclActive, setAmclActive] = useState(false);
   const amclActiveRef = useRef(false);
+  const displayedPositionRef = useRef(null);
+  const displayedHeadingRef = useRef(null);
+  const linearSpeedRef = useRef(0);
+  const angularSpeedRef = useRef(0);
 
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
+
+    displayedPositionRef.current = null;
+    displayedHeadingRef.current = null;
+    amclActiveRef.current = false;
+    const updatePosition = (pos, ori) => {
+      if (!Number.isFinite(pos?.x) || !Number.isFinite(pos?.y) || !ori) return;
+      const previous = displayedPositionRef.current;
+      const stationary = Math.abs(linearSpeedRef.current) < 0.02;
+      if (
+        !previous ||
+        !stationary ||
+        Math.hypot(pos.x - previous.x, pos.y - previous.y) >= 0.03
+      ) {
+        displayedPositionRef.current = { x: pos.x, y: pos.y };
+        setXCoord(formatCoordinate(pos.x));
+        setYCoord(formatCoordinate(pos.y));
+      }
+      const heading = quatToYaw(ori) * (180 / Math.PI);
+      const headingStationary =
+        stationary && Math.abs(angularSpeedRef.current) < 0.01;
+      if (
+        displayedHeadingRef.current === null ||
+        !headingStationary ||
+        angleDifference(heading, displayedHeadingRef.current) >= 0.3
+      ) {
+        displayedHeadingRef.current = heading;
+        setOrientation(formatHeading(heading));
+      }
+    };
 
     // 使用 AMCL 位姿（精确且经过地图校正）。
     let localizationTopic;
@@ -36,10 +93,7 @@ const State = ({ compact = false, showPosition = true }) => {
         const ori = msg?.pose?.pose?.orientation;
         if (!pos || !ori) return;
         amclActiveRef.current = true;
-        setAmclActive(true);
-        setXCoord(pos.x.toFixed(2));
-        setYCoord(pos.y.toFixed(2));
-        setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
+        updatePosition(pos, ori);
       });
     }
 
@@ -53,17 +107,17 @@ const State = ({ compact = false, showPosition = true }) => {
     odomTopic.subscribe((msg) => {
       const vel = msg?.twist?.twist;
       if (!vel) return;
-      setLinear(vel.linear.x.toFixed(1));
-      setAngular(vel.angular.z.toFixed(1));
+      linearSpeedRef.current = Number(vel.linear.x) || 0;
+      angularSpeedRef.current = Number(vel.angular.z) || 0;
+      setLinear(formatVelocity(vel.linear.x));
+      setAngular(formatVelocity(vel.angular.z));
 
       // AMCL 未运行时，回退到 odom 位姿。
       if (showPosition && !amclActiveRef.current) {
         const pos = msg?.pose?.pose?.position;
         const ori = msg?.pose?.pose?.orientation;
         if (pos && ori) {
-          setXCoord(pos.x.toFixed(2));
-          setYCoord(pos.y.toFixed(2));
-          setOrientation((quatToYaw(ori) * (180 / Math.PI)).toFixed(1));
+          updatePosition(pos, ori);
         }
       }
     });
@@ -77,61 +131,91 @@ const State = ({ compact = false, showPosition = true }) => {
   return (
     <div
       className={`grid w-full min-w-0 grid-cols-1 ${
-        showPosition ? "sm:grid-cols-2" : ""
+        showPosition && showVelocity ? "sm:grid-cols-2" : ""
       } ${compact ? "gap-2" : "gap-3"}`}
     >
-      <MetricCard
-        compact={compact}
-        label="Linear velocity"
-        value={linear}
-        unit="m/s"
-        meta={
-          <span
-            className="font-[RobotoMono]"
-            title="Radians per second — how fast the robot is turning in place"
-          >
-            <T>{"Angular"}</T>{" "}
-            <strong className="font-semibold text-textWhiteHover">
-              {angular}
-            </strong>{" "}
-            rad/s
-          </span>
-        }
-      />
+      {showVelocity && (
+        <MetricCard
+          compact={compact}
+          label="Linear velocity"
+          value={linear}
+          unit="m/s"
+          meta={
+            !splitVelocityCards && (
+              <span
+                className="font-[RobotoMono]"
+                title="Angular velocity around the vertical axis"
+              >
+                <T>{"Angular"}</T>{" "}
+                <strong className="font-semibold text-textWhiteHover">
+                  {angular}
+                </strong>{" "}
+                rad/s
+              </span>
+            )
+          }
+        />
+      )}
+      {showVelocity && splitVelocityCards && (
+        <MetricCard
+          compact={compact}
+          label="Angular"
+          value={angular}
+          unit="rad/s"
+        />
+      )}
       {showPosition && (
         <MetricCard
           compact={compact}
-          label="Map position"
-          value={`${xCoord}, ${yCoord}`}
-          unit="m"
-          meta={
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-themeTextGray/70">
-                <T>{"X / Y coordinates"}</T>{" "}
-              </span>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-[RobotoMono]">
-                  <T>{"Heading"}</T>{" "}
-                  <strong className="font-semibold text-textWhiteHover">
-                    {orientation}
-                    {orientation !== "—" ? "°" : ""}
-                  </strong>
-                </span>
-                <span
-                  title={
-                    amclActive
-                      ? "AMCL — position corrected against the map"
-                      : "Odometry — estimated from wheel movement only, not yet corrected against the map"
-                  }
-                >
-                  <StatusBadge
-                    status={amclActive ? "online" : "info"}
-                    label={amclActive ? "Map-corrected" : "Estimated"}
-                  />
-                </span>
-              </div>
-            </div>
+          label={separateHeading ? "Robot coordinates" : "Robot position"}
+          value={
+            separateHeading
+              ? (
+                <>
+                  {xCoord}
+                  {xCoord !== "—" && (
+                    <span className="ml-px text-[0.75rem] font-medium tracking-normal text-themeTextGray">
+                      m
+                    </span>
+                  )}
+                  {", "}
+                  {yCoord}
+                  {yCoord !== "—" && (
+                    <span className="ml-px text-[0.75rem] font-medium tracking-normal text-themeTextGray">
+                      m
+                    </span>
+                  )}
+                </>
+              )
+              : `${xCoord}, ${yCoord}`
           }
+          unit={separateHeading ? undefined : "m"}
+          meta={
+            !separateHeading && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-themeTextGray/70">
+                  <T>{"X / Y coordinates"}</T>{" "}
+                </span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-[RobotoMono]">
+                    <T>{"Heading"}</T>{" "}
+                    <strong className="font-semibold text-textWhiteHover">
+                      {orientation}
+                      {orientation !== "—" ? "°" : ""}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+            )
+          }
+        />
+      )}
+      {showPosition && separateHeading && (
+        <MetricCard
+          compact={compact}
+          label="Robot heading"
+          value={orientation}
+          unit={orientation === "—" ? undefined : "°"}
         />
       )}
     </div>

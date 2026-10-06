@@ -11,7 +11,6 @@ import React, {
 import { useRos } from "../app/App";
 import { AppConfig } from "../shared/constants";
 
-import MapButton from "../shared/ui/MapButton";
 import { IconButton } from "../shared/ui/Dashboard";
 
 /**
@@ -47,6 +46,7 @@ const Map = forwardRef(
 
     const [canvasWidth, setCanvasWidth] = useState(undefined);
     const [canvasHeight, setCanvasHeight] = useState(undefined);
+    const [isPanning, setIsPanning] = useState(false);
 
     // eslint-disable-next-line no-unused-vars
     const [mapPoints, updateMapPoints] = useState(0);
@@ -246,8 +246,13 @@ const Map = forwardRef(
         // ZoomView.zoom(factor) 会将当前比例（由上一行的 startZoom() 获取）乘以 factor。因此直接传入调用方的 ±1
         // 会变成无操作（zoom(1)）或负比例反转（zoom(-1)）。方向参数仅表示步进符号；在此转换为实际乘数。
         const ZOOM_STEP = 1.15;
-        zoomView.startZoom(300, 200);
+        const canvas = scene.canvas;
+        zoomView.startZoom(canvas.width / 2, canvas.height / 2);
         zoomView.zoom(direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
+        // Saved and queued waypoint arrows live in map coordinates but should
+        // keep a readable screen size. Refresh all scale-dependent overlays
+        // after the scene zoom changes.
+        window.NAV2D?.checkScale?.();
       },
       [ros],
     );
@@ -259,8 +264,7 @@ const Map = forwardRef(
     };
 
     /**
-     * 在现有 +/- 按钮之外，支持滚轮和双指捏合缩放。两种输入都调用相同的 zoomMap() 步进函数，
-     * 不新增缩放机制，只增加两种触发现有逻辑的方式。
+     * 左键拖动平移地图，滚轮和双指捏合继续缩放。
      */
     useEffect(() => {
       const container = mapContainer.current;
@@ -275,6 +279,7 @@ const Map = forwardRef(
       // 因此此处的 `new Map()` 会尝试创建该组件。
       const activePointers = {};
       let lastPinchDistance = null;
+      let panGesture = null;
       const PINCH_STEP_PX = 18; // px of pinch travel per discrete zoom step
 
       const pinchDistance = () => {
@@ -288,6 +293,26 @@ const Map = forwardRef(
           x: event.clientX,
           y: event.clientY,
         };
+
+        const scene = getScene();
+        if (
+          event.pointerType === "mouse" &&
+          event.button === 0 &&
+          event.target === scene?.canvas &&
+          !window.NAV2D?.arePointsSettable
+        ) {
+          panGesture = {
+            pointerId: event.pointerId,
+            lastX: event.clientX,
+            lastY: event.clientY,
+            moved: false,
+          };
+          try {
+            event.target.setPointerCapture(event.pointerId);
+          } catch (error) {
+            // Pointer capture is optional; dragging still works inside the map.
+          }
+        }
         if (Object.keys(activePointers).length === 2)
           lastPinchDistance = pinchDistance();
       };
@@ -297,20 +322,56 @@ const Map = forwardRef(
           x: event.clientX,
           y: event.clientY,
         };
-        if (Object.keys(activePointers).length !== 2) return;
+        if (Object.keys(activePointers).length === 2) {
+          if (panGesture) {
+            panGesture = null;
+            setIsPanning(false);
+          }
 
-        const distance = pinchDistance();
-        if (lastPinchDistance == null || distance == null) {
-          lastPinchDistance = distance;
+          const distance = pinchDistance();
+          if (lastPinchDistance == null || distance == null) {
+            lastPinchDistance = distance;
+            return;
+          }
+          const delta = distance - lastPinchDistance;
+          if (Math.abs(delta) > PINCH_STEP_PX) {
+            zoomMap(delta > 0 ? 1 : -1);
+            lastPinchDistance = distance;
+          }
           return;
         }
-        const delta = distance - lastPinchDistance;
-        if (Math.abs(delta) > PINCH_STEP_PX) {
-          zoomMap(delta > 0 ? 1 : -1);
-          lastPinchDistance = distance;
+
+        if (panGesture?.pointerId === event.pointerId) {
+          const dx = event.clientX - panGesture.lastX;
+          const dy = event.clientY - panGesture.lastY;
+          if (!panGesture.moved && Math.hypot(dx, dy) >= 3) {
+            panGesture.moved = true;
+            setIsPanning(true);
+          }
+
+          if (panGesture.moved) {
+            const scene = getScene();
+            const canvas = scene?.canvas;
+            const rect = canvas?.getBoundingClientRect?.();
+            if (scene && rect?.width && rect?.height) {
+              const scaleX = scene.scaleX || 1;
+              const scaleY = scene.scaleY || 1;
+              const canvasDx = (dx * canvas.width) / rect.width;
+              const canvasDy = (dy * canvas.height) / rect.height;
+              shiftMap(-canvasDx / scaleX, canvasDy / scaleY);
+              event.preventDefault();
+            }
+          }
+
+          panGesture.lastX = event.clientX;
+          panGesture.lastY = event.clientY;
         }
       };
       const onPointerEnd = (event) => {
+        if (panGesture?.pointerId === event.pointerId) {
+          panGesture = null;
+          setIsPanning(false);
+        }
         delete activePointers[event.pointerId];
         if (Object.keys(activePointers).length < 2) lastPinchDistance = null;
       };
@@ -337,17 +398,69 @@ const Map = forwardRef(
      */
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const resizeMapCanvas = useCallback((newWidth, newHeight) => {
-      const viewer = viewerRef.current;
-      if (!viewer || !viewer.scene || !viewer.scene.canvas) return;
-      viewer.scene.canvas.width = newWidth;
-      viewer.scene.canvas.height = newHeight;
-      viewer.width = newWidth;
-      viewer.height = newHeight;
-      setCanvasWidth(newWidth);
-      setCanvasHeight(newHeight);
-      window.NAV2D?.mapClient?.emit?.("change");
-    }, []);
+    const resizeMapCanvas = useCallback(
+      (newWidth, newHeight, notifyMapClient = true) => {
+        const viewer = viewerRef.current;
+        if (!viewer || !viewer.scene || !viewer.scene.canvas) return false;
+        if (
+          Math.abs(viewer.width - newWidth) < 1 &&
+          Math.abs(viewer.height - newHeight) < 1
+        ) {
+          return false;
+        }
+        viewer.scene.canvas.width = newWidth;
+        viewer.scene.canvas.height = newHeight;
+        viewer.width = newWidth;
+        viewer.height = newHeight;
+        setCanvasWidth(newWidth);
+        setCanvasHeight(newHeight);
+        if (notifyMapClient) window.NAV2D?.mapClient?.emit?.("change");
+        return true;
+      },
+      [],
+    );
+
+    const fitCanvasToMap = useCallback(
+      (mapWidth, mapHeight) => {
+        const container = mapContainer.current;
+        if (!container || mapWidth <= 0 || mapHeight <= 0) return;
+
+        const availableWidth = container.clientWidth - 16;
+        const availableHeight = container.clientHeight - 16;
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+
+        const aspectRatio = mapWidth / mapHeight;
+        const width = Math.round(
+          Math.min(availableWidth, availableHeight * aspectRatio),
+        );
+        const height = Math.round(width / aspectRatio);
+        if (resizeMapCanvas(width, height, false)) {
+          const viewer = viewerRef.current;
+          if (viewer?.scene) {
+            viewer.scene.x = 0;
+            viewer.scene.y = viewer.height;
+            delete viewer.scene.x_prev_shift;
+            delete viewer.scene.y_prev_shift;
+            // A canvas resize needs one fresh map fit; ordinary map updates
+            // must keep the user's current pan and zoom.
+            if (window.NAV2D) window.NAV2D.mapViewGeometry = null;
+          }
+        }
+      },
+      [resizeMapCanvas],
+    );
+
+    useEffect(() => {
+      const nav2d = ensureNav2D();
+      if (!nav2d) return undefined;
+
+      nav2d.fitCanvasToMap = fitCanvasToMap;
+      return () => {
+        if (window.NAV2D?.fitCanvasToMap === fitCanvasToMap) {
+          delete window.NAV2D.fitCanvasToMap;
+        }
+      };
+    }, [fitCanvasToMap]);
 
     const toggleFullscreen = useCallback(() => {
       const container = mapContainer.current;
@@ -369,21 +482,27 @@ const Map = forwardRef(
           const h = container.clientHeight;
           if (!w || !h) return;
 
-          let newWidth = h / 0.7;
-          let newHeight;
-          if (newWidth > w) {
-            newWidth = w;
-            newHeight = newWidth * 0.7;
+          const grid = window.NAV2D?.mapClient?.currentGrid;
+          if (grid?.width > 0 && grid?.height > 0) {
+            fitCanvasToMap(grid.width, grid.height);
+            window.NAV2D?.mapClient?.emit?.("change");
           } else {
-            newHeight = h;
+            let newWidth = h / 0.7;
+            let newHeight;
+            if (newWidth > w) {
+              newWidth = w;
+              newHeight = newWidth * 0.7;
+            } else {
+              newHeight = h;
+            }
+            resizeMapCanvas(newWidth, newHeight);
           }
-          resizeMapCanvas(newWidth, newHeight);
         });
       };
       document.addEventListener("fullscreenchange", onFullscreenChange);
       return () =>
         document.removeEventListener("fullscreenchange", onFullscreenChange);
-    }, [resizeMapCanvas]);
+    }, [fitCanvasToMap, resizeMapCanvas]);
 
     /**
      * 可选的右键菜单（发送目标 / 保存 waypoint / 在此设置位姿）。只有父页面至少传入一个 handler 时才会启用，
@@ -486,7 +605,9 @@ const Map = forwardRef(
     return (
       <div
         ref={mapContainer}
-        className="dashboard-card dashboard-card--recessed flex h-full w-full items-center justify-center overflow-hidden p-2"
+        className={`dashboard-card dashboard-card--recessed flex h-full w-full items-center justify-center overflow-hidden p-2 ${
+          isPanning ? "map-is-panning" : ""
+        }`}
       >
         <div
           className="relative"
@@ -500,45 +621,6 @@ const Map = forwardRef(
               id="nav_div"
               ref={mapItem}
               className="mapContainer h-full w-full text-center text-[0px]"
-            />
-          </div>
-
-          <div className="absolute bottom-4 left-4 grid grid-cols-[44px_44px_44px] grid-rows-[44px_44px_44px] justify-items-center gap-1 rounded-xl border border-borderSubtle bg-bgCard/90 p-1.5 shadow-xl shadow-black/30 backdrop-blur">
-            <div />
-            <MapButton
-              type={"arrow"}
-              direction={"top"}
-              onBtnClick={() => shiftMap(0, 0.5)}
-            />
-            <div />
-
-            <MapButton
-              type={"arrow"}
-              direction={"left"}
-              onBtnClick={() => shiftMap(-0.5, 0)}
-            />
-
-            <MapButton
-              type={"arrow"}
-              direction={"bottom"}
-              onBtnClick={() => shiftMap(0, -0.5)}
-            />
-
-            <MapButton
-              type={"arrow"}
-              direction={"right"}
-              onBtnClick={() => shiftMap(0.5, 0)}
-            />
-
-            <MapButton
-              type={"zoom"}
-              direction={"plus"}
-              onBtnClick={() => zoomMap(1)}
-            />
-            <MapButton
-              type={"zoom"}
-              direction={"minus"}
-              onBtnClick={() => zoomMap(-1)}
             />
           </div>
 

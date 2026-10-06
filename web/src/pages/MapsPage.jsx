@@ -79,6 +79,7 @@ const MapsPage = () => {
     respRef.current.subscribe((data) => {
       try {
         const obj = JSON.parse(data.data);
+        if (obj.catalog_source !== "maps") return;
         setGroups(parseStructure(obj.structure));
         setActive({
           group: toDisplay(obj.active_files?.group),
@@ -93,12 +94,49 @@ const MapsPage = () => {
     return () => respRef.current?.unsubscribe();
   }, [ros]);
 
+  useEffect(() => {
+    if (!ros || !window.ROSLIB) return undefined;
+    const topic = new window.ROSLIB.Topic({
+      ros,
+      name: AppConfig.UI_MESSAGE_TOPIC,
+      messageType: "std_msgs/String",
+    });
+    const handler = (message) => {
+      const text = String(message?.data || "");
+      if (text.startsWith('Map saved "') && text.endsWith('"')) {
+        const name = text.slice('Map saved "'.length, -1);
+        toast.success(t('Saved "{name}"').replace("{name}", toDisplay(name)));
+        setSaveForm((form) => ({ ...form, name: "" }));
+      } else if (text.startsWith("Map save failed:")) {
+        toast.error(text);
+      } else if (text.startsWith('Deleted map "') && text.endsWith('"')) {
+        const name = text.slice('Deleted map "'.length, -1);
+        toast.success(t('Deleted "{name}"').replace("{name}", name));
+      } else if (text.startsWith('Deleted group "') && text.endsWith('"')) {
+        const name = text.slice('Deleted group "'.length, -1);
+        toast.success(t('Deleted group "{name}"').replace("{name}", name));
+      } else if (
+        text.startsWith("Map deletion failed:") ||
+        text.startsWith("Group deletion failed:")
+      ) {
+        toast.error(text);
+      }
+    };
+    topic.subscribe(handler);
+    return () => topic.unsubscribe(handler);
+  }, [ros, t]);
+
   const refresh = () => reqRef.current?.publish();
 
   const sendCmd = (path, data) => {
     if (!opRef.current) return;
     const wired = data
-      ? Object.fromEntries(Object.entries(data).map(([k, v]) => [k, toWire(v)]))
+      ? Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [
+            k,
+            typeof v === "string" ? toWire(v) : v,
+          ]),
+        )
       : null;
     const msg = wired ? `${path}/${JSON.stringify(wired)}` : path;
     opRef.current.publish(new window.ROSLIB.Message({ data: msg }));
@@ -124,8 +162,7 @@ const MapsPage = () => {
       return;
     }
     sendCmd("save_map", { group, map: name });
-    toast.success(t('Saving current map as "{name}"…').replace("{name}", name));
-    setSaveForm({ group, name: "" });
+    toast.info(t('Saving current map as "{name}"…').replace("{name}", name));
   };
 
   const startMapping = () => {
@@ -156,7 +193,7 @@ const MapsPage = () => {
     )
       return;
     sendCmd("delete_map", { group, map });
-    toast.success(t('Deleted "{name}"').replace("{name}", map));
+    toast.info(t('Deleting "{name}"…').replace("{name}", map));
   };
 
   const commitRename = () => {
@@ -167,6 +204,8 @@ const MapsPage = () => {
         group: renaming.group,
         map_old: renaming.map,
         map_new: next,
+        active:
+          active.group === renaming.group && active.map === renaming.map,
       });
       toast.success(t('Renamed to "{name}"').replace("{name}", next));
     }
@@ -192,7 +231,7 @@ const MapsPage = () => {
     )
       return;
     sendCmd("delete_group", { group });
-    toast.success(t('Deleted group "{name}"').replace("{name}", group));
+    toast.info(t('Deleting group "{name}"…').replace("{name}", group));
   };
 
   const groupNames = groups.map((g) => g.name);

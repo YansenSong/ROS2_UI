@@ -36,6 +36,10 @@ const Camera = () => {
     setStatus("idle");
   }, [quality, topic]);
 
+  useEffect(() => {
+    tryToConnectToCamera();
+  }, [tryToConnectToCamera]);
+
   const stopCamera = () => {
     setVideoSrc("");
     setStatus("idle");

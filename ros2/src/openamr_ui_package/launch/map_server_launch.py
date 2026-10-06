@@ -1,8 +1,8 @@
 # Import des modules nécessaires pour créer un fichier de lancement
-import os
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 
 # Deprecated compatibility launch for the legacy UI map server.
 #
@@ -11,16 +11,14 @@ from ament_index_python.packages import get_package_share_directory
 # confuse Nav2's AMCL lifecycle.
 
 def generate_launch_description():
-    package_share_dir = get_package_share_directory('openamr_ui_package')
-    config_file_path = os.path.join(package_share_dir, 'maps/Welcome', 'Start_ros.yaml')
-    map_file=os.path.join(package_share_dir, 'maps/Welcome', 'Start.yaml')
+    map_file = LaunchConfiguration('map_yaml')
 
     map_server=Node(
             package='nav2_map_server',  # Package name
             executable='map_server',    # Node executable name
             name='map_server',          # Node name
             namespace='ui_legacy',
-            parameters=[config_file_path,{'yaml_filename': map_file}],
+            parameters=[{'yaml_filename': map_file}],
         )
     
     lifecycle_nodes = ['map_server']
@@ -40,5 +38,6 @@ def generate_launch_description():
 
     
     return LaunchDescription([
+        DeclareLaunchArgument('map_yaml', description='Absolute path to a saved map YAML file'),
         map_server, start_lifecycle_manager_cmd
     ])

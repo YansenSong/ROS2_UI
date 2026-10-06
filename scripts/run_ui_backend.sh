@@ -6,7 +6,15 @@ set -eo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROS_DISTRO_NAME="${ROS_DISTRO:-humble}"
 ROS_SETUP="/opt/ros/${ROS_DISTRO_NAME}/setup.bash"
-ACKERMANN_WS="${ACKERMANN_ROBOT_WS:-${REPO_ROOT}/../AckermannRobot}"
+if [ -n "${ACKERMANN_ROBOT_WS:-}" ]; then
+  ACKERMANN_WS="${ACKERMANN_ROBOT_WS}"
+elif [ -f "${REPO_ROOT}/../../src/bringup/package.xml" ]; then
+  # ROS2_UI is embedded under AckermannRobot/third_party/ROS2_UI.
+  ACKERMANN_WS="$(cd "${REPO_ROOT}/../.." && pwd)"
+else
+  # Also support a standalone checkout beside AckermannRobot.
+  ACKERMANN_WS="${REPO_ROOT}/../AckermannRobot"
+fi
 ACKERMANN_SETUP="${ACKERMANN_WS}/install/setup.bash"
 UI_SETUP="${REPO_ROOT}/ros2/install/setup.bash"
 

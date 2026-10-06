@@ -89,6 +89,25 @@ const ZH = {
     "保存、切换、重命名和整理地图。切换地图会立即在机器人端重新加载。",
   "Place, edit, and manage waypoint sequences for the active map.":
     "为当前地图添加、编辑和管理航点序列。",
+  "Create and manage reusable routes for the map currently loaded in the Ackermann simulation.":
+    "为当前 Ackermann 仿真加载的地图创建和管理可复用路线。",
+  "Waiting for the active simulation map.": "正在等待仿真地图加载。",
+  "Saved Routes": "已保存路线",
+  "Select a saved route…": "选择已保存的路线…",
+  "Loading route…": "正在加载路线…",
+  "Execute Route": "执行路线",
+  "Create and save a route on the Routes page first.":
+    "请先在“路线”页面创建并保存路线。",
+  "Select a saved route first.": "请先选择一条已保存的路线。",
+  "Route service is not connected.": "路线服务未连接。",
+  "The selected route has no waypoints.": "所选路线没有航点。",
+  "Executing route": "正在执行路线",
+  "Timed out while loading the selected route.": "加载所选路线超时。",
+  "Queue stopped": "队列已停止。",
+  "Choose a route saved on the Routes page under Saved Routes, then Execute Route to follow its waypoints in order.":
+    "在“已保存路线”中选择“路线”页面保存的路线，然后点击“执行路线”按顺序前往各航点。",
+  "Select and execute saved routes from the Map page.":
+    "在“地图”页面选择并执行已保存的路线。",
   "No events recorded yet": "暂无事件",
   "No events match the filters": "没有符合筛选条件的事件",
   "No devices registered": "尚未注册设备",
@@ -228,6 +247,18 @@ const ZH = {
   "Camera unavailable": "相机不可用",
   "Current route": "当前路线",
   "Route operations": "路线操作",
+  "Route selection": "路线选择",
+  "Edit and save": "编辑与保存",
+  "Path planning": "路径规划",
+  "Manage saved route": "管理已保存路线",
+  "Choose a saved route to edit": "选择要编辑的已保存路线",
+  "Route waypoints": "路线航点",
+  "Apply edits": "应用修改",
+  "X (m)": "X 坐标（米）",
+  "Y (m)": "Y 坐标（米）",
+  "Stop hours": "停留小时",
+  "Stop minutes": "停留分钟",
+  "Remove waypoint": "删除航点",
   "Editing route": "正在编辑路线",
   "View mode": "查看模式",
   "Click the map to add or adjust waypoints, then save your changes.":
@@ -448,7 +479,10 @@ const ZH = {
   "↩ Undock": "↩ 离开充电座",
   "Linear velocity": "线速度",
   Angular: "角速度",
-  "Map position": "地图位置",
+  "Robot position": "机器人位置",
+  "Robot coordinates": "机器人坐标",
+  "Robot heading": "机器人朝向",
+  "Distance to target": "距目标点距离",
   "X / Y coordinates": "X / Y 坐标",
   Heading: "朝向",
   "Radians per second — how fast the robot is turning in place":
@@ -554,8 +588,8 @@ const ZH = {
   "No page-specific help is available here yet.": "此页面暂无专门的帮助说明。",
   "The main operational view: the live occupancy map, the robot's position, and every control to drive or send it somewhere.":
     "主要操作视图：查看实时栅格地图、机器人位置，以及驾驶和发送目标的控件。",
-  "Drag to pan, scroll or pinch to zoom, or use the +/− buttons.":
-    "拖动平移地图，滚动或双指缩放，也可使用 +/− 按钮。",
+  "Drag with the left mouse button to pan; scroll or pinch to zoom.":
+    "按住鼠标左键拖动可平移地图；滚动滚轮或双指捏合可缩放。",
   "Layer toggles above the map control what's drawn — laser scan, planned path, saved waypoints, zones, and the robot's trail.":
     "地图上方的图层开关控制激光扫描、规划路径、已存航点、禁行区域和机器人轨迹的显示。",
   "Goal Mode / Set Pose / Add Waypoint / Go Home change what a click on the map does, or send it straight to the origin.":
@@ -574,8 +608,8 @@ const ZH = {
     "先在顶部选择分组和地图，再创建或编辑路线。",
   "While editing, click the map to add points — Save when you're happy with the sequence.":
     "编辑时点击地图添加航点，确认顺序后保存。",
-  "Change map switches which map this route belongs to; Auto-plan asks Nav2 to compute a path between two points for you.":
-    "切换地图会更改路线所属地图；自动规划会请求 Nav2 计算两点间路径。",
+  "Auto-plan uses the global planner to draw a path from the robot's current position through each waypoint in order.":
+    "自动规划会调用全局规划器，依次绘制机器人当前位置到第一个航点、以及各航点之间的路径。",
   "A live operational readout: camera feed, pose/velocity telemetry, battery, and system health — the page to glance at while the robot is doing something.":
     "实时查看相机、位置与速度遥测、电池和系统健康状态。",
   "The camera panel is paused by default to save bandwidth — press Start when you need to actually see through it.":
@@ -694,11 +728,13 @@ const ZH = {
   'Delete map "{map}" and its routes? This cannot be undone.':
     "要删除地图“{map}”及其路线吗？此操作无法撤销。",
   'Deleted "{name}"': "已删除“{name}”",
+  'Deleting "{name}"…': "正在删除“{name}”…",
   'Renamed to "{name}"': "已重命名为“{name}”",
   'Created group "{name}"': "已创建分组“{name}”",
   'Delete group "{name}" and everything in it?':
     "要删除分组“{name}”及其中所有内容吗？",
   'Deleted group "{name}"': "已删除分组“{name}”",
+  'Deleting group "{name}"…': "正在删除分组“{name}”…",
   "Robot's position estimate updated": "机器人位置估计已更新",
   Waypoint: "航点",
   "All waypoints complete!": "所有航点已完成！",
@@ -749,11 +785,15 @@ const ZH = {
     "请先点击“编辑”或“创建”以启用路径规划。",
   "Waiting for the robot's current position — make sure it's localized on the map, then try again.":
     "正在等待机器人当前位置。请确认机器人已在地图上完成定位后重试。",
-  "Click and drag on the map to set the Goal pose for automatic path planning.":
-    "在地图上点击并拖动，以设置自动路径规划的目标位姿。",
-  "Calculating a route...": "正在计算路线…",
-  "Successfully planned path with {count} points!":
-    "路径规划成功，共 {count} 个点！",
+  "Add or load route waypoints first.": "请先添加或载入路线航点。",
+  "Planning route…": "正在规划路线…",
+  "Planning segment {current} / {total}…":
+    "正在规划第 {current} / {total} 段路径…",
+  "Planned {count} route segments with the global planner.":
+    "已使用全局规划器完成 {count} 段路径规划。",
+  "Global planner request failed for segment {segment}.":
+    "第 {segment} 段全局路径规划请求失败。",
+  "Global route planning failed.": "全局路线规划失败。",
   "Nav2 planner rejected the path request.": "Nav2 规划器拒绝了路径请求。",
   "Couldn't find a route to that point.": "找不到通往该点的路线。",
   "Failed to retrieve the planned path from Nav2.":

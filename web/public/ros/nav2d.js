@@ -7,6 +7,7 @@ window.NAV2D = window.NAV2D || {};
 // State
 window.NAV2D.pointsArray = [];
 window.NAV2D.pointsFromTopic = [];
+window.NAV2D.pointNumberLabels = [];
 window.NAV2D.arePointsSettable = false;
 window.NAV2D.canvas = null;
 window.NAV2D.pointType = null;
@@ -43,6 +44,7 @@ window.NAV2D.scale = { x: 0, y: 0 };
 window.NAV2D.mapClient = null;
 window.NAV2D.mapClientScene = null;
 window.NAV2D.mapClientChangeBound = false;
+window.NAV2D.mapViewGeometry = null;
 
 const TOPICS = {
   map: "/ui/map",
@@ -172,6 +174,8 @@ window.NAV2D.InitMap = (ros) => {
       })
     : window.NAV2D.mapClient;
 
+  if (shouldCreateClient) window.NAV2D.mapViewGeometry = null;
+
   window.NAV2D.mapClient = client;
   window.NAV2D.mapClientScene = scene;
   if (shouldCreateClient) window.NAV2D.mapClientChangeBound = false;
@@ -183,15 +187,32 @@ window.NAV2D.InitMap = (ros) => {
       // Canvas must exist here
       if (!window.NAV2D.canvas) return;
 
-      // Scale the canvas to fit the map
-      window.NAV2D.canvas.scaleToDimensions(
-        client.currentGrid.width,
-        client.currentGrid.height,
-      );
-      window.NAV2D.canvas.shift(
-        client.currentGrid.pose.position.x,
-        client.currentGrid.pose.position.y,
-      );
+      const grid = client.currentGrid;
+      if (!grid?.width || !grid?.height) return;
+
+      // Match the canvas aspect ratio to the occupancy grid before applying
+      // world-to-canvas scaling, so x and y keep the same scale factor.
+      window.NAV2D.fitCanvasToMap?.(grid.width, grid.height);
+
+      // OccupancyGridClient emits "change" for every map message. Refitting
+      // on every message resets user pan/zoom and reapplies the map origin,
+      // making the view jump and then snap back. Only refit when the map
+      // geometry or the canvas size actually changes.
+      const origin = grid.pose?.position || { x: 0, y: 0 };
+      const geometry = [grid.width, grid.height, origin.x, origin.y];
+      const previous = window.NAV2D.mapViewGeometry;
+      const geometryChanged =
+        !previous || geometry.some((value, index) => value !== previous[index]);
+
+      if (geometryChanged) {
+        window.NAV2D.canvas.scaleToDimensions(grid.width, grid.height);
+        window.NAV2D.canvas.shift(origin.x, origin.y);
+        window.NAV2D.mapViewGeometry = geometry;
+        // A newly fitted map establishes the robot marker's reference size.
+        if (window.NAV2D.robotMarker) {
+          window.NAV2D.robotMarker.mapScale = null;
+        }
+      }
 
       // Re-draw points on map update
       const currentScene = getScene();
@@ -215,38 +236,27 @@ window.NAV2D.InitMap = (ros) => {
       name: TOPICS.uiOperation,
       messageType: "std_msgs/String",
     });
-
-    uiOperation.publish(new window.ROSLIB.Message({ data: "clear_route" }));
-
-    setTimeout(() => {
-      const wayPointTopic = new window.ROSLIB.Topic({
-        ros: rosObject,
-        name: TOPICS.newWaypoint,
-        messageType: "geometry_msgs/PoseWithCovarianceStamped",
-      });
-
-      window.NAV2D.pointsFromTopic.forEach((point) => {
-        const messageObject = {
-          header: { frame_id: "map" },
-          pose: {
-            pose: {
-              position: {
-                x: point.pose.pose.position.x,
-                y: point.pose.pose.position.y,
-                z: 0.0,
-              },
-              orientation: {
-                z: point.pose.pose.orientation.z,
-                w: point.pose.pose.orientation.w,
-              },
-            },
-            covariance: point.pose.covariance || new Array(36).fill(0.0),
-          },
-        };
-
-        wayPointTopic.publish(new window.ROSLIB.Message(messageObject));
-      });
-    }, 50);
+    const waypoints = (window.NAV2D.pointsFromTopic || []).map((point) => {
+      const pose = point.pose.pose;
+      const covariance = point.pose.covariance || [];
+      return [
+        pose.position.x,
+        pose.position.y,
+        pose.position.z || 0,
+        pose.orientation.x || 0,
+        pose.orientation.y || 0,
+        pose.orientation.z || 0,
+        pose.orientation.w || 1,
+        covariance[0] || 0,
+        covariance[1] || 0,
+        covariance[2] || 0,
+      ];
+    });
+    uiOperation.publish(
+      new window.ROSLIB.Message({
+        data: `replace_route/${JSON.stringify({ waypoints })}`,
+      }),
+    );
   };
 
   // Run navigator only once per init cycle
@@ -262,6 +272,7 @@ window.NAV2D.ClearMap = () => {
   if (!scene) {
     // If we have no scene yet, just reset arrays safely.
     window.NAV2D.pointsArray = [];
+    window.NAV2D.pointNumberLabels = [];
     return;
   }
 
@@ -273,7 +284,16 @@ window.NAV2D.ClearMap = () => {
     }
   });
 
+  window.NAV2D.pointNumberLabels.forEach(({ label }) => {
+    try {
+      scene.removeChild(label);
+    } catch (e) {
+      // ignore individual label removal issues
+    }
+  });
+
   window.NAV2D.pointsArray = [];
+  window.NAV2D.pointNumberLabels = [];
 };
 
 // ------------------------------------------------------------
@@ -284,10 +304,25 @@ const drawPoints = (points, canvas) => {
 
   window.NAV2D.ClearMap();
 
-  window.NAV2D.pointsArray = points.map((point) => {
-    const defaultPointItem = serializePoint(point, canvas);
+  window.NAV2D.pointNumberLabels = [];
+  window.NAV2D.pointsArray = points.map((point, index) => {
+    const defaultPointItem = serializePoint(point, canvas, index);
     defaultPointItem.visible = window.NAV2D.layerState?.waypoints !== false;
     canvas.addChild(defaultPointItem);
+    const label = new window.createjs.Text(
+      String(index + 1),
+      "bold 14px RobotoMono, monospace",
+      "#ffffff",
+    );
+    label.outline = 3;
+    label.textAlign = "center";
+    label.textBaseline = "middle";
+    label.mouseEnabled = false;
+    defaultPointItem.numberLabel = label;
+    positionWaypointLabel(defaultPointItem, label, canvas);
+    label.visible = window.NAV2D.layerState?.waypoints !== false;
+    canvas.addChild(label);
+    window.NAV2D.pointNumberLabels.push({ marker: defaultPointItem, label });
     return defaultPointItem;
   });
 
@@ -302,6 +337,26 @@ const scaleMarkerToScene = (marker, scene) => {
 
 const updateNavigationOverlayScale = (scene = getScene()) => {
   scaleMarkerToScene(window.NAV2D.goalMarkerItem, scene);
+  (window.NAV2D.queuedWaypointItems || []).forEach((marker) => {
+    scaleMarkerToScene(marker, scene);
+  });
+  (window.NAV2D.savedWaypointItems || []).forEach(({ marker }) => {
+    scaleMarkerToScene(marker, scene);
+  });
+  (window.NAV2D.pointNumberLabels || []).forEach(({ marker, label }) => {
+    scaleMarkerToScene(label, scene);
+    positionWaypointLabel(marker, label, scene);
+  });
+};
+
+const positionWaypointLabel = (marker, label, scene) => {
+  if (!marker || !label || !scene) return;
+  const scaleX = Math.abs(scene.scaleX || 1);
+  const scaleY = Math.abs(scene.scaleY || 1);
+  label.x = marker.x + 8 / scaleX;
+  label.y = marker.y - 8 / scaleY;
+  label.scaleX = 1 / scaleX;
+  label.scaleY = 1 / scaleY;
 };
 
 const applyLayerState = () => {
@@ -330,6 +385,9 @@ const applyLayerState = () => {
   }
   (window.NAV2D.pointsArray || []).forEach((marker) => {
     marker.visible = state.waypoints !== false;
+  });
+  (window.NAV2D.pointNumberLabels || []).forEach(({ label }) => {
+    label.visible = state.waypoints !== false;
   });
   (window.NAV2D.queuedWaypointItems || []).forEach((marker) => {
     marker.visible = state.waypoints !== false;
@@ -547,6 +605,16 @@ window.NAV2D.clearPath = () => {
   if (window.NAV2D.pathShape?.graphics) {
     window.NAV2D.pathShape.graphics.clear();
   }
+};
+
+window.NAV2D.drawRoutePlan = (poses) => {
+  const scene = getScene();
+  drawPath({ poses: Array.isArray(poses) ? poses : [] }, scene);
+  if (!scene) return;
+  (window.NAV2D.pointsArray || []).forEach((marker) => scene.addChild(marker));
+  (window.NAV2D.pointNumberLabels || []).forEach(({ label }) =>
+    scene.addChild(label),
+  );
 };
 
 const drawRobotTrail = (scene = getScene()) => {
@@ -773,8 +841,14 @@ const navigator = (ros) => {
 
     robotMarker.x = pose.position.x;
     robotMarker.y = -pose.position.y;
-    robotMarker.scaleX = 1.0 / scene.scaleX;
-    robotMarker.scaleY = 1.0 / scene.scaleY;
+    if (!robotMarker.mapScale) {
+      robotMarker.mapScale = {
+        x: 1.0 / scene.scaleX,
+        y: 1.0 / scene.scaleY,
+      };
+    }
+    robotMarker.scaleX = robotMarker.mapScale.x;
+    robotMarker.scaleY = robotMarker.mapScale.y;
     robotMarker.rotation = scene.rosQuaternionToGlobalTheta(pose.orientation);
     robotMarker.visible = true;
     window.NAV2D.currentPose = pose;
@@ -815,7 +889,8 @@ const navigator = (ros) => {
     updateRobotFromTf();
   };
 
-  // Keep TF throttled: raw /tf through rosbridge can disturb sim timing.
+  // Limit dynamic TF traffic through rosbridge while keeping the robot pose
+  // responsive at up to 20 Hz.
   createSubscribeTopic(ros, TOPICS.tf, "tf2_msgs/TFMessage", updateTfMessage);
   createSubscribeTopic(
     ros,
@@ -1045,7 +1120,12 @@ const createSubscribeTopic = (ros, name, messageType, callback) => {
     topicObject.throttle_rate = 1;
   }
 
-  if (name === TOPICS.tf || name === TOPICS.tfStatic || name === TOPICS.scan) {
+  if (name === TOPICS.tf) {
+    topicObject.throttle_rate = 50;
+    topicObject.queue_length = 1;
+  }
+
+  if (name === TOPICS.tfStatic || name === TOPICS.scan) {
     topicObject.throttle_rate = 1000;
     topicObject.queue_length = 1;
   }
@@ -1126,12 +1206,13 @@ window.NAV2D.sendPointToRobot = (ros, time) => {
   window.NAV2D.finishedPointItem = null;
 };
 
-const serializePoint = (point, canvas) => {
+const serializePoint = (point, canvas, index = 0) => {
+  const markerColor =
+    index === 0
+      ? { r: 22, g: 163, b: 74, a: 1 }
+      : { r: 234, g: 88, b: 12, a: 1 };
   const defaultPointItem = createCanvasPoint(15, {
-    r: 255,
-    g: 0,
-    b: 0,
-    a: 1,
+    ...markerColor,
   });
 
   defaultPointItem.x = point.pose.pose.position.x;
@@ -1157,6 +1238,11 @@ const serializePoint = (point, canvas) => {
     const mousePos = canvas.globalToRos(event.stageX, event.stageY);
     defaultPointItem.x = mousePos.x - dragOffset.x;
     defaultPointItem.y = -mousePos.y - dragOffset.y;
+    positionWaypointLabel(
+      defaultPointItem,
+      defaultPointItem.numberLabel,
+      canvas,
+    );
   });
 
   defaultPointItem.addEventListener("pressup", (event) => {
@@ -1165,6 +1251,11 @@ const serializePoint = (point, canvas) => {
     // Update the underlying pose position
     point.pose.pose.position.x = defaultPointItem.x;
     point.pose.pose.position.y = -defaultPointItem.y;
+    positionWaypointLabel(
+      defaultPointItem,
+      defaultPointItem.numberLabel,
+      canvas,
+    );
 
     // Republish current sequence of waypoints to sync backend
     if (

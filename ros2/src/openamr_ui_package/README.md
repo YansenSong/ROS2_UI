@@ -22,6 +22,7 @@
 - `nav_relays.py`：将 AMCL 和导航/对接 action 状态重新发布到 `/ui/*`。
 - `folders_handler.py`：处理地图、分组、路线和 waypoint 文件命令。
 - `waypoint_nav.py`：可选的路线跟随辅助节点，使用 Nav2 Simple Commander。
+- `ackermann_route_store.py`：路线编辑页的仿真适配节点，按当前 `/map` 保存可复用路线到 `~/.ros/ackermann_robot/routes/`。
 - `battery.py`：可选的电量百分比发布器（读取串口；未检测到串口时改为模拟电量消耗）。默认情况下，
   `new_ui_launch.py` 和 `physnode_launch.py` 都不会启动它。
 

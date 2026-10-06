@@ -7,4 +7,5 @@
 - `nav_relays.py`：AMCL 和 action 状态中继节点。
 - `folders_handler.py`：地图、分组、路线和 waypoint 文件操作。
 - `waypoint_nav.py`：可选 waypoint 路线跟随辅助节点。
+- `ackermann_route_store.py`：路线编辑页的当前地图识别和路线持久化节点。路线目录通过 `/ackermann/routes/*` 与前端通信，地图管理页仍使用 `/nav_data_*`；地图内容指纹作为稳定内部键，地图分组和名称存于 `~/.ros/ackermann_robot/routes/map_identities.json`，地图重命名后路线目录会显示新名称。
 - `static/app/`：从 `web/build/` 复制的 React 生产构建文件。

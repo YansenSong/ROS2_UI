@@ -20,6 +20,9 @@ from nav2_msgs.srv import LoadMap
 class UIFoldersHandler(Node):
     def __init__(self):
         super().__init__('ui_folders')
+        self.declare_parameter('map_management_only', False)
+        self.map_management_only = self.get_parameter('map_management_only').value
+        self.declare_parameter('open_browser', True)
         self.WPs = []
         self.waypoints = []
         self.position = 0
@@ -46,38 +49,35 @@ class UIFoldersHandler(Node):
         package_share_dir = get_package_share_directory('openamr_ui_package')
         self.maps_folder = os.path.join(package_share_dir, 'maps')
         self.routs_folder = os.path.join(package_share_dir, 'paths')
+        self.route_store_folder = os.path.join(
+            os.path.expanduser(os.environ.get('ROS_HOME', '~/.ros')),
+            'ackermann_robot', 'routes',
+        )
         self.current_files = os.path.join(package_share_dir, 'param/current_map_route.yaml')
 
-        try:
-            with open(self.current_files, 'r') as file:
-                cur_data = yaml.safe_load(file) or {}
+        if not self.map_management_only:
+            try:
+                with open(self.current_files, 'r') as file:
+                    cur_data = yaml.safe_load(file) or {}
 
-            needs_update = False
-            if cur_data:
-                map_path = cur_data.get("map_file", "")
-                route_path = cur_data.get("route_file", "")
+                needs_update = False
+                if cur_data:
+                    map_path = cur_data.get("map_file", "")
+                    route_path = cur_data.get("route_file", "")
 
-                if not map_path or "darkadius" in map_path or not os.path.exists(map_path):
-                    local_welcome_map = os.path.join(self.maps_folder, "Welcome/Start.yaml")
-                    if os.path.exists(local_welcome_map):
-                        cur_data["map_file"] = local_welcome_map
+                    if map_path and not os.path.exists(os.path.expanduser(map_path)):
+                        cur_data["map_file"] = ""
                         needs_update = True
-
-                if not route_path or "darkadius" in route_path or not os.path.exists(route_path):
-                    local_welcome_route = os.path.join(self.routs_folder, "Welcome/Start/Building.csv")
-                    if os.path.exists(local_welcome_route):
-                        cur_data["route_file"] = local_welcome_route
-                        needs_update = True
-                    else:
+                    if route_path and not os.path.exists(os.path.expanduser(route_path)):
                         cur_data["route_file"] = ""
                         needs_update = True
 
-            if needs_update:
-                with open(self.current_files, 'w') as file:
-                    yaml.dump(cur_data, file)
-                self.get_logger().info("Automatically corrected current_map_route.yaml paths.")
-        except Exception as e:
-            self.get_logger().error(f"Error checking current_map_route.yaml: {e}")
+                if needs_update:
+                    with open(self.current_files, 'w') as file:
+                        yaml.dump(cur_data, file)
+                    self.get_logger().info("Automatically corrected current_map_route.yaml paths.")
+            except Exception as e:
+                self.get_logger().error(f"Error checking current_map_route.yaml: {e}")
 
         self.mappingCmd = "openamr_ui_package mapping_launch.py"
         self.navigationCmd = "openamr_ui_package navigation_launch.py"
@@ -90,7 +90,8 @@ class UIFoldersHandler(Node):
             self.get_logger().info('CONNECTED to map_server')
         else:
             self.get_logger().warn('map_server/load_map is not available yet; map changes will retry later.')
-        webbrowser.open(f"http://{self.local_ip}:{self.local_port}")
+        if self.get_parameter('open_browser').value:
+            webbrowser.open(f"http://{self.local_ip}:{self.local_port}")
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -99,6 +100,33 @@ class UIFoldersHandler(Node):
 
     def _pub_nav_data(self):
         self.nav_data_pub.publish(String(data=self.get_paths()))
+
+    def _saved_map_entries(self):
+        entries = []
+        if not os.path.isdir(self.maps_folder):
+            return entries
+        for group in sorted(os.listdir(self.maps_folder)):
+            group_path = os.path.join(self.maps_folder, group)
+            if not os.path.isdir(group_path):
+                continue
+            for filename in sorted(os.listdir(group_path)):
+                if not filename.endswith(".yaml") or filename.endswith("_ros.yaml"):
+                    continue
+                entries.append(
+                    (group, filename[:-5], os.path.join(group_path, filename))
+                )
+        return entries
+
+    @staticmethod
+    def _path_is_within(path, parent):
+        if not path:
+            return False
+        try:
+            return os.path.commonpath(
+                [os.path.abspath(path), os.path.abspath(parent)]
+            ) == os.path.abspath(parent)
+        except ValueError:
+            return False
 
     # ── Callbacks ─────────────────────────────────────────────────────────────
 
@@ -182,19 +210,39 @@ class UIFoldersHandler(Node):
 
     def get_paths(self):
         files = {}
-        if not os.path.isdir(self.routs_folder):
-            self.get_logger().warn(f"Routes folder does not exist: {self.routs_folder}")
-            return json.dumps({"structure": [], "active_files": {"group": "Null", "map": "Null", "route": "Null"}})
+        route_identities = {}
+        try:
+            with open(os.path.join(self.route_store_folder, 'map_identities.json'), 'r') as stream:
+                route_identities = json.load(stream)
+        except (OSError, ValueError):
+            pass
+        if not os.path.isdir(self.maps_folder):
+            self.get_logger().warn(f"Maps folder does not exist: {self.maps_folder}")
+            return json.dumps({"catalog_source": "maps", "structure": [], "active_files": {"group": "Null", "map": "Null", "route": "Null"}})
 
-        for group in os.listdir(self.routs_folder):
-            group_path = os.path.join(self.routs_folder, group)
+        for group in sorted(os.listdir(self.maps_folder)):
+            group_path = os.path.join(self.maps_folder, group)
             if not os.path.isdir(group_path):
                 continue
             files[group] = []
-            for map_name in os.listdir(group_path):
-                map_path = os.path.join(group_path, map_name)
-                if os.path.isdir(map_path):
-                    files[group].append({map_name: os.listdir(map_path)})
+            for filename in sorted(os.listdir(group_path)):
+                if not filename.endswith('.yaml') or filename.endswith('_ros.yaml'):
+                    continue
+                map_name = filename[:-5]
+                route_dir = os.path.join(self.routs_folder, group, map_name)
+                routes = {
+                    name for name in os.listdir(route_dir) if name.endswith('.csv')
+                } if os.path.isdir(route_dir) else set()
+                for map_key, identity in route_identities.items():
+                    if identity.get('group') != group or identity.get('map') != map_name:
+                        continue
+                    stored_dir = os.path.join(self.route_store_folder, map_key)
+                    if os.path.isdir(stored_dir):
+                        routes.update(
+                            entry for entry in os.listdir(stored_dir)
+                            if entry.endswith('.csv')
+                        )
+                files[group].append({map_name: sorted(routes)})
 
         data = self.get_cur_files()
         route_file = data.get("route_file", "")
@@ -214,7 +262,7 @@ class UIFoldersHandler(Node):
         else:
             group, map_name, route = "Null", "Null", "Null"
 
-        response = {"structure": [], "active_files": {"group": group, "map": map_name, "route": route}}
+        response = {"catalog_source": "maps", "structure": [], "active_files": {"group": group, "map": map_name, "route": route}}
         for i, j in files.items():
             response["structure"].append({i: j})
         return json.dumps(response)
@@ -238,45 +286,34 @@ class UIFoldersHandler(Node):
 
     def save_map_func(self):
         try:
-            self._pub("Saving map...")
-            map_path_to_save = f"{self.maps_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
-            route_folder_path_to_save = f"{self.routs_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
-            map_save_command = "ros2 run map_server map_saver -f "
-            cmd = f"{map_save_command}{map_path_to_save}"
-            self.get_logger().info(cmd)
-            os.system(cmd)
+            group = self.dict_cmd['group']
+            name = self.dict_cmd['map']
+            if not group or not name or any(part in ('.', '..') or '/' in part or '\\' in part for part in (group, name)):
+                raise ValueError('Invalid map group or name')
+            map_path_to_save = os.path.join(self.maps_folder, group, name)
+            route_folder_path_to_save = os.path.join(self.routs_folder, group, name)
+            if os.path.exists(f"{map_path_to_save}.yaml") or os.path.exists(route_folder_path_to_save):
+                raise FileExistsError(f'Map already exists: {group}/{name}')
 
-            os.mkdir(route_folder_path_to_save)
+            os.makedirs(os.path.dirname(map_path_to_save), exist_ok=True)
+            self._pub("Saving map...")
+            result = subprocess.run(
+                ['ros2', 'run', 'nav2_map_server', 'map_saver_cli',
+                 '-t', '/map', '-f', map_path_to_save, '--fmt', 'png'],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+            if result.returncode != 0 or not os.path.isfile(f"{map_path_to_save}.yaml") or not os.path.isfile(f"{map_path_to_save}.png"):
+                raise RuntimeError((result.stderr or result.stdout or 'map_saver_cli did not create the map').strip())
+
+            os.makedirs(route_folder_path_to_save, exist_ok=True)
             self.set_cur_route("")
             self.WP_req_callback(Empty())
-            self._pub("Map saved")
-
-            map_yaml_file = f"{map_path_to_save}.yaml"
-            self.set_cur_map(map_path_to_save)
-
-            current = self.position
-
-            os.system("ros2 lifecycle set /slam_gmapping 5")
-            os.system("ros2 lifecycle set /map_server 5")
-
-            self._pub("Localization...")
-            time.sleep(1)
-            subprocess.Popen(f"ros2 launch {self.navigationCmd}", stdout=subprocess.PIPE,
-                             shell=True, preexec_fn=os.setsid)
-
-            # Nav2 owns /map_server. Starting a UI-owned map_server here creates
-            # duplicate /map_server nodes and breaks AMCL lifecycle management.
-            self.change_map(map_yaml_file, yaml=True)
-            time.sleep(1)
-
-            current_pose = PoseWithCovarianceStamped()
-            current_pose.header.frame_id = "map"
-            current_pose.pose.pose = current
-            self.set_pose.publish(current_pose)
-            self._pub("You can set points or follow the route")
+            self.set_cur_map(f"{map_path_to_save}.yaml")
             self._pub_nav_data()
+            self._pub(f'Map saved "{name}"')
         except Exception as e:
-            self.get_logger().info(f"Error in save_map_func: {e}")
+            self.get_logger().error(f"Error in save_map_func: {e}")
+            self._pub(f"Map save failed: {e}")
 
     def change_map_func(self):
         path_to_new_map = f"{self.maps_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
@@ -301,23 +338,25 @@ class UIFoldersHandler(Node):
 
             with open(f"{old_map_file}.yaml", 'r') as file:
                 map_cur_path = yaml.safe_load(file) or {}
-            with open(f"{old_ros_folder_file}.yaml", 'r') as file:
-                ros_cur_path = yaml.safe_load(file) or {}
-
-            map_cur_path["image"] = f"{new_map_file}.png"
-            if "map_server" in ros_cur_path and "ros__parameters" in ros_cur_path["map_server"]:
-                ros_cur_path["map_server"]["ros__parameters"]["yaml_filename"] = f"{self.dict_cmd['map_new']}.yaml"
-            else:
-                ros_cur_path["yaml_filename"] = f"{self.dict_cmd['map_new']}.yaml"
-
-            with open(f"{old_ros_folder_file}.yaml", 'w') as file:
-                yaml.dump(ros_cur_path, file)
+            image_file = map_cur_path.get("image", f"{self.dict_cmd['map_old']}.png")
+            image_extension = os.path.splitext(image_file)[1] or ".png"
+            map_cur_path["image"] = f"{self.dict_cmd['map_new']}{image_extension}"
+            if os.path.isfile(f"{old_ros_folder_file}.yaml"):
+                with open(f"{old_ros_folder_file}.yaml", 'r') as file:
+                    ros_cur_path = yaml.safe_load(file) or {}
+                if "map_server" in ros_cur_path and "ros__parameters" in ros_cur_path["map_server"]:
+                    ros_cur_path["map_server"]["ros__parameters"]["yaml_filename"] = f"{self.dict_cmd['map_new']}.yaml"
+                else:
+                    ros_cur_path["yaml_filename"] = f"{self.dict_cmd['map_new']}.yaml"
+                with open(f"{old_ros_folder_file}.yaml", 'w') as file:
+                    yaml.dump(ros_cur_path, file)
             with open(f"{old_map_file}.yaml", 'w') as file:
                 yaml.dump(map_cur_path, file)
 
             os.rename(f"{old_map_file}.yaml", f"{new_map_file}.yaml")
-            os.rename(f"{old_map_file}.png", f"{new_map_file}.png")
-            os.rename(f"{old_ros_folder_file}.yaml", f"{new_ros_folder_file}.yaml")
+            os.rename(f"{old_map_file}{image_extension}", f"{new_map_file}{image_extension}")
+            if os.path.isfile(f"{old_ros_folder_file}.yaml"):
+                os.rename(f"{old_ros_folder_file}.yaml", f"{new_ros_folder_file}.yaml")
             os.rename(old_route_folder_file, new_route_folder_file)
 
             data = self.get_cur_files()
@@ -331,70 +370,94 @@ class UIFoldersHandler(Node):
 
     def delete_map_func(self):
         try:
-            map_to_delete = f"{self.maps_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
-            route_map_folder_to_delete = f"{self.routs_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
-            os.remove(f"{map_to_delete}.yaml")
-            os.remove(f"{map_to_delete}_ros.yaml")
-            os.remove(f"{map_to_delete}.png")
-            shutil.rmtree(route_map_folder_to_delete)
+            group = self.dict_cmd["group"]
+            map_name = self.dict_cmd["map"]
+            map_base = os.path.join(self.maps_folder, group, map_name)
+            route_map_folder = os.path.join(self.routs_folder, group, map_name)
+            removed = False
 
-            maps_in_group = os.listdir(f"{self.maps_folder}/{self.dict_cmd['group']}")
-            if maps_in_group:
-                path_to_map = f"{self.maps_folder}/{self.dict_cmd['group']}/{maps_in_group[0].split('.')[0]}"
-                self.set_cur_map(path_to_map)
-                self.change_map(path_to_map, True)
+            for extension in (".yaml", "_ros.yaml", ".png", ".pgm"):
+                map_file = f"{map_base}{extension}"
+                if os.path.isfile(map_file):
+                    os.remove(map_file)
+                    removed = True
+            if os.path.isdir(route_map_folder):
+                shutil.rmtree(route_map_folder)
+                removed = True
+            if not removed:
+                raise FileNotFoundError(
+                    f"No saved map or route data for {group}/{map_name}"
+                )
 
-                routes_on_map = os.listdir(f"{self.routs_folder}/{self.dict_cmd['group']}/{maps_in_group[0].split('.')[0]}")
-                if routes_on_map:
-                    path_to_route = f"{self.routs_folder}/{self.dict_cmd['group']}/{maps_in_group[0].split('.')[0]}/{routes_on_map[0].split('.')[0]}"
-                    self.set_cur_route(path_to_route)
-                else:
-                    self.set_cur_route("")
-                    self._pub("No routes on the map")
-            else:
-                self.set_cur_route("")
-                self.set_cur_map("")
-                self._pub("No maps in the group")
+            current = self.get_cur_files()
+            active_map = os.path.expanduser(current.get("map_file", ""))
+            active_route = os.path.expanduser(current.get("route_file", ""))
+            deleted_active_map = os.path.abspath(active_map) == os.path.abspath(
+                f"{map_base}.yaml"
+            )
+            deleted_active_route = self._path_is_within(
+                active_route, route_map_folder
+            )
 
-            self.WP_req_callback(Empty())
-            self._pub_nav_data()
-        except Exception as e:
-            self.get_logger().info(f"Error in delete_map_func: {e}")
-
-    def delete_group_func(self):
-        try:
-            shutil.rmtree(f"{self.maps_folder}/{self.dict_cmd['group']}")
-            shutil.rmtree(f"{self.routs_folder}/{self.dict_cmd['group']}")
-
-            groups_in_folder = os.listdir(self.routs_folder)
-            if groups_in_folder:
-                path_to_map = f"{self.maps_folder}/{groups_in_folder[0].split('.')[0]}"
-                maps_in_group = os.listdir(path_to_map)
-                if maps_in_group:
-                    path_to_map = f"{path_to_map}/{maps_in_group[0].split('.')[0]}"
-                    self.set_cur_map(path_to_map)
-                    self.change_map(path_to_map, True)
-
-                    routes_on_map = os.listdir(f"{self.routs_folder}/{groups_in_folder[0].split('.')[0]}/{maps_in_group[0].split('.')[0]}")
-                    if routes_on_map:
-                        path_to_route = f"{self.routs_folder}/{groups_in_folder[0].split('.')[0]}/{maps_in_group[0].split('.')[0]}/{routes_on_map[0].split('.')[0]}"
-                        self.set_cur_route(path_to_route)
-                    else:
-                        self.set_cur_route("")
-                        self._pub("No routes on the map")
+            if deleted_active_map:
+                candidates = self._saved_map_entries()
+                if candidates:
+                    next_group, next_map, next_file = candidates[0]
+                    self.dict_cmd = {"group": next_group, "map": next_map}
+                    self.change_map(next_file, yaml=True)
                 else:
                     self.set_cur_map("")
                     self.set_cur_route("")
-                    self._pub("No maps in the group")
-            else:
-                self.set_cur_map("")
+                    self._pub("No maps remain")
+            elif deleted_active_route:
                 self.set_cur_route("")
-                self._pub("No maps in the group")
+                self._pub("No routes on the map")
 
             self.WP_req_callback(Empty())
             self._pub_nav_data()
+            self._pub(f'Deleted map "{map_name}"')
         except Exception as e:
-            self.get_logger().info(f"Error in delete_group_func: {e}")
+            self.get_logger().error(f"Error in delete_map_func: {e}")
+            self._pub(f"Map deletion failed: {e}")
+
+    def delete_group_func(self):
+        try:
+            group = self.dict_cmd["group"]
+            map_group = os.path.join(self.maps_folder, group)
+            route_group = os.path.join(self.routs_folder, group)
+            if not os.path.isdir(map_group) and not os.path.isdir(route_group):
+                raise FileNotFoundError(f"No saved map group named {group}")
+
+            current = self.get_cur_files()
+            active_map = os.path.expanduser(current.get("map_file", ""))
+            active_route = os.path.expanduser(current.get("route_file", ""))
+            deleted_active_map = self._path_is_within(active_map, map_group)
+            deleted_active_route = self._path_is_within(active_route, route_group)
+
+            if os.path.isdir(map_group):
+                shutil.rmtree(map_group)
+            if os.path.isdir(route_group):
+                shutil.rmtree(route_group)
+
+            if deleted_active_map:
+                candidates = self._saved_map_entries()
+                if candidates:
+                    next_group, next_map, next_file = candidates[0]
+                    self.dict_cmd = {"group": next_group, "map": next_map}
+                    self.change_map(next_file, yaml=True)
+                else:
+                    self.set_cur_map("")
+                    self.set_cur_route("")
+                    self._pub("No maps remain")
+            elif deleted_active_route:
+                self.set_cur_route("")
+
+            self.WP_req_callback(Empty())
+            self._pub_nav_data()
+            self._pub(f'Deleted group "{group}"')
+        except Exception as e:
+            self.get_logger().error(f"Error in delete_group_func: {e}")
+            self._pub(f"Group deletion failed: {e}")
 
     # ── Route commands ────────────────────────────────────────────────────────
 
@@ -497,6 +560,18 @@ class UIFoldersHandler(Node):
         self.get_logger().info(f"COMMAND RECEIVED: {data}")
         try:
             command = data.data.split("/")
+            map_commands = {
+                "build_map",
+                "save_map",
+                "change_map",
+                "create_group",
+                "rename_map",
+                "delete_map",
+                "delete_group",
+                "rename_group",
+            }
+            if self.map_management_only and command[0] not in map_commands:
+                return
             if len(command) > 1:
                 self.dict_cmd = json.loads(command[1])
 

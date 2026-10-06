@@ -62,7 +62,7 @@ const WaypointLibrary = ({ waypoints, onAdd, onGo, onRemove }) => {
   };
 
   return (
-    <div className="dashboard-card p-3 font-[RobotoMono]">
+    <div className="dashboard-card h-full p-3 font-[RobotoMono]">
       <p className="mb-2 text-xs uppercase tracking-wider text-themeTextGray">
         {t("Saved Waypoints")}
       </p>

@@ -93,14 +93,6 @@ const NavStatus = () => {
             <span className={`text-sm font-semibold ${info.color}`}>
               {t(info.label)}
             </span>
-            {!stale && message?.detail && (
-              <span
-                className="ml-3 text-xs text-themeTextGray"
-                title={message.detail}
-              >
-                {t(message.detail)}
-              </span>
-            )}
           </div>
         </div>
       </div>

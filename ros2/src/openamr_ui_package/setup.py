@@ -64,6 +64,7 @@ setup(
             "nav = openamr_ui_package.waypoint_nav:main",
             "map_relay = openamr_ui_package.map_relay:main",
             "nav_relay = openamr_ui_package.nav_relays:main",
+            "route_store = openamr_ui_package.ackermann_route_store:main",
         ],
     },
 )

@@ -89,55 +89,13 @@ const findMapArray = (structure, activeFiles) => {
   return [];
 };
 
-const downsamplePath = (poses, interval = 1.0) => {
-  if (poses.length === 0) return [];
-  const downsampled = [poses[0]];
-  let lastPos = poses[0].pose.position;
-
-  for (let i = 1; i < poses.length; i++) {
-    const currentPos = poses[i].pose.position;
-    const dx = currentPos.x - lastPos.x;
-    const dy = currentPos.y - lastPos.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist >= interval) {
-      downsampled.push(poses[i]);
-      lastPos = currentPos;
-    }
-  }
-
-  if (
-    downsampled.length > 0 &&
-    downsampled[downsampled.length - 1] !== poses[poses.length - 1]
-  ) {
-    downsampled.push(poses[poses.length - 1]);
-  }
-
-  return downsampled;
-};
-
-const removePointFromCanvas = () => {
-  if (window.NAV2D?.clearGoalPose) {
-    window.NAV2D.clearGoalPose();
-    window.NAV2D.finishedPointItem = null;
-    return;
-  }
-
-  const markerOnMap = window.NAV2D.orientatedPointItem;
-  window.NAV2D.pointsArray = window.NAV2D.pointsArray.filter(
-    (marker) => marker !== markerOnMap,
-  );
-  window.NAV2D.canvas.scene.removeChild(markerOnMap);
-  window.NAV2D.finishedPointItem = null;
-  window.NAV2D.orientatedPointItem = null;
-};
-
 const RoutePage = () => {
   const { t } = useT();
   const ros = useRos();
   // eslint-disable-next-line no-unused-vars
   const [selectedPointType, setSelectedPointType] = useState(null);
   const [pointsSettable, setPointsSettable] = useState(false);
+  const [planningRoute, setPlanningRoute] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [hoursValue, setHoursValue] = useState("0");
   const latestHoursValue = useRef(hoursValue);
@@ -160,10 +118,22 @@ const RoutePage = () => {
   const [openInputModal, setOpenInputModal] = useState(false);
 
   const [filesData, setFilesData] = useState([]);
-  // Unfiltered group->maps->routes catalog (filesData above is narrowed to
-  // just the routes on the *current* map) — kept so "Change map" can offer
-  // every map across every group, not only the active one.
-  const [allStructure, setAllStructure] = useState([]);
+  const [routeWaypoints, setRouteWaypoints] = useState([]);
+
+  useEffect(() => {
+    window.NAV2D?.setQueuedWaypoints?.(
+      routeWaypoints.map((point) => ({
+        position: { x: point.x, y: point.y },
+        orientation: {
+          x: point.qx,
+          y: point.qy,
+          z: point.qz,
+          w: point.qw,
+        },
+      })),
+    );
+    return () => window.NAV2D?.clearQueuedWaypoints?.();
+  }, [routeWaypoints]);
 
   const childRef = useRef(null);
   const routesModalType = useRef(null);
@@ -173,13 +143,18 @@ const RoutePage = () => {
 
   const textInputHeader = useRef(null);
   const textInputPlaceholder = useRef(null);
+  const hasActiveMap =
+    Boolean(selectedFile.group) &&
+    selectedFile.group !== "Null" &&
+    Boolean(selectedFile.map) &&
+    selectedFile.map !== "Null";
 
   /* TOPICS */
 
   const filesReqTopic = useRef(
     new window.ROSLIB.Topic({
       ros,
-      name: AppConfig.NAV_DATA_REQ_TOPIC,
+      name: AppConfig.ROUTE_DATA_REQ_TOPIC,
       messageType: "std_msgs/Empty",
     }),
   );
@@ -187,7 +162,7 @@ const RoutePage = () => {
   const filesResonseTopic = useRef(
     new window.ROSLIB.Topic({
       ros,
-      name: AppConfig.NAV_DATA_RESP_TOPIC,
+      name: AppConfig.ROUTE_DATA_RESP_TOPIC,
       messageType: "std_msgs/String",
     }),
   );
@@ -239,14 +214,48 @@ const RoutePage = () => {
       );
 
       setFilesData(filtredArrayBySelectedRoute);
-      setAllStructure(arrayWithSpaces);
-      setSelectedFile(activeFilesWithSpaces);
+      setSelectedFile((current) => {
+        const sameMap =
+          current.group === activeFilesWithSpaces.group &&
+          current.map === activeFilesWithSpaces.map;
+        const selectedRoute =
+          sameMap &&
+          (current.route === "New route" ||
+            filtredArrayBySelectedRoute.includes(current.route))
+            ? current.route
+            : "Null";
+        return { ...activeFilesWithSpaces, route: selectedRoute };
+      });
     });
 
     filesReqTopic.current.publish();
 
+    const currentWaypointsTopic = new window.ROSLIB.Topic({
+      ros,
+      name: "/WayPoints_topic",
+      messageType: "openamr_ui_msgs/ArrayPoseStampedWithCovariance",
+    });
+    currentWaypointsTopic.subscribe((message) => {
+      const points = (message?.poses || []).map((entry) => {
+        const pose = entry?.pose?.pose;
+        const covariance = entry?.pose?.covariance || [];
+        return {
+          x: Number(pose?.position?.x || 0),
+          y: Number(pose?.position?.y || 0),
+          qx: Number(pose?.orientation?.x || 0),
+          qy: Number(pose?.orientation?.y || 0),
+          qz: Number(pose?.orientation?.z || 0),
+          qw: Number(pose?.orientation?.w ?? 1),
+          hours: Number(covariance[1] || 0),
+          minutes: Number(covariance[2] || 0),
+        };
+      });
+      setRouteWaypoints(points);
+    });
+
     return () => {
       currentFilesResponseTopic.unsubscribe();
+      currentWaypointsTopic.unsubscribe();
       window.NAV2D.arePointsSettable = false;
 
       const mapElement = currentMap ? currentMap.getMapRef() : null;
@@ -254,12 +263,61 @@ const RoutePage = () => {
         mapElement.removeEventListener("mouseup", onMapClickHandler);
       }
     };
-  }, [onMapClickHandler]);
+  }, [onMapClickHandler, ros]);
 
   const onOperationTopicPublish = (message) => {
     uiOperationTopic.current.publish(
       new window.ROSLIB.Message({ data: message }),
     );
+  };
+
+  const selectRouteForEditing = (route) => {
+    if (!route || !hasActiveMap) return;
+    window.NAV2D.arePointsSettable = false;
+    setPointsSettable(false);
+    window.NAV2D.clearQueuedWaypoints?.();
+    window.NAV2D.ClearMap();
+    const nextFile = { ...selectedFile, route };
+    setSelectedFile(nextFile);
+    onOperationTopicPublish(
+      `change_route/${JSON.stringify(processObjectStrings(nextFile))}`,
+    );
+  };
+
+  const publishEditedWaypoints = (points) => {
+    const topic = uiOperationTopic.current;
+    if (!topic) return;
+    const waypoints = points.map(({ x, y, qx, qy, qz, qw, hours, minutes }) => [
+      Number(x),
+      Number(y),
+      0,
+      Number(qx) || 0,
+      Number(qy) || 0,
+      Number(qz) || 0,
+      Number(qw ?? 1),
+      3,
+      Number(hours) || 0,
+      Number(minutes) || 0,
+    ]);
+    topic.publish(
+      new window.ROSLIB.Message({
+        data: `replace_route/${JSON.stringify({ waypoints })}`,
+      }),
+    );
+  };
+
+  const updateRouteWaypoint = (index, field, value) => {
+    setRouteWaypoints((current) =>
+      current.map((point, pointIndex) =>
+        pointIndex === index ? { ...point, [field]: value } : point,
+      ),
+    );
+  };
+
+  const removeRouteWaypoint = (index) => {
+    const next = routeWaypoints.filter((_, pointIndex) => pointIndex !== index);
+    setRouteWaypoints(next);
+    publishEditedWaypoints(next);
   };
 
   /* FROM HANDLERS */
@@ -268,13 +326,6 @@ const RoutePage = () => {
     setOpenRouteModal(false);
 
     if (data) {
-      // CHANGE_MAP's modal list is "group / map" combined strings (see
-      // mapOptions below) since a map lives one level up from routes —
-      // split it back apart here rather than teaching RouteModal about
-      // two-level selection.
-      const [selectedGroup, selectedMap] =
-        modalKey.current === "CHANGE_MAP" ? data.split(" / ") : [];
-
       const operationsConfig = {
         CHANGE_ROUTE: {
           path: "change_route",
@@ -290,23 +341,6 @@ const RoutePage = () => {
               map: selectedFile.map,
               route: data,
             }),
-        },
-        CHANGE_MAP: {
-          path: "change_map",
-          data: { group: selectedGroup, map: selectedMap },
-          preActions: () => window.NAV2D.ClearMap(),
-          postActions: () => {
-            setSelectedFile({
-              group: selectedGroup,
-              map: selectedMap,
-              route: "Null",
-            });
-            toast.info(
-              t(
-                "Map loaded — set the robot's initial pose before navigating; its old localization no longer matches the new map.",
-              ),
-            );
-          },
         },
       };
 
@@ -418,6 +452,11 @@ const RoutePage = () => {
   /* BUTTON HANDLERS */
 
   const onNewRouteClick = () => {
+    if (!hasActiveMap) {
+      toast.warn(t("Waiting for the active simulation map."));
+      return;
+    }
+
     setSelectedPointType(null);
     setSelectedFile({
       group: selectedFile.group,
@@ -439,21 +478,14 @@ const RoutePage = () => {
     onOperationTopicPublish("clear_route");
   };
 
-  const onPlanRouteClick = () => {
+  const onPlanRouteClick = async () => {
     if (!ros) {
       toast.error(t("Robot connection is offline!"));
       return;
     }
 
-    if (!pointsSettable) {
-      toast.warn(
-        t("Please click 'Edit' or 'Create' first to enable path planning!"),
-      );
-      return;
-    }
-
-    const startPose = window.NAV2D.currentPose;
-    if (!startPose) {
+    const currentPose = window.NAV2D.currentPose;
+    if (!currentPose) {
       toast.error(
         t(
           "Waiting for the robot's current position — make sure it's localized on the map, then try again.",
@@ -462,149 +494,102 @@ const RoutePage = () => {
       return;
     }
 
-    toast.info(
-      t(
-        "Click and drag on the map to set the Goal pose for automatic path planning.",
-      ),
-    );
+    if (!routeWaypoints.length) {
+      toast.warn(t("Add or load route waypoints first."));
+      return;
+    }
+    if (planningRoute) return;
 
-    const originalPoseCallback = window.NAV2D._poseCallback;
-    window.NAV2D._poseCallback = (goalPose) => {
-      // Restore original callback
-      window.NAV2D._poseCallback = originalPoseCallback;
-
-      // Remove the goal marker we just placed temporarily
-      removePointFromCanvas();
-
-      toast.info(t("Calculating a route..."));
-
-      const toPoseStamped = (pose) => ({
-        header: { frame_id: "map", stamp: { secs: 0, nsecs: 0 } },
-        pose: {
-          position: { x: pose.position.x, y: pose.position.y, z: 0.0 },
-          orientation: { z: pose.orientation.z, w: pose.orientation.w },
-        },
-      });
-
-      const handlePlannedPath = (poses) => {
-        toast.success(
-          t("Successfully planned path with {count} points!").replace(
-            "{count}",
-            poses.length,
-          ),
-        );
-
-        const downsampled = downsamplePath(poses, 1.0);
-
-        const wayPointTopic = new window.ROSLIB.Topic({
+    const planSegment = (start, goal, segmentNumber) =>
+      new Promise((resolve, reject) => {
+        const id = window.crypto?.randomUUID?.() || `${Date.now()}-${segmentNumber}`;
+        const responseTopic = new window.ROSLIB.Topic({
           ros,
-          name: AppConfig.NEW_WAYPOINT_TOPIC,
-          messageType: "geometry_msgs/PoseWithCovarianceStamped",
+          name: AppConfig.ROUTE_PLAN_RESPONSE_TOPIC,
+          messageType: "std_msgs/String",
         });
-
-        downsampled.forEach((wp) => {
-          const sendDataArray = new Array(36).fill(0.0);
-          sendDataArray[0] = 3; // "navigate" type
-
-          const messageObject = {
-            header: { frame_id: "map" },
-            pose: {
-              pose: {
-                position: {
-                  x: wp.pose.position.x,
-                  y: wp.pose.position.y,
-                  z: 0.0,
-                },
-                orientation: {
-                  z: wp.pose.orientation.z,
-                  w: wp.pose.orientation.w,
-                },
-              },
-              covariance: sendDataArray,
-            },
-          };
-
-          wayPointTopic.publish(new window.ROSLIB.Message(messageObject));
+        const requestTopic = new window.ROSLIB.Topic({
+          ros,
+          name: AppConfig.ROUTE_PLAN_REQUEST_TOPIC,
+          messageType: "std_msgs/String",
         });
-      };
-
-      // compute_path_to_pose is a ROS2 action, so there's no plain service
-      // to call directly. Every ROS2 action implicitly exposes a
-      // "send_goal" service (submit the goal, get back whether it was
-      // accepted) and a "get_result" service (fetch the outcome once it's
-      // done) — the same low-level pattern this app already relies on for
-      // navigate_to_pose's feedback/cancel topics. Planning is fast/local,
-      // so we call get_result immediately after an accepted send_goal
-      // rather than also wringing the status/feedback topics.
-      const goalId = {
-        uuid: Array.from({ length: 16 }, () => Math.floor(Math.random() * 256)),
-      };
-
-      const sendGoalClient = new window.ROSLIB.Service({
-        ros,
-        name: AppConfig.COMPUTE_PATH_SEND_GOAL_SERVICE,
-        serviceType: "nav2_msgs/action/ComputePathToPose_SendGoal",
-      });
-
-      const sendGoalRequest = new window.ROSLIB.ServiceRequest({
-        goal_id: goalId,
-        goal: {
-          goal: toPoseStamped(goalPose),
-          start: toPoseStamped(startPose),
-          planner_id: "",
-          use_start: true,
-        },
-      });
-
-      sendGoalClient.callService(
-        sendGoalRequest,
-        (sendGoalResult) => {
-          if (!sendGoalResult || !sendGoalResult.accepted) {
-            toast.error(t("Nav2 planner rejected the path request."));
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          responseTopic.unsubscribe();
+        };
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error(t("Global planner request failed for segment {segment}.").replace("{segment}", segmentNumber)));
+        }, 45000);
+        responseTopic.subscribe((message) => {
+          let result;
+          try {
+            result = JSON.parse(message.data);
+          } catch {
             return;
           }
+          if (result.id !== id) return;
+          cleanup();
+          if (result.error) {
+            reject(new Error(`${segmentNumber}: ${result.error}`));
+          } else if (Array.isArray(result.poses) && result.poses.length) {
+            resolve(result.poses);
+          } else {
+            reject(new Error(t("Couldn't find a route to that point.")));
+          }
+        });
+        requestTopic.publish(new window.ROSLIB.Message({
+          data: JSON.stringify({ id, start, goal }),
+        }));
+      });
 
-          const getResultClient = new window.ROSLIB.Service({
-            ros,
-            name: AppConfig.COMPUTE_PATH_GET_RESULT_SERVICE,
-            serviceType: "nav2_msgs/action/ComputePathToPose_GetResult",
-          });
+    setPlanningRoute(true);
+    window.NAV2D.clearPath?.();
+    const plannedPath = [];
+    let start = currentPose;
+    try {
+      for (let index = 0; index < routeWaypoints.length; index += 1) {
+        toast.info(
+          t("Planning segment {current} / {total}…")
+            .replace("{current}", index + 1)
+            .replace("{total}", routeWaypoints.length),
+        );
+        const point = routeWaypoints[index];
+        const goal = {
+          position: { x: Number(point.x), y: Number(point.y), z: 0 },
+          orientation: {
+            x: Number(point.qx) || 0,
+            y: Number(point.qy) || 0,
+            z: Number(point.qz) || 0,
+            w: Number(point.qw ?? 1),
+          },
+        };
+        const segment = await planSegment(start, goal, index + 1);
+        plannedPath.push(...(index ? segment.slice(1) : segment));
+        start = goal;
+      }
 
-          getResultClient.callService(
-            new window.ROSLIB.ServiceRequest({ goal_id: goalId }),
-            (getResult) => {
-              const poses = getResult?.result?.path?.poses;
-              if (Array.isArray(poses) && poses.length > 0) {
-                handlePlannedPath(poses);
-              } else {
-                toast.error(
-                  getResult?.result?.error_msg ||
-                    t("Couldn't find a route to that point."),
-                );
-              }
-            },
-            (error) => {
-              console.error("Nav2 get_result service error:", error);
-              toast.error(t("Failed to retrieve the planned path from Nav2."));
-            },
-          );
-        },
-        (error) => {
-          console.error("Nav2 planning service error:", error);
-          toast.error(
-            t(
-              "Couldn't reach the robot's navigation system — is it turned on?",
-            ),
-          );
-        },
+      window.NAV2D.drawRoutePlan?.(plannedPath);
+      toast.success(
+        t("Planned {count} route segments with the global planner.").replace(
+          "{count}",
+          routeWaypoints.length,
+        ),
       );
-    };
+    } catch (error) {
+      window.NAV2D.clearPath?.();
+      console.error("Route planning failed:", error);
+      toast.error(error?.message || t("Global route planning failed."));
+    } finally {
+      setPlanningRoute(false);
+    }
   };
 
   const onSaveRouteClick = () => {
     if (!pointsSettable) return;
 
     if (selectedFile.route !== "New route") {
+      publishEditedWaypoints(routeWaypoints);
       const dataToSend = {
         group: selectedFile.group,
         map: selectedFile.map,
@@ -649,19 +634,11 @@ const RoutePage = () => {
     setOpenRouteModal(true);
   };
 
-  const onChangeMapClick = () => {
-    window.NAV2D.arePointsSettable = false;
-    setPointsSettable(false);
-
-    modalKey.current = "CHANGE_MAP";
-    routesModalType.current = "selectMap";
-    isRoutesModalWithInput.current = false;
-    routesModalHeader.current = t("Select map you want to load");
-    setOpenRouteModal(true);
-  };
-
   const onEditRouteClick = () => {
     if (pointsSettable) {
+      window.NAV2D.arePointsSettable = false;
+      const mapElement = childRef.current?.getMapRef();
+      mapElement?.removeEventListener("mouseup", onMapClickHandler);
       setPointsSettable(false);
     } else {
       window.NAV2D.ClearMap();
@@ -734,18 +711,6 @@ const RoutePage = () => {
     window.NAV2D.pointType = data;
   };
 
-  // Flat "group / map" list across every group, for the Change Map modal —
-  // RouteModal only knows how to show/select a flat list of strings, so a
-  // map (one level up from routes) is presented as a combined label rather
-  // than teaching that modal a second selection level.
-  const mapOptions = allStructure.flatMap((groupObj) =>
-    Object.entries(groupObj).flatMap(([group, maps]) =>
-      maps.flatMap((mapObj) =>
-        Object.keys(mapObj).map((mapName) => `${group} / ${mapName}`),
-      ),
-    ),
-  );
-
   return (
     <>
       <ToastContainer position="bottom-right" theme="dark" />
@@ -775,7 +740,7 @@ const RoutePage = () => {
         <SectionHeader
           eyebrow="Route authoring"
           title="Plan reusable robot routes"
-          description="Place, edit, and manage waypoint sequences for the active map."
+          description="Create and manage reusable routes for the map currently loaded in the Ackermann simulation."
           action={
             <StatusBadge
               status={pointsSettable ? "active" : "idle"}
@@ -790,7 +755,7 @@ const RoutePage = () => {
             [
               "Group",
               selectedFile.group,
-              "The map group this route belongs to — set on the Maps page",
+              "Routes are stored under the active simulation map",
             ],
             ["Map", selectedFile.map],
             ["Current route", selectedFile.route],
@@ -814,13 +779,13 @@ const RoutePage = () => {
 
         <MapLayers />
 
-        <div className="grid min-w-0 flex-1 gap-4 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-5">
+        <div className="grid min-w-0 flex-1 gap-4 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-5">
           <section className="h-[440px] min-w-0 sm:h-[560px] xl:h-full xl:min-h-[500px]">
             <Map ref={childRef} />
           </section>
 
-          <DashboardCard className="h-fit p-4 sm:p-5">
-            <div className="mb-5 border-b border-borderSubtle pb-4">
+          <DashboardCard className="h-fit min-w-0 p-4 sm:p-5">
+            <div className="mb-4 border-b border-borderSubtle pb-4">
               <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
                 {t("Route operations")}
               </p>
@@ -833,69 +798,171 @@ const RoutePage = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button onBtnClick={onEditRouteClick}>
-                <span className="iconMap" aria-hidden="true" />
-                <span>{t(pointsSettable ? "Cancel edit" : "Edit route")}</span>
-              </Button>
-              <Button
-                onBtnClick={onSaveRouteClick}
-                type={pointsSettable ? "success" : "disabled"}
-              >
-                <span className="iconSave" aria-hidden="true" />
-                <span>{t("Save")}</span>
-              </Button>
-              <Button
-                onBtnClick={onNewRouteClick}
-                type={pointsSettable ? "disabled" : ""}
-              >
-                <span className="iconPlus" aria-hidden="true" />
-                <span>{t("Create")}</span>
-              </Button>
-              <Button
-                onBtnClick={onChangeRouteClick}
-                type={pointsSettable ? "disabled" : ""}
-              >
-                <span className="iconCharge" aria-hidden="true" />
-                <span>{t("Switch route")}</span>
-              </Button>
-              <Button
-                onBtnClick={onChangeMapClick}
-                type={pointsSettable ? "disabled" : ""}
-              >
-                <span className="iconMap" aria-hidden="true" />
-                <span>{t("Switch map")}</span>
-              </Button>
-              <Button onBtnClick={onPlanRouteClick}>
-                <span className="iconMap" aria-hidden="true" />
-                <span>{t("Auto-plan")}</span>
-              </Button>
-              <Button
-                onBtnClick={onRenameRouteClick}
-                type={
-                  pointsSettable || selectedFile.route === "Null"
-                    ? "disabled"
-                    : ""
-                }
-              >
-                <span className="iconMap" aria-hidden="true" />
-                <span>{t("Rename")}</span>
-              </Button>
-              <Button
-                onBtnClick={onClearRouteClick}
-                type={!pointsSettable ? "disabled" : "danger"}
-              >
-                <span className="iconTrash" aria-hidden="true" />
-                <span>{t("Clear waypoints")}</span>
-              </Button>
-              <Button
-                onBtnClick={onDeleteRouteClick}
-                type={pointsSettable ? "disabled" : "danger"}
-              >
-                <span className="iconTrash" aria-hidden="true" />
-                <span>{t("Delete")}</span>
-              </Button>
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-xl border border-borderSubtle bg-bgSurface/50 p-3">
+                <p className="font-[RobotoMono] text-[10px] font-bold uppercase tracking-[0.12em] text-themeTextGray">
+                  {t("Route selection")}
+                </p>
+                <Button
+                  onBtnClick={onNewRouteClick}
+                  type={pointsSettable || !hasActiveMap ? "disabled" : "orange"}
+                >
+                  <span className="iconPlus" aria-hidden="true" />
+                  <span>{t("Create")}</span>
+                </Button>
+                <label className="flex flex-col gap-1.5 font-[RobotoMono] text-xs text-themeTextGray">
+                  {t("Choose a saved route to edit")}
+                  <select
+                    value={
+                      selectedFile.route === "Null" ||
+                      selectedFile.route === "New route"
+                        ? ""
+                        : selectedFile.route
+                    }
+                    onChange={(event) => selectRouteForEditing(event.target.value)}
+                    disabled={pointsSettable || filesData.length === 0 || !hasActiveMap}
+                    className="min-h-10 w-full rounded-lg border border-borderSubtle bg-bgCard px-3 text-sm text-textWhiteHover outline-none focus:border-themeBlue disabled:opacity-50"
+                  >
+                    <option value="" disabled hidden>
+                      {t("Select a saved route…")}
+                    </option>
+                    {filesData.map((route) => (
+                      <option key={route} value={route}>{route}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-borderSubtle bg-bgSurface/50 p-3">
+                <p className="font-[RobotoMono] text-[10px] font-bold uppercase tracking-[0.12em] text-themeTextGray">
+                  {t("Edit and save")}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onBtnClick={onEditRouteClick}
+                    type={!pointsSettable && selectedFile.route === "Null" ? "disabled" : ""}
+                  >
+                    <span className="iconMap" aria-hidden="true" />
+                    <span>{t(pointsSettable ? "Cancel edit" : "Edit route")}</span>
+                  </Button>
+                  <Button onBtnClick={onSaveRouteClick} type={pointsSettable ? "success" : "disabled"}>
+                    <span className="iconSave" aria-hidden="true" />
+                    <span>{t("Save")}</span>
+                  </Button>
+                </div>
+                <Button onBtnClick={onClearRouteClick} type={!pointsSettable ? "disabled" : ""}>
+                  <span className="iconTrash" aria-hidden="true" />
+                  <span>{t("Clear waypoints")}</span>
+                </Button>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-borderSubtle bg-bgSurface/50 p-3">
+                <p className="font-[RobotoMono] text-[10px] font-bold uppercase tracking-[0.12em] text-themeTextGray">
+                  {t("Path planning")}
+                </p>
+                <Button
+                  onBtnClick={onPlanRouteClick}
+                  type={planningRoute || !hasActiveMap || routeWaypoints.length === 0 ? "disabled" : ""}
+                >
+                  <span className="iconMap" aria-hidden="true" />
+                  <span>{t(planningRoute ? "Planning route…" : "Auto-plan")}</span>
+                </Button>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-borderSubtle bg-bgSurface/50 p-3">
+                <p className="font-[RobotoMono] text-[10px] font-bold uppercase tracking-[0.12em] text-themeTextGray">
+                  {t("Manage saved route")}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onBtnClick={onRenameRouteClick}
+                    type={pointsSettable || selectedFile.route === "Null" ? "disabled" : ""}
+                  >
+                    <span className="iconMap" aria-hidden="true" />
+                    <span>{t("Rename")}</span>
+                  </Button>
+                  <Button
+                    onBtnClick={onDeleteRouteClick}
+                    type={pointsSettable || selectedFile.route === "Null" ? "disabled" : "danger"}
+                  >
+                    <span className="iconTrash" aria-hidden="true" />
+                    <span>{t("Delete")}</span>
+                  </Button>
+                </div>
+              </div>
             </div>
+
+            {pointsSettable && routeWaypoints.length > 0 && (
+              <div className="mt-4 border-t border-borderSubtle pt-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="font-[RobotoMono] text-[10px] font-bold uppercase tracking-[0.14em] text-themeTextGray">
+                    {t("Route waypoints")} ({routeWaypoints.length})
+                  </p>
+                  <Button
+                    type="success"
+                    onBtnClick={() => publishEditedWaypoints(routeWaypoints)}
+                  >
+                    {t("Apply edits")}
+                  </Button>
+                </div>
+                <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {routeWaypoints.map((point, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-2 gap-2 rounded-lg border border-borderSubtle p-2"
+                    >
+                      <p className="col-span-2 text-xs font-semibold text-textWhiteHover">
+                        {t("Waypoint")} {index + 1}
+                      </p>
+                      {["x", "y", "hours", "minutes"].map((field) => (
+                        <label
+                          key={field}
+                          className="flex flex-col gap-1 text-[10px] text-themeTextGray"
+                        >
+                          {t(
+                            field === "x"
+                              ? "X (m)"
+                              : field === "y"
+                              ? "Y (m)"
+                              : field === "hours"
+                              ? "Stop hours"
+                              : "Stop minutes",
+                          )}
+                          <input
+                            type="number"
+                            min={0}
+                            max={
+                              field === "hours"
+                                ? 23
+                                : field === "minutes"
+                                ? 59
+                                : undefined
+                            }
+                            step={field === "x" || field === "y" ? "0.01" : "1"}
+                            value={point[field]}
+                            onChange={(event) =>
+                              updateRouteWaypoint(
+                                index,
+                                field,
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-9 min-w-0 rounded-md border border-borderSubtle bg-bgCard px-2 text-xs text-textWhiteHover outline-none focus:border-themeBlue"
+                          />
+                        </label>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => removeRouteWaypoint(index)}
+                        className="col-span-2 min-h-8 text-left text-xs text-statusRed hover:underline"
+                      >
+                        {t("Remove waypoint")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </DashboardCard>
         </div>
       </div>

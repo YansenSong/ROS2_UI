@@ -19,8 +19,10 @@ const JoystickComponent = ({ maxSpeed, compact = false }) => {
   const effectiveMax = maxSpeed ?? config.maxLinearSpeed;
 
   const cmdVel = useRef(null);
+  const stopOverride = useRef(null);
   const intervalRef = useRef(null);
   const latestCoordsRef = useRef(null);
+  const drivingRef = useRef(false);
 
   useEffect(() => {
     if (!ros || !window.ROSLIB) return;
@@ -29,12 +31,21 @@ const JoystickComponent = ({ maxSpeed, compact = false }) => {
       name: AppConfig.CMD_VEL_TOPIC,
       messageType: "geometry_msgs/Twist",
     });
+    stopOverride.current = new window.ROSLIB.Topic({
+      ros,
+      name: AppConfig.STOP_TOPIC,
+      messageType: "std_msgs/Bool",
+    });
   }, [ros]);
 
   // 更新正在运行的发布流程，而不是每次调用都重启定时器。下方的游戏手柄轮询器在摇杆按住期间每帧都会调用此函数；
   // 若如此频繁地重启 100 ms 定时器，定时器将一直无法触发。
   const setDataToRos = useCallback((coordsData) => {
     latestCoordsRef.current = coordsData;
+    if (!drivingRef.current) {
+      drivingRef.current = true;
+      stopOverride.current?.publish(new window.ROSLIB.Message({ data: false }));
+    }
     if (!intervalRef.current) {
       intervalRef.current = setInterval(() => {
         if (cmdVel.current && latestCoordsRef.current) {
@@ -60,6 +71,7 @@ const JoystickComponent = ({ maxSpeed, compact = false }) => {
       intervalRef.current = null;
     }
     latestCoordsRef.current = null;
+    drivingRef.current = false;
     if (cmdVel.current) {
       cmdVel.current.publish(
         new window.ROSLIB.Message({
