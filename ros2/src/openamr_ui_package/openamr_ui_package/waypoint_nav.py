@@ -5,7 +5,6 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
-from ament_index_python.packages import get_package_share_directory
 import os
 import csv
 import time
@@ -29,9 +28,9 @@ class WayPointMover(Node):
         self.on_the_route = False
         self.break_mission = False
 
-        package_share_dir = get_package_share_directory('openamr_ui_package')
+        ros_home = os.path.expanduser(os.environ.get('ROS_HOME', '~/.ros'))
         self.current_files = os.path.join(
-            package_share_dir, 'param/current_map_route.yaml'
+            ros_home, 'ackermann_robot', 'current_map_route.yaml'
         )
 
         self.current_pos = PoseWithCovariance()
@@ -64,8 +63,11 @@ class WayPointMover(Node):
         self.ui_message_pub.publish(msg)
 
     def get_cur_files(self):
-        with open(self.current_files, 'r') as f:
-            return yaml.safe_load(f) or {"map_file": "", "route_file": ""}
+        try:
+            with open(self.current_files, 'r') as f:
+                return yaml.safe_load(f) or {"map_file": "", "route_file": ""}
+        except FileNotFoundError:
+            return {"map_file": "", "route_file": ""}
 
     def read_wp(self):
         route_file = os.path.expanduser(self.get_cur_files().get("route_file", ""))

@@ -53,7 +53,13 @@ class UIFoldersHandler(Node):
             os.path.expanduser(os.environ.get('ROS_HOME', '~/.ros')),
             'ackermann_robot', 'routes',
         )
-        self.current_files = os.path.join(package_share_dir, 'param/current_map_route.yaml')
+        self.current_files = os.path.join(
+            os.path.dirname(self.route_store_folder), 'current_map_route.yaml'
+        )
+        os.makedirs(os.path.dirname(self.current_files), exist_ok=True)
+        if not os.path.exists(self.current_files):
+            with open(self.current_files, 'w') as file:
+                yaml.safe_dump({"map_file": "", "route_file": ""}, file)
 
         if not self.map_management_only:
             try:
