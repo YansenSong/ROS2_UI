@@ -1,5 +1,5 @@
 // Project integration points. Empty names remain unconfigured; mission
-// command and state topics are implemented by ackermann_mission.
+// Command and state topics are implemented by mission_manager.
 export const INSPECTION_PROFILE =
   (import.meta.env.VITE_UI_PROFILE || import.meta.env.REACT_APP_UI_PROFILE) ===
   "inspection_demo";

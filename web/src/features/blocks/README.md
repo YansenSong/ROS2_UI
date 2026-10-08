@@ -2,9 +2,8 @@
 
 This guide is the practical reference for the Blockly robot programming page:
 setup, the full block-by-block reference, example programs, and
-troubleshooting. For the conceptual side — what Blockly is, how a block
-becomes a robot action, and how Voice Command fits together — see
-[Lesson 09 — Blockly Visual Programming](../../../../docs/lessons/09-blockly-programming.md).
+troubleshooting. It also explains how a block becomes a robot action and how
+Voice Command fits into the same execution flow.
 
 The Blockly page lets you create a robot action program like:
 
@@ -339,9 +338,7 @@ source install/setup.bash
 
 Every block goes through the same pipeline before anything reaches the
 robot: block definition → action object in the Generated Plan → execution
-logic → ROS topic/service. See
-[Lesson 09 — The pipeline](../../../../docs/lessons/09-blockly-programming.md#the-pipeline-block--action--execution--ros)
-for the full explanation of why it's split this way.
+logic → ROS topic/service.
 
 ## Current block categories
 
@@ -1151,16 +1148,13 @@ Use this only if the ROS side listens to the UI operation topic.
 
 ## Adding a new block
 
-See
-[`docs/extending/add-a-blockly-block.md`](../../../../docs/extending/add-a-blockly-block.md)
-for the full step-by-step guide: defining the block, registering it in the
-toolbox, wiring its execution, and the rebuild/reinstall flow needed before
-Flask serves it.
+To add a block, define it in `blockDefinitions.js`, register it in
+`toolbox.js`, wire its action in the executor, then rebuild and sync the
+frontend before Flask serves it.
 
 ## ROS topics used by Blockly
 
-See [Lesson 10 — Topics as the Contract](../../../../docs/lessons/10-topics-as-the-contract.md)
-for why centralizing these names matters. The block executor uses topics and
+The block executor uses topics and
 services configured in:
 
 ```text
@@ -1231,9 +1225,8 @@ returns Blockly workspace JSON.
 The `Voice Command` panel lets you speak a command instead of dragging
 blocks — the browser captures speech, the Flask backend calls Claude to turn
 it into a plan, and the UI converts that plan into real Blockly blocks for
-you to review before running. For how that pipeline works and why voice
-can't run anything or invent an action type outside the normal blocks, see
-[Voice Command in Lesson 09](../../../../docs/lessons/09-blockly-programming.md#voice-command).
+you to review before running. Voice Command uses the same action types and
+cannot execute a plan before you review it.
 
 You must say the wake word "Monsieur" before your command (see
 [Wake word](#wake-word)); speech before it is ignored.

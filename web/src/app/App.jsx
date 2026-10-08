@@ -39,8 +39,7 @@ export const AuthContext = createContext({
   setIdentity: () => {},
 });
 
-// Standard way for a panel/page to reach the shared ROS connection — see
-// docs/extending/add-a-ui-panel.md. One ROSLIB.Ros instance is created here
+// Standard way for a panel/page to reach the shared ROS connection. One ROSLIB.Ros instance is created here
 // and shared app-wide; panels never create their own.
 export const useRos = () => useContext(RosContext);
 export const useRosStatus = () => useContext(RosStatusContext);

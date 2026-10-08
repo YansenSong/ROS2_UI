@@ -7,6 +7,8 @@ import shutil
 import json
 import time
 import subprocess
+import threading
+import uuid
 import yaml
 import csv
 from ament_index_python.packages import get_package_share_directory
@@ -47,7 +49,12 @@ class UIFoldersHandler(Node):
         self.nav_data_pub = self.create_publisher(String, 'nav_data_resp', 1)
 
         package_share_dir = get_package_share_directory('robotpilot_ui_package')
-        self.maps_folder = os.path.join(package_share_dir, 'maps')
+        project_root = os.environ.get('ACKERMANN_ROBOT_WS', '')
+        self.maps_folder = (
+            os.path.join(project_root, 'maps', 'ui')
+            if project_root and os.path.isdir(project_root)
+            else os.path.join(package_share_dir, 'maps')
+        )
         self.routs_folder = os.path.join(package_share_dir, 'paths')
         self.route_store_folder = os.path.join(
             os.path.expanduser(os.environ.get('ROS_HOME', '~/.ros')),
@@ -85,9 +92,8 @@ class UIFoldersHandler(Node):
             except Exception as e:
                 self.get_logger().error(f"Error checking current_map_route.yaml: {e}")
 
-        self.mappingCmd = "robotpilot_ui_package mapping_launch.py"
-        self.navigationCmd = "robotpilot_ui_package navigation_launch.py"
         self.dict_cmd = None
+        self._save_map_busy = False
 
         # Connect to the map_server already managed by Nav2's lifecycle manager.
         self.change_map_cli = self.create_client(LoadMap, '/map_server/load_map')
@@ -275,51 +281,101 @@ class UIFoldersHandler(Node):
 
     # ── Map commands ─────────────────────────────────────────────────────────
 
-    def build_map_func(self):
-        try:
-            self._pub("Mapping...")
-            self.poseArray_publisher.publish(ArrayPoseStampedWithCovariance())
-            os.system("ros2 lifecycle set /amcl shutdown")
-            os.system("ros2 lifecycle set /move_base shutdown")
-            os.system("ros2 lifecycle set /map_server shutdown")
-            time.sleep(1)
-            subprocess.Popen(f"ros2 launch {self.mappingCmd}", stdout=subprocess.PIPE,
-                             shell=True, preexec_fn=os.setsid)
-            time.sleep(3)
-            self._pub("Move the robot along the perimeter of the room and return to start position")
-        except Exception as e:
-            self.get_logger().info(f"Error in build_map_func: {e}")
-
     def save_map_func(self):
         try:
+            if self._save_map_busy:
+                raise RuntimeError('A map save is already in progress')
             group = self.dict_cmd['group']
             name = self.dict_cmd['map']
             if not group or not name or any(part in ('.', '..') or '/' in part or '\\' in part for part in (group, name)):
                 raise ValueError('Invalid map group or name')
-            map_path_to_save = os.path.join(self.maps_folder, group, name)
+            map_group = os.path.join(self.maps_folder, group)
+            map_path_to_save = os.path.join(map_group, name)
             route_folder_path_to_save = os.path.join(self.routs_folder, group, name)
-            if os.path.exists(f"{map_path_to_save}.yaml") or os.path.exists(route_folder_path_to_save):
+            if any(os.path.exists(path) for path in (
+                map_path_to_save, f"{map_path_to_save}.yaml",
+                f"{map_path_to_save}.pgm", route_folder_path_to_save,
+            )):
                 raise FileExistsError(f'Map already exists: {group}/{name}')
+            project_root = os.environ.get('ACKERMANN_ROBOT_WS', '')
+            converter = os.path.join(project_root, 'third_party', 'pcd2pgm', 'build', 'pcd2gridmap')
+            if not project_root or not os.access(converter, os.X_OK):
+                raise RuntimeError(
+                    'PCD converter unavailable; build it in AckermannRobot with '
+                    'cmake -S third_party/pcd2pgm -B third_party/pcd2pgm/build '
+                    'and cmake --build third_party/pcd2pgm/build'
+                )
+            try:
+                from lio_sam.srv import SaveMap
+            except ImportError as error:
+                raise RuntimeError('lio_sam is unavailable in the UI ROS environment') from error
+            if not hasattr(self, '_lio_save_client'):
+                self._lio_save_client = self.create_client(SaveMap, '/lio_sam/save_map')
+            if not self._lio_save_client.wait_for_service(timeout_sec=0.2):
+                raise RuntimeError('/lio_sam/save_map is unavailable; start LIO-SAM mapping first')
 
-            os.makedirs(os.path.dirname(map_path_to_save), exist_ok=True)
-            self._pub("Saving map...")
-            result = subprocess.run(
-                ['ros2', 'run', 'nav2_map_server', 'map_saver_cli',
-                 '-t', '/map', '-f', map_path_to_save, '--fmt', 'png'],
-                capture_output=True, text=True, timeout=30, check=False,
-            )
-            if result.returncode != 0 or not os.path.isfile(f"{map_path_to_save}.yaml") or not os.path.isfile(f"{map_path_to_save}.png"):
-                raise RuntimeError((result.stderr or result.stdout or 'map_saver_cli did not create the map').strip())
+            os.makedirs(map_group, exist_ok=True)
+            staging = os.path.join(map_group, f'.{name}.saving-{uuid.uuid4().hex}')
+            request = SaveMap.Request()
+            request.resolution = 0.2
+            request.destination = staging
+            future = self._lio_save_client.call_async(request)
+            self._save_map_busy = True
+            self._pub('Saving LIO-SAM point cloud...')
 
-            os.makedirs(route_folder_path_to_save, exist_ok=True)
-            self.set_cur_route("")
-            self.WP_req_callback(Empty())
-            self.set_cur_map(f"{map_path_to_save}.yaml")
-            self._pub_nav_data()
-            self._pub(f'Map saved "{name}"')
+            def finish(finished):
+                threading.Thread(
+                    target=self._finish_lio_map_save,
+                    args=(finished, staging, map_path_to_save, route_folder_path_to_save, converter, name),
+                    daemon=True,
+                ).start()
+
+            future.add_done_callback(finish)
         except Exception as e:
             self.get_logger().error(f"Error in save_map_func: {e}")
             self._pub(f"Map save failed: {e}")
+
+    def _finish_lio_map_save(self, future, staging, map_base, route_folder, converter, name):
+        try:
+            response = future.result()
+            if not response.success:
+                raise RuntimeError('LIO-SAM could not save the point cloud')
+            snapshots = [entry.path for entry in os.scandir(staging) if entry.is_dir()]
+            if len(snapshots) != 1:
+                raise RuntimeError(f'Expected one LIO-SAM map in {staging}')
+            saved_dir = snapshots[0]
+            pcd = os.path.join(saved_dir, 'GlobalMap.pcd')
+            if not os.path.isfile(pcd):
+                raise RuntimeError(f'LIO-SAM did not create {pcd}')
+
+            prefix = os.path.join(staging, name)
+            result = subprocess.run(
+                [converter, pcd, '-o', prefix],
+                capture_output=True, text=True, timeout=180, check=False,
+            )
+            if result.returncode != 0:
+                raise RuntimeError((result.stderr or result.stdout or 'PCD conversion failed').strip())
+            if not all(os.path.isfile(f'{prefix}{ext}') for ext in ('.yaml', '.pgm')):
+                raise RuntimeError('PCD converter did not create map.yaml and map.pgm')
+
+            os.rename(saved_dir, map_base)
+            shutil.copy2(f'{prefix}.pgm', os.path.join(map_base, 'map.pgm'))
+            with open(f'{prefix}.yaml', encoding='utf-8') as source:
+                navigation_map = yaml.safe_load(source) or {}
+            navigation_map['image'] = 'map.pgm'
+            with open(os.path.join(map_base, 'map.yaml'), 'w', encoding='utf-8') as target:
+                yaml.safe_dump(navigation_map, target)
+            os.replace(f'{prefix}.pgm', f'{map_base}.pgm')
+            os.replace(f'{prefix}.yaml', f'{map_base}.yaml')
+            os.rmdir(staging)
+            os.makedirs(route_folder, exist_ok=True)
+            self._pub_nav_data()
+            self._pub(f'Map saved "{name}"')
+        except Exception as error:
+            self.get_logger().error(f'Map save failed: {error}')
+            self._pub(f'Map save failed: {error}')
+        finally:
+            self._save_map_busy = False
 
     def change_map_func(self):
         path_to_new_map = f"{self.maps_folder}/{self.dict_cmd['group']}/{self.dict_cmd['map']}"
@@ -361,6 +417,8 @@ class UIFoldersHandler(Node):
 
             os.rename(f"{old_map_file}.yaml", f"{new_map_file}.yaml")
             os.rename(f"{old_map_file}{image_extension}", f"{new_map_file}{image_extension}")
+            if os.path.isdir(old_map_file):
+                os.rename(old_map_file, new_map_file)
             if os.path.isfile(f"{old_ros_folder_file}.yaml"):
                 os.rename(f"{old_ros_folder_file}.yaml", f"{new_ros_folder_file}.yaml")
             os.rename(old_route_folder_file, new_route_folder_file)
@@ -387,6 +445,9 @@ class UIFoldersHandler(Node):
                 if os.path.isfile(map_file):
                     os.remove(map_file)
                     removed = True
+            if os.path.isdir(map_base):
+                shutil.rmtree(map_base)
+                removed = True
             if os.path.isdir(route_map_folder):
                 shutil.rmtree(route_map_folder)
                 removed = True
@@ -567,7 +628,6 @@ class UIFoldersHandler(Node):
         try:
             command = data.data.split("/")
             map_commands = {
-                "build_map",
                 "save_map",
                 "change_map",
                 "create_group",
@@ -582,7 +642,6 @@ class UIFoldersHandler(Node):
                 self.dict_cmd = json.loads(command[1])
 
             dispatch = {
-                "build_map":    self.build_map_func,
                 "save_map":     self.save_map_func,
                 "change_map":   self.change_map_func,
                 "create_group": self.create_group_func,

@@ -8,12 +8,8 @@
 ## Launch 文件
 
 - `launch/new_ui_launch.py`：启动 Web UI 服务和适用于浏览器的中继节点。
-- `launch/physnode_launch.py`：启动可选的地图/路线文件操作辅助节点和 waypoint 路线跟随辅助节点。
-- `launch/map_server_launch.py`：已弃用的兼容性 launch，使用 `ui_legacy` 命名空间，避免与平台地图服务器冲突。
-- `launch/mapping_launch.py`（包含 `gmapping_launch.py` 和 `move_base_launch.py`）及
-  `launch/navigation_launch.py`（包含 `move_base_launch.py` 和 `amcl_launch.py`）：并非旧版实现；
-  Web UI 的 Maps 页面 **Start mapping** 和 **Save current map** 按钮会由 `folders_handler.py` 直接启动它们
-  （建图时使用 SLAM，保存后切回定位/导航）。
+- 建图由 AckermannRobot 的 `scripts/mapping_mini.sh` 启动；UI 不启动机器人建图或导航节点。
+- Maps 页保存命令调用 `/lio_sam/save_map`，再用 AckermannRobot 的 `pcd2gridmap` 生成 2D 地图。
 
 ## 运行时组件
 
@@ -21,10 +17,8 @@
 - `map_relay.py`：以适合浏览器的 QoS 将 `/map` 重新发布到 `/ui/map`。
 - `nav_relays.py`：将 AMCL 和导航/对接 action 状态重新发布到 `/ui/*`。
 - `folders_handler.py`：处理地图、分组、路线和 waypoint 文件命令。
-- `waypoint_nav.py`：可选的路线跟随辅助节点，使用 Nav2 Simple Commander。
-- `ackermann_route_store.py`：路线编辑页的仿真适配节点，按当前 `/map` 保存可复用路线到 `~/.ros/ackermann_robot/routes/`。
-- `battery.py`：可选的电量百分比发布器（读取串口；未检测到串口时改为模拟电量消耗）。默认情况下，
-  `new_ui_launch.py` 和 `physnode_launch.py` 都不会启动它。
+- `route_store.py`：路线编辑页的仿真适配节点，按当前 `/map` 保存可复用路线到 `~/.ros/ackermann_robot/routes/`。
+- `battery.py`：未接入启动流程的可选电量百分比发布器。
 
 ## Voice Command API 密钥
 

@@ -21,7 +21,7 @@ def generate_launch_description():
     route_store = Node(
         package="robotpilot_ui_package",
         executable="route_store",
-        name="ackermann_route_store",
+        name="route_store",
         output="screen",
     )
 

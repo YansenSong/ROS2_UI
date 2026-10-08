@@ -22,7 +22,6 @@ from .auth import install_auth, require_role
 from .platform_api import PlatformStore, RobotBridge, register_platform_api
 from .data_paths import data_directory, setting
 
-import xacro
 
 # ─────────────────────────────────────────────────────────────────────────
 # AUTH_MODE=open is only for loopback development. local uses server-side
@@ -62,16 +61,6 @@ SHARE_DIR = get_package_share_directory("robotpilot_ui_package")
 REACT_BUILD_DIR = os.path.join(SHARE_DIR, "app")
 REACT_STATIC_DIR = os.path.join(REACT_BUILD_DIR, "static")
 REACT_ROS_DIR = os.path.join(REACT_BUILD_DIR, "ros")
-
-# Robot Description 页面使用的 vendored URDF/Xacro 和网格文件，由 setup.py 安装到
-# share/robotpilot_ui_package/robot_description/openamrobot/。
-# 权威来源：openAMRobot/openamr-platform-sw 仓库中的 openamrobot_description ROS 软件包。
-# 此处将其保留为数据子目录（而不是同名的第二个 ROS 软件包），避免 UI 工作区与真实机器人软件工作区
-# 同时使用 colcon 构建时发生冲突。
-ROBOT_DESC_NAME = "openamrobot"
-ROBOT_DESC_DIR = os.path.join(SHARE_DIR, "robot_description", ROBOT_DESC_NAME)
-ROBOT_DESC_XACRO = os.path.join(ROBOT_DESC_DIR, "urdf", "robo_urdf.urdf.xacro")
-_robot_urdf_cache = {"mtime": None, "xml": None}
 
 # 让 Flask 从 CRA 构建目录提供 /static/*。
 app = Flask(__name__, static_folder=REACT_STATIC_DIR, static_url_path="/static")
@@ -790,76 +779,6 @@ def create_voice_plan():
     plan = sanitize_plan_actions(raw_actions)
 
     return jsonify({"plan": plan, "transcript": transcript})
-
-
-def get_robot_description_urdf_xml():
-    """Xacro-process the vendored robot description, cached by file mtime.
-
-    Re-reads gazebo_control.xacro's mtime too since it's xacro:included by
-    the main file and edits there should also invalidate the cache.
-    """
-    if not os.path.exists(ROBOT_DESC_XACRO):
-        abort(404, "Robot description xacro not found on this install.")
-
-    included = os.path.join(os.path.dirname(ROBOT_DESC_XACRO), "gazebo_control.xacro")
-    try:
-        mtime = (
-            os.path.getmtime(ROBOT_DESC_XACRO),
-            os.path.getmtime(included) if os.path.exists(included) else 0,
-        )
-    except OSError as error:
-        abort(500, f"Could not stat robot description files: {error}")
-
-    if _robot_urdf_cache["mtime"] == mtime and _robot_urdf_cache["xml"] is not None:
-        return _robot_urdf_cache["xml"]
-
-    try:
-        doc = xacro.process_file(ROBOT_DESC_XACRO)
-        xml_text = doc.toxml()
-    except Exception as error:  # xacro raises plain Exception/xml errors
-        abort(500, f"Xacro processing failed: {error}")
-
-    _robot_urdf_cache["mtime"] = mtime
-    _robot_urdf_cache["xml"] = xml_text
-    return xml_text
-
-
-@app.route("/api/robot-description/manifest", methods=["GET"])
-def robot_description_manifest():
-    xacro_exists = os.path.exists(ROBOT_DESC_XACRO)
-    return jsonify(
-        {
-            "name": "robo_urdf",
-            "displayName": "RobotPilot",
-            "package": "openamrobot_description",
-            "sourceRepo": "openAMRobot/openamr-platform-sw",
-            "available": xacro_exists,
-            "urdfUrl": "/api/robot-description/urdf",
-            "assetBaseUrl": "/api/robot-description/assets",
-            "packages": {"openamrobot_description": "/api/robot-description/assets"},
-        }
-    )
-
-
-@app.route("/api/robot-description/urdf", methods=["GET"])
-def robot_description_urdf():
-    xml_text = get_robot_description_urdf_xml()
-    return app.response_class(xml_text, mimetype="application/xml")
-
-
-@app.route("/api/robot-description/assets/<path:filename>", methods=["GET"])
-def robot_description_assets(filename: str):
-    # filename comes straight from the URL path — normalize and confirm the
-    # resolved path stays inside ROBOT_DESC_DIR before serving anything.
-    requested = os.path.normpath(os.path.join(ROBOT_DESC_DIR, filename))
-    if not requested.startswith(os.path.join(ROBOT_DESC_DIR, "")):
-        abort(404, "Asset not found.")
-    if not os.path.isfile(requested):
-        abort(404, "Asset not found.")
-
-    rel_dir = os.path.dirname(filename)
-    rel_name = os.path.basename(filename)
-    return send_from_directory(os.path.join(ROBOT_DESC_DIR, rel_dir), rel_name)
 
 
 @app.route("/api/devices/serial-ports", methods=["GET"])

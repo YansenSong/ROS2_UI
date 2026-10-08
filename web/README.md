@@ -1,8 +1,6 @@
 # Web 前端
 
-本目录包含 React 应用和 Vite 配置。工作区级别的设置和 ROS 启动流程请参阅
-[installation guide](../docs/installation.md) and
-[development guide](../docs/development.md).
+本目录包含 React 应用和 Vite 配置。ROS 启动流程见[仓库 README](../README.md)。
 
 ## 本地开发
 
@@ -18,7 +16,6 @@ ROS 数据，必须能通过配置的主机和端口访问 rosbridge。
 
 Vite 服务器不提供 Flask `/api/*` endpoint。要使用相关功能，需单独运行 ROS UI 后端。可在应用的
 Config 页面覆盖运行时连接设置；默认值位于
-默认值位于
 [`src/shared/constants/index.js`](src/shared/constants/index.js) and
 [`src/shared/constants/runtimeConfig.js`](src/shared/constants/runtimeConfig.js).
 

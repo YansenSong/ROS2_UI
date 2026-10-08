@@ -42,12 +42,6 @@ setup(
             os.path.join("share", package_name),
         ),
 
-        # Vendored URDF/Xacro + meshes for the Robot Description page →
-        # share/robotpilot_ui_package/robot_description/**
-        *data_files_from_dir(
-            os.path.join(package_name, "robot_description"),
-            os.path.join("share", package_name),
-        ),
     ],
     install_requires=["setuptools"],
     tests_require=["pytest"],
@@ -61,11 +55,10 @@ setup(
         "console_scripts": [
             "flask = robotpilot_ui_package.flask_app:main",
             "handler = robotpilot_ui_package.folders_handler:main",
-            "nav = robotpilot_ui_package.waypoint_nav:main",
             "map_relay = robotpilot_ui_package.map_relay:main",
             "tf_static_relay = robotpilot_ui_package.tf_static_relay:main",
             "nav_relay = robotpilot_ui_package.nav_relays:main",
-            "route_store = robotpilot_ui_package.ackermann_route_store:main",
+            "route_store = robotpilot_ui_package.route_store:main",
             "ui_admin = robotpilot_ui_package.auth:main",
             "rosbridge_gateway = robotpilot_ui_package.rosbridge_gateway:main",
         ],

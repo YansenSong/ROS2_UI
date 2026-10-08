@@ -12,11 +12,9 @@ fi
 
 cd "${WS_DIR}"
 
-INSTALLED_APP_DIR="${WS_DIR}/install/robotpilot_ui_package/share/robotpilot_ui_package/app"
-if [ -d "${INSTALLED_APP_DIR}" ]; then
-  echo "[build_ros] Cleaning stale installed frontend bundle..."
-  rm -rf "${INSTALLED_APP_DIR}"
-fi
+# setuptools retains removed launch files and hashed frontend assets in this
+# package's build manifest. Regenerate only this package's build/install trees.
+rm -rf "${WS_DIR}/build/robotpilot_ui_package" "${WS_DIR}/install/robotpilot_ui_package"
 
 colcon build --symlink-install
 

@@ -151,9 +151,7 @@ const MapsPage = () => {
     window.NAV2D?.ClearMap?.();
     sendCmd("change_map", { group, map });
     toast.info(
-      t(
-        'Loading "{map}" — set the initial pose after it loads; old localization won\'t match.',
-      ).replace("{map}", map),
+      `已请求加载 2D 地图“${map}”。LIORF 点云地图不会随之切换；完整导航请用对应地图重新启动导航流程。`,
     );
   };
 
@@ -197,24 +195,7 @@ const MapsPage = () => {
       return;
     }
     sendCmd("save_map", { group, map: name });
-    toast.info(t('Saving current map as "{name}"…').replace("{name}", name));
-  };
-
-  const startMapping = () => {
-    if (
-      !window.confirm(
-        t(
-          "Start a new mapping session? This shuts down localization/navigation and launches mapping mode — the robot must be driven around to build the map. Save it here when done.",
-        ),
-      )
-    )
-      return;
-    sendCmd("build_map");
-    toast.info(
-      t(
-        "Mapping started — drive the robot around the space, then save the map.",
-      ),
-    );
+    toast.info(`正在保存 LIO-SAM 点云并生成 2D 地图：${name}`);
   };
 
   const deleteMap = (group, map) => {
@@ -292,7 +273,7 @@ const MapsPage = () => {
       <SectionHeader
         eyebrow="Environments"
         title="Maps"
-        description="Save, switch, rename and organise the robot's maps. Switching a map reloads it on the robot immediately."
+        description="保存与管理地图。切换按钮仅重载 2D map_server；完整导航地图需要重启 LIORF。"
         action={
           <div className="flex items-center gap-3">
             <StatusBadge
@@ -317,22 +298,19 @@ const MapsPage = () => {
             {t("Build a new map")}
           </p>
           <p className="mb-3 text-xs text-themeTextGray">
-            {t(
-              "Launches mapping mode and stops navigation. Drive the robot around the space, then save below.",
-            )}
+            在 AckermannRobot 项目根目录的终端运行以下命令，驾驶机器人完成 LIO-SAM 建图，然后在此页保存地图。
           </p>
-          <button
-            onClick={startMapping}
-            disabled={!connected}
-            className="rounded-lg border border-statusYellow px-3 py-1.5 text-sm font-semibold text-statusYellow transition-colors hover:bg-statusYellow hover:text-black disabled:opacity-40"
-          >
-            {t("Start mapping")}
-          </button>
+          <code className="block rounded-lg border border-borderSubtle bg-bgSurface px-3 py-2 text-xs text-textWhiteHover">
+            bash scripts/mapping_mini.sh
+          </code>
         </DashboardCard>
 
         <DashboardCard className="p-4 font-[RobotoMono]">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-            {t("Save current map")}
+            保存当前 LIO-SAM 地图
+          </p>
+          <p className="mb-3 text-xs text-themeTextGray">
+            建图运行期间保存点云并转换为 2D 地图，文件位于项目 maps/ui/分组/地图名/。首次使用前请按项目 README 构建 pcd2gridmap。
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <input
