@@ -6,7 +6,7 @@ import { AppConfig } from "../shared/constants";
 import { getSchedules, updateSchedule } from "../shared/schedules/schedules";
 import { addEvent } from "../shared/events/eventLog";
 import { loadWaypoints as readWaypoints } from "../shared/hooks/useSavedWaypoints";
-import { requestStart as requestMissionStart } from "../shared/missions/missionRunner";
+import { requestStart as requestMissionStart } from "../shared/missions/missionClient";
 import { translate as t } from "../shared/i18n/i18n";
 
 // 使用分钟精度的键，确保即使轮询频率更高，同一条计划也只会在匹配分钟内触发一次。
@@ -55,13 +55,16 @@ const SchedulerRunner = () => {
 
     const runAction = (s) => {
       if (s.action?.type === "mission") {
-        requestMissionStart(s.action.missionId);
-        toast.info(`${t("Scheduled: running mission")} "${s.name}"`);
-        addEvent({
-          type: "system",
-          severity: "info",
-          message: `Schedule "${s.name}" fired → mission run started`,
-        });
+        if (requestMissionStart(s.action.missionId)) {
+          toast.info(`${t("Scheduled: running mission")} "${s.name}"`);
+          addEvent({
+            type: "system",
+            severity: "info",
+            message: `Schedule "${s.name}" fired → mission start requested`,
+          });
+        } else {
+          toast.warn(t("Mission manager offline"));
+        }
         return;
       }
 

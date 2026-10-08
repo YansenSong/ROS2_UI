@@ -1,100 +1,78 @@
-// Persisted mission definitions — an ordered list of steps a mission runner
-// executes in sequence. Same module-level store + listeners pattern as
-// shared/schedules/schedules.js and shared/events/eventLog.js, so both the
-// authoring page and the headless runner (see missionRunner.js/MissionRunner.jsx)
-// read the same source of truth.
-//
-// Step shapes:
-//   { id, type: "waypoint", waypointId }
-//   { id, type: "home" }
-//   { id, type: "wait", seconds }
-//   { id, type: "dock" }
-//   { id, type: "undock" }
-
-const STORAGE_KEY = "openamrMissions";
-
-let missions = load();
+// The robot is authoritative. Browser storage is read only for legacy import.
+import { newMissionId } from "./id";
+import { sendMissionCommand } from "./transport";
+let missions = [];
+let online = false;
 const listeners = new Set();
+const emit = () => listeners.forEach((fn) => fn(missions));
+const send = (command) => {
+  return online && sendMissionCommand(command);
+};
 
-function load() {
+export const getMissions = () => missions;
+const getMission = (id) => missions.find((m) => m.id === id) || null;
+export const isMissionOnline = () => online;
+export const subscribeMissions = (fn) => {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+};
+export const setMissionOnline = (value) => {
+  online = value;
+  emit();
+};
+export const replaceMissionsFromRobot = (value) => {
+  missions = Array.isArray(value) ? value : [];
+  emit();
+};
+export const loadLegacyMissions = () => {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(stored) ? stored : [];
+    const value = JSON.parse(localStorage.getItem("robotpilotMissions") || "[]");
+    return Array.isArray(value) ? value : [];
   } catch {
     return [];
   }
-}
-
-function persist() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(missions));
-  } catch {
-    // ignore quota errors
-  }
-}
-
-function emit() {
-  listeners.forEach((fn) => fn(missions));
-}
-
-export function getMissions() {
-  return missions;
-}
-
-export function getMission(id) {
-  return missions.find((m) => m.id === id) || null;
-}
-
-export function subscribeMissions(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-export function addMission(name) {
-  const mission = { id: `${Date.now()}`, name, steps: [] };
-  missions = [...missions, mission];
-  persist();
+};
+const save = (mission) => {
+  if (!send({ command: "save", mission })) return false;
+  missions = [...missions.filter((m) => m.id !== mission.id), mission];
   emit();
-  return mission;
-}
-
-export function removeMission(id) {
+  return true;
+};
+export const importMission = (mission) =>
+  save({ ...mission, id: String(mission.id) });
+export const addMission = (name) => {
+  const mission = { id: newMissionId(), name, steps: [] };
+  return save(mission) ? mission : null;
+};
+export const removeMission = (id) => {
+  if (!send({ command: "delete", mission_id: id })) return;
   missions = missions.filter((m) => m.id !== id);
-  persist();
   emit();
-}
-
-export function renameMission(id, name) {
-  missions = missions.map((m) => (m.id === id ? { ...m, name } : m));
-  persist();
-  emit();
-}
-
-export function setSteps(missionId, steps) {
-  missions = missions.map((m) => (m.id === missionId ? { ...m, steps } : m));
-  persist();
-  emit();
-}
-
-export function addStep(missionId, step) {
-  const mission = getMission(missionId);
+};
+const setSteps = (id, steps) => {
+  const mission = getMission(id);
+  if (mission) save({ ...mission, steps });
+};
+export const addStep = (id, step) => {
+  const mission = getMission(id);
+  if (mission)
+    setSteps(id, [...mission.steps, { ...step, id: newMissionId() }]);
+};
+export const removeStep = (id, stepId) => {
+  const mission = getMission(id);
+  if (mission)
+    setSteps(
+      id,
+      mission.steps.filter((step) => step.id !== stepId),
+    );
+};
+export const moveStep = (id, stepId, direction) => {
+  const mission = getMission(id);
   if (!mission) return;
-  setSteps(missionId, [...mission.steps, { id: `${Date.now()}`, ...step }]);
-}
-
-export function removeStep(missionId, stepId) {
-  const mission = getMission(missionId);
-  if (!mission) return;
-  setSteps(missionId, mission.steps.filter((s) => s.id !== stepId));
-}
-
-export function moveStep(missionId, stepId, direction) {
-  const mission = getMission(missionId);
-  if (!mission) return;
-  const idx = mission.steps.findIndex((s) => s.id === stepId);
-  const swapWith = idx + direction;
-  if (idx < 0 || swapWith < 0 || swapWith >= mission.steps.length) return;
-  const next = [...mission.steps];
-  [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
-  setSteps(missionId, next);
-}
+  const steps = [...mission.steps];
+  const index = steps.findIndex((step) => step.id === stepId);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= steps.length) return;
+  [steps[index], steps[target]] = [steps[target], steps[index]];
+  setSteps(id, steps);
+};

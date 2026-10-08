@@ -21,22 +21,61 @@ export const PAGE_REGISTRY = [
   { path: "/", label: "Map", icon: "map", component: MapPage },
   { path: "/route", label: "Routes", icon: "route", component: RoutePage },
   { path: "/maps", label: "Maps", icon: "maps", component: MapsPage },
-  { path: "/missions", label: INSPECTION_PROFILE ? "Inspection" : "Missions", icon: "missions", component: MissionsPage },
+  {
+    path: "/missions",
+    label: "Missions",
+    icon: "missions",
+    component: MissionsPage,
+  },
   { path: "/info", label: "Status", icon: "status", component: InfoPage },
   { path: "/health", label: "Health", icon: "health", component: HealthPage },
   { path: "/events", label: "Events", icon: "events", component: EventsPage },
   { path: "/config", label: "Config", icon: "config", component: ConfigPage },
-  ...(!INSPECTION_PROFILE ? [
-    { path: "/scheduler", label: "Scheduler", icon: "scheduler", component: lazy(() => import("./SchedulerPage")) },
-    { path: "/devices", label: "Devices", icon: "devices", component: lazy(() => import("./DevicesPage")) },
-    { path: "/metrics", label: "Metrics", icon: "metrics", component: lazy(() => import("./MetricsPage")) },
-    { path: "/recordings", label: "Recordings", icon: "recordings", component: lazy(() => import("./RecordingsPage")) },
-    { path: "/console", label: "Console", icon: "console", component: lazy(() => import("./ConsolePage")) },
-    { path: "/params", label: "Parameters", icon: "params", component: lazy(() => import("./ParamsPage")) },
-  ] : []),
+  ...(!INSPECTION_PROFILE
+    ? [
+        {
+          path: "/scheduler",
+          label: "Scheduler",
+          icon: "scheduler",
+          component: lazy(() => import("./SchedulerPage")),
+        },
+        {
+          path: "/devices",
+          label: "Devices",
+          icon: "devices",
+          component: lazy(() => import("./DevicesPage")),
+        },
+        {
+          path: "/metrics",
+          label: "Metrics",
+          icon: "metrics",
+          component: lazy(() => import("./MetricsPage")),
+        },
+        {
+          path: "/recordings",
+          label: "Recordings",
+          icon: "recordings",
+          component: lazy(() => import("./RecordingsPage")),
+        },
+        {
+          path: "/console",
+          label: "Console",
+          icon: "console",
+          component: lazy(() => import("./ConsolePage")),
+        },
+        {
+          path: "/params",
+          label: "Parameters",
+          icon: "params",
+          component: lazy(() => import("./ParamsPage")),
+        },
+      ]
+    : []),
 ];
 
-export const NAV_REGISTRY = INSPECTION_PROFILE ? [...PAGE_REGISTRY] : PAGE_REGISTRY;
+export const NAV_REGISTRY = INSPECTION_PROFILE
+  ? [...PAGE_REGISTRY]
+  : PAGE_REGISTRY;
 
 /** 将页面插件追加到注册表。必须在应用渲染前调用。 */
 export function registerPage(entry) {

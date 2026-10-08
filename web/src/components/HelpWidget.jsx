@@ -1,5 +1,5 @@
 import { T } from "../shared/i18n/i18n";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { PAGE_HELP, DEFAULT_HELP } from "../shared/help/helpContent";
@@ -14,11 +14,8 @@ import { useT } from "../shared/i18n/i18n";
  * separate per-page wire-ups). Looks up the current route in PAGE_HELP/
  * TOURS via useLocation() rather than needing each page to pass anything.
  *
- * `autoStartTour`/`onTourStarted` let OnboardingWizard's "guided tasks" step
- * kick off this same tour engine after navigating here, instead of
- * duplicating a second tour implementation just for the onboarding flow.
  */
-const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
+const HelpWidget = () => {
   const { t } = useT();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -26,13 +23,6 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
 
   const content = PAGE_HELP[location.pathname] || DEFAULT_HELP;
   const tourSteps = TOURS[location.pathname];
-
-  useEffect(() => {
-    if (autoStartTour && tourSteps) {
-      setTouring(true);
-      onTourStarted?.();
-    }
-  }, [autoStartTour, tourSteps, onTourStarted]);
 
   return (
     <>
@@ -90,15 +80,6 @@ const HelpWidget = ({ onReplayOnboarding, autoStartTour, onTourStarted }) => {
                 <T>{"Take the tour"}</T>{" "}
               </button>
             )}
-            <button
-              onClick={() => {
-                onReplayOnboarding();
-                setOpen(false);
-              }}
-              className="rounded-lg border border-borderSubtle px-2.5 py-1.5 text-xs text-themeTextGray hover:border-themeBlue hover:text-themeBlue"
-            >
-              <T>{"Replay welcome guide"}</T>{" "}
-            </button>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-# 扩展 OpenAMRobot UI
+# 扩展 RobotPilot UI
 
 本目录提供向 UI 添加功能的实操指南，不会改变现有页面的行为。如果尚未阅读概念课程，
 请先从 [`docs/lessons/`](../lessons/README.md) 开始；这些指南假设你已了解 topic、中继节点和共享 ROS 连接。

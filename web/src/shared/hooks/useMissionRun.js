@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { getRun, subscribeRun } from "../missions/missionRunner";
+import { getRun, subscribeRun } from "../missions/missionClient";
 
-// React binding for the module-level mission-run state MissionRunner.jsx
-// drives — same shape as useEventLog/useSchedules.
+// React binding for the robot mission snapshot received by MissionClient.
 export default function useMissionRun() {
   const [run, setRunState] = useState(getRun);
   useEffect(() => subscribeRun(setRunState), []);

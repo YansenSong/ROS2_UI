@@ -4,7 +4,7 @@
 // shared across pages" idea as useSavedWaypoints, but push-based because the
 // writer and readers live in different parts of the tree.
 
-const STORAGE_KEY = "openamrEventLog";
+const STORAGE_KEY = "robotpilotEventLog";
 const MAX_EVENTS = 500;
 
 let events = load();

@@ -1,9 +1,12 @@
 # 机器人接口清单 — 2026-10-01
 
+> 2026-10-07 更新：根工作区新增 `ackermann_mission`，通过 `/mission/command`、
+> `/mission/state`、`/mission/ack` 提供任务命令、状态和记录。下表保留 2026-10-01 的基准清点。
+
 基准版本：`aef93d5071291f82718493ce3ac56ca2372ca93d`。
 
 此文档基于本 UI 仓库源码检查，并非对实时 ROS graph 的检查。当前无法访问项目机器人工作区和已接受的
-`openamrobot-interfaces` 契约。下表中现有的 Nav2 名称仅用于说明 UI 对旧接口的兼容支持。
+`robotpilot-interfaces` 契约。下表中现有的 Nav2 名称仅用于说明 UI 对旧接口的兼容支持。
 
 | 能力 | 本仓库中的接口 | 类型 | QoS/来源 | 项目状态 |
 | --- | --- | --- | --- | --- |
@@ -13,14 +16,14 @@
 | 导航目标 | 旧接口 `/goal_pose` | `geometry_msgs/PoseStamped` | 未知 | 项目目标接口待实现 |
 | 导航反馈 | 旧接口 `/navigate_to_pose/_action/feedback` | Nav2 action 反馈 | 未知 | 项目反馈接口待实现 |
 | 导航取消 | 旧接口 `/navigate_to_pose/_action/cancel_goal` | `action_msgs/CancelGoal` | Service | 项目取消接口待实现 |
-| 任务命令/状态 | 浏览器端 `MissionRunner`；`waypoint_nav.py` 使用 `BasicNavigator` | 尚无已接受的项目契约 | 不适用 | 阻塞：尚未提供机器人执行器契约 |
+| 任务命令/状态 | 根工作区 `ackermann_mission`；`/mission/command`、`/mission/state`、`/mission/ack` | `std_msgs/String` JSON | 状态 reliable + transient local | 已实现机器人侧持久化和执行；实车集成待核验 |
 | 软件停止 | 旧版浏览器逻辑发送一次零 Twist 并取消 Nav2 目标 | 非安全接口 | 不适用 | 阻塞：尚未提供软件停止 service |
 | 手动控制 | 旧版摇杆直接使用 `/cmd_vel` | `geometry_msgs/Twist` | 未知 | 阻塞：尚未确认由安全层管理的输入接口 |
 | 电池/BMS | 本地节点 `battery_status` | `std_msgs/Float32` | 深度 10；可能使用虚拟值回退 | 项目 BMS 接口待实现；该值不能证明来自真实 BMS |
 | 诊断 | 浏览器消费 `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | 未知 | 项目发布器待实现 |
 
 当前检出版本中唯一的 `.msg` 文件是
-`ros2/src/openamr_ui_msgs/msg/ArrayPoseStampedWithCovariance.msg`；仓库中没有任务 action、service 或 message 契约。
+`ros2/src/robotpilot_ui_msgs/msg/ArrayPoseStampedWithCovariance.msg`；仓库中没有任务 action、service 或 message 契约。
 `map_relay.py` 和 `nav_relays.py` 当前将源名称和目标名称硬编码在代码中。
 
 ## 接受状态及下一步集成所需输入

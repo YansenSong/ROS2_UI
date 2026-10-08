@@ -72,6 +72,7 @@ const HealthPage = () => {
   } = useSystemDiagnostics();
 
   const style = OVERALL_STYLE[overall];
+  const activeIssueIds = new Set(issues.map((issue) => issue.id));
 
   return (
     <div className="sectionHeight space-y-5 py-4 sm:space-y-6 sm:py-6">
@@ -291,6 +292,19 @@ const HealthPage = () => {
                     }
                   >
                     {t(fault.message)}
+                  </span>
+                  <span
+                    className={`shrink-0 ${
+                      activeIssueIds.has(fault.id)
+                        ? "text-statusRed"
+                        : "text-statusGreen"
+                    }`}
+                  >
+                    {t(
+                      activeIssueIds.has(fault.id)
+                        ? "Still active"
+                        : "Recovered",
+                    )}
                   </span>
                 </div>
               ))}

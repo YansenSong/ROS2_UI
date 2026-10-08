@@ -51,4 +51,4 @@ if ! command -v ros2 >/dev/null 2>&1; then
   exit 1
 fi
 
-ros2 launch openamr_ui_bringup ui.launch.py
+exec ros2 launch robotpilot_ui_bringup ui.launch.py

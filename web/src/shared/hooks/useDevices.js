@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "openamrRegisteredDevices";
+const STORAGE_KEY = "robotpilotRegisteredDevices";
 
 const loadDevices = () => {
   try {

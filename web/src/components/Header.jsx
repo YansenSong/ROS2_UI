@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
-import { NavLink } from "react-router-dom";
-import { ThemeContext, useRosStatus, useRuntimeConfig } from "../app/App";
+import { NavLink, useNavigate } from "react-router-dom";
+import { AuthContext, ThemeContext, useRosStatus, useRuntimeConfig } from "../app/App";
+import { apiFetch } from "../shared/api/apiFetch";
 import { resolveRosbridgeHost } from "../shared/constants/runtimeConfig";
 import { IconButton, StatusBadge } from "../shared/ui/Dashboard";
 import { NAV_REGISTRY } from "../pages/registry";
@@ -189,7 +190,7 @@ const Logo = ({ onClick }) => {
       to="/"
       onClick={onClick}
       className="group flex min-w-0 items-center gap-2.5 rounded-xl focus-visible:outline-none"
-      aria-label={t("OpenAMR map dashboard")}
+      aria-label={t("RobotPilot map dashboard")}
     >
       <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-bgSurface text-white ring-1 ring-white/10">
         <span className="absolute inset-0 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-400 opacity-90 transition-opacity group-hover:opacity-100" />
@@ -210,7 +211,7 @@ const Logo = ({ onClick }) => {
       </span>
       <span className="min-w-0">
         <span className="block truncate text-[15px] font-bold tracking-[-0.03em] text-textWhiteHover">
-          OpenAMR
+          RobotPilot
         </span>
         <span className="hidden font-[RobotoMono] text-[9px] uppercase tracking-[0.16em] text-themeTextGray sm:block">
           {t("Robot workspace")}
@@ -221,6 +222,8 @@ const Logo = ({ onClick }) => {
 };
 
 const Header = ({ showLogs, onToggleLogs }) => {
+  const auth = useContext(AuthContext);
+  const navigate = useNavigate();
   const status = useRosStatus();
   const { theme, toggleTheme } = useContext(ThemeContext);
   const { t, lang, setLang } = useT();
@@ -232,6 +235,16 @@ const Header = ({ showLogs, onToggleLogs }) => {
   }`;
 
   const closeMenu = () => setMenuOpen(false);
+  const logout = async () => {
+    try {
+      await apiFetch("/api/v1/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.warn("Could not complete logout request", error);
+    } finally {
+      auth.setIdentity(null);
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <>
@@ -300,6 +313,17 @@ const Header = ({ showLogs, onToggleLogs }) => {
               </IconButton>
             </div>
           </div>
+          {auth.mode === "local" && auth.identity && (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-borderSubtle bg-bgSurface/50 px-3 py-2">
+              <span className="min-w-0 truncate text-xs text-themeTextGray" title={auth.identity.username}>
+                {auth.identity.username}
+                <span className="ml-2 text-[10px] opacity-70">{auth.identity.role}</span>
+              </span>
+              <button type="button" onClick={logout} className="shrink-0 font-[RobotoMono] text-[10px] font-semibold text-themeBlue hover:text-textWhiteHover">
+                退出
+              </button>
+            </div>
+          )}
           <NavLink
             to="/config"
             className="truncate text-center font-[RobotoMono] text-[10px] text-themeTextGray/70 hover:text-themeBlue"
@@ -363,6 +387,14 @@ const Header = ({ showLogs, onToggleLogs }) => {
                 <StatusBadge status={status} label={label} pulse={pulse} />
               </div>
               <nav className="grid gap-1" aria-label={t("Mobile navigation")}>
+                {auth.mode === "local" && auth.identity && (
+                  <div className="flex items-center justify-between border-b border-borderSubtle px-3 py-2 text-xs text-themeTextGray">
+                    <span className="truncate">{auth.identity.username} · {auth.identity.role}</span>
+                    <button type="button" onClick={logout} className="ml-3 shrink-0 font-semibold text-themeBlue">
+                      退出登录
+                    </button>
+                  </div>
+                )}
                 {NAV_REGISTRY.map(({ path: to, label: navLabel, icon }) => (
                   <NavLink
                     key={to}

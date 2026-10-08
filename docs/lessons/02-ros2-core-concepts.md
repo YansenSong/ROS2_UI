@@ -14,7 +14,7 @@
 
 Node 是 ROS 2 graph 中负责一项工作的运行进程。Nodes 不会直接互相调用，而是通过发布/订阅 topics，或提供/调用 services 和 actions 通信；ROS 2 middleware 负责发现节点并传递消息。
 
-本工作区的 nodes 是继承 ROS 2 `Node` class 的 Python classes。例如 Flask node 同时承担网页服务工作，见[`flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)中的 `ParamFlask(Node)`。map relay 和 navigation relay 是职责更单一的节点，分别见[`map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)和[`nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py)。
+本工作区的 nodes 是继承 ROS 2 `Node` class 的 Python classes。例如 Flask node 同时承担网页服务工作，见[`flask_app.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/flask_app.py)中的 `ParamFlask(Node)`。map relay 和 navigation relay 是职责更单一的节点，分别见[`map_relay.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/map_relay.py)和[`nav_relays.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/nav_relays.py)。
 
 ## Topic
 
@@ -46,8 +46,8 @@ Map 页面通过 [`NavStatus.jsx`](../../web/src/components/NavStatus.jsx)订阅
 
 Launch file 是启动一组 nodes 并加载对应配置的 Python script，无需在不同 terminal 中逐个手动启动。本工作区采用分层 launch 结构：
 
-- [`new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)启动 UI 侧的 Flask、rosbridge 和 relay nodes。
-- [`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)额外启动 Route/map 文件操作和 waypoint navigation 等可选辅助节点。
+- [`new_ui_launch.py`](../../ros2/src/robotpilot_ui_package/launch/new_ui_launch.py)启动 UI 侧的 Flask、rosbridge 和 relay nodes。
+- [`physnode_launch.py`](../../ros2/src/robotpilot_ui_package/launch/physnode_launch.py)额外启动 Route/map 文件操作和 waypoint navigation 等可选辅助节点。
 
 这些 launch files 属于 UI 工作区。机器人、Nav2 和 drivers 由独立的机器人/仿真工作区负责启动（见[课程 01](01-what-is-this-ui.md#the-two-workspace-model)）。
 

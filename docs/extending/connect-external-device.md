@@ -4,7 +4,7 @@
 
 ## 1. 定义或复用 ROS topic
 
-确定设备要发布的 topic name 和 message type；如果是 actuator，则确定 UI 要发布命令的 topic。优先复用标准 message type（`std_msgs`、`sensor_msgs`、`geometry_msgs` 等），不要轻易创建新类型。若没有合适的标准类型，可以在[`ros2/src/openamr_ui_msgs/msg/`](../../ros2/src/openamr_ui_msgs/msg/)中新增 custom message，与现有的 `ArrayPoseStampedWithCovariance.msg` 放在一起。
+确定设备要发布的 topic name 和 message type；如果是 actuator，则确定 UI 要发布命令的 topic。优先复用标准 message type（`std_msgs`、`sensor_msgs`、`geometry_msgs` 等），不要轻易创建新类型。若没有合适的标准类型，可以在[`ros2/src/robotpilot_ui_msgs/msg/`](../../ros2/src/robotpilot_ui_msgs/msg/)中新增 custom message，与现有的 `ArrayPoseStampedWithCovariance.msg` 放在一起。
 
 这一步完全在机器人/仿真侧完成。本 UI 工作区不定义设备发布什么，只负责消费相应数据。
 
@@ -13,9 +13,9 @@
 先问：**topic 是否为 TRANSIENT_LOCAL（latched），或是否可能在浏览器订阅前就已发布？**如果是，浏览器 client 通过 rosbridge 连接时可能收不到消息。`/map` 和 AMCL pose 也有同样的问题，详细说明见[课程 04](../lessons/04-data-flow-and-relays.md)。
 
 - **如果 topic 是持续发布的普通 VOLATILE stream**（大多数 sensor data，例如 laser scans、持续更新的 odometry-like readings），跳过此步骤，在第 3 步直接从面板订阅。
-- **如果 topic 是 latched、低频发布或类似 status 的数据**（例如单次发布的 configuration message，或只偶尔变化的状态），新增一个 relay node。单 topic 可参考[`ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)；在同一个 node 中处理多个 topics 可参考[`ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py)。浏览器侧 topic 建议使用 `/ui/` 前缀，遵循现有约定。例如，新设备 topic `/battery_temperature` 只有在确实需要 QoS conversion 时才转发为 `/ui/battery_temperature`；否则直接使用 `/battery_temperature`。
+- **如果 topic 是 latched、低频发布或类似 status 的数据**（例如单次发布的 configuration message，或只偶尔变化的状态），新增一个 relay node。单 topic 可参考[`ros2/src/robotpilot_ui_package/robotpilot_ui_package/map_relay.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/map_relay.py)；在同一个 node 中处理多个 topics 可参考[`ros2/src/robotpilot_ui_package/robotpilot_ui_package/nav_relays.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/nav_relays.py)。浏览器侧 topic 建议使用 `/ui/` 前缀，遵循现有约定。例如，新设备 topic `/battery_temperature` 只有在确实需要 QoS conversion 时才转发为 `/ui/battery_temperature`；否则直接使用 `/battery_temperature`。
 
-在[`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)中注册新增的 relay node，参照已有的 `map_relay`/`nav_relay` `Node(...)` entries。它应属于同一个 package；`executable` name 必须与添加到该 package `setup.py` entry points 中的名称一致。
+在[`ros2/src/robotpilot_ui_package/launch/new_ui_launch.py`](../../ros2/src/robotpilot_ui_package/launch/new_ui_launch.py)中注册新增的 relay node，参照已有的 `map_relay`/`nav_relay` `Node(...)` entries。它应属于同一个 package；`executable` name 必须与添加到该 package `setup.py` entry points 中的名称一致。
 
 ## 3. 在 frontend constants file 中声明 topic name
 
@@ -41,7 +41,7 @@ export const AppConfig = {
 ## 5. 端到端确认
 
 1. 启动机器人/仿真工作区，并让设备（实体设备或模拟设备）开始发布。
-2. 启动本 UI 工作区（`ros2 launch openamr_ui_bringup ui.launch.py`，完整启动说明见主 [README](../../README.md)）。
+2. 启动本 UI 工作区（`ros2 launch robotpilot_ui_bringup ui.launch.py`，完整启动说明见主 [README](../../README.md)）。
 3. 如果新增了 relay，先确认 relay 正在运行，并检查浏览器侧 topic 是否有数据，再排查 frontend：
    ```bash
    ros2 node list | grep <your_relay_node_name>

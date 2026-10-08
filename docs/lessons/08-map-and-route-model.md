@@ -25,13 +25,13 @@ Group        （例如 "Warehouse"、"Welcome"）
 ## 文件实际存放位置
 
 ```text
-ros2/src/openamr_ui_package/maps/<group>/<map>.yaml       # 标准 ROS map_server YAML
-ros2/src/openamr_ui_package/maps/<group>/<map>.png        # occupancy grid 图像
-ros2/src/openamr_ui_package/maps/<group>/<map>_ros.yaml   # 每张 map 的 launch 参数覆盖文件
-ros2/src/openamr_ui_package/paths/<group>/<map>/<route>.csv
+ros2/src/robotpilot_ui_package/maps/<group>/<map>.yaml       # 标准 ROS map_server YAML
+ros2/src/robotpilot_ui_package/maps/<group>/<map>.png        # occupancy grid 图像
+ros2/src/robotpilot_ui_package/maps/<group>/<map>_ros.yaml   # 每张 map 的 launch 参数覆盖文件
+ros2/src/robotpilot_ui_package/paths/<group>/<map>/<route>.csv
 ```
 
-文件夹说明见[`maps/README.md`](../../ros2/src/openamr_ui_package/maps/README.md)和[`paths/README.md`](../../ros2/src/openamr_ui_package/paths/README.md)。重命名 map（`folders_handler.py` 的 `rename_map_func`）需要处理三个 map files，并移动对应的 route folder。这说明此操作由专门的 backend node 管理更合适，不应让 frontend 通过通用文件 API 调用 `os.rename`：保持四条相关路径一致，需要由一个明确的负责人完成。
+文件夹说明见[`maps/README.md`](../../ros2/src/robotpilot_ui_package/maps/README.md)和[`paths/README.md`](../../ros2/src/robotpilot_ui_package/paths/README.md)。重命名 map（`folders_handler.py` 的 `rename_map_func`）需要处理三个 map files，并移动对应的 route folder。这说明此操作由专门的 backend node 管理更合适，不应让 frontend 通过通用文件 API 调用 `os.rename`：保持四条相关路径一致，需要由一个明确的负责人完成。
 
 route CSV 的每一行代表一个 waypoint：位置（`x,y,z`）、四元数形式的方向（`x,y,z,w`）、三个预留数值字段，以及结尾的 “purpose” 标记，共 11 个逗号分隔值。Route 页面和 `folders_handler.py` 需要遵循这一格式；UI 其他部分不会直接读取 route CSV。
 
@@ -41,7 +41,7 @@ route CSV 的每一行代表一个 waypoint：位置（`x,y,z`）、四元数形
 任一时刻只有一张 map 和一条 route 处于 active 状态；它们显示在 Route 页面，并由[`waypoint_nav.py`](05-backend-nodes-in-detail.md#waypoint_navpy--a-second-subscriber-on-the-same-topic)使用。状态保存在唯一文件中：
 
 ```text
-ros2/src/openamr_ui_package/param/current_map_route.yaml
+ros2/src/robotpilot_ui_package/param/current_map_route.yaml
 ```
 
 其中有 `map_file` 和 `route_file` 两个 key，各自保存完整文件系统路径。每项操作（`Change`、`Save`、`Delete`，以及打开 Route 页面）都会读取或重写此文件。Route 页面标题中显示的 `Group`/`Map`/`Route` 名称不会另行保存，而是从当前文件路径末尾拆分得出（参见 `folders_handler.py` 中的 `get_paths()`）。

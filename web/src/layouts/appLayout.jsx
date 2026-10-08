@@ -5,29 +5,16 @@ import Logs from "../components/Logs";
 import NotificationsWatcher from "../components/NotificationsWatcher";
 import EventRecorder from "../components/EventRecorder";
 import SchedulerRunner from "../components/SchedulerRunner";
-import MissionRunner from "../components/MissionRunner";
+import MissionClient from "../components/MissionClient";
 import StatusBar from "../components/StatusBar";
 import AuthModeBanner from "../components/AuthModeBanner";
 import ReplayModeBanner from "../components/ReplayModeBanner";
 import HelpWidget from "../components/HelpWidget";
-import OnboardingWizard from "../components/OnboardingWizard";
-import { INSPECTION_PROFILE } from "../shared/robot/robotContract";
 import { useT } from "../shared/i18n/i18n";
-
-const ONBOARDING_SEEN_KEY = "openamrOnboardingSeen";
 
 const AppLayout = () => {
   const { t } = useT();
   const [showLogs, setShowLogs] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => localStorage.getItem(ONBOARDING_SEEN_KEY) !== "true",
-  );
-  const [autoStartTour, setAutoStartTour] = useState(false);
-
-  const closeOnboarding = () => {
-    setShowOnboarding(false);
-    localStorage.setItem(ONBOARDING_SEEN_KEY, "true");
-  };
 
   return (
     <div className="app-bg flex min-h-screen flex-col text-textWhiteHover md:pl-56">
@@ -42,7 +29,7 @@ const AppLayout = () => {
       <NotificationsWatcher />
       <EventRecorder />
       <SchedulerRunner />
-      {!INSPECTION_PROFILE && <MissionRunner />}
+      <MissionClient />
       <main
         id="main-content"
         className="mx-auto min-h-0 w-full max-w-[1600px] flex-1 px-3 pb-4 sm:px-4 lg:px-6"
@@ -52,16 +39,7 @@ const AppLayout = () => {
         <Outlet />
       </main>
 
-      <HelpWidget
-        onReplayOnboarding={() => setShowOnboarding(true)}
-        autoStartTour={autoStartTour}
-        onTourStarted={() => setAutoStartTour(false)}
-      />
-      <OnboardingWizard
-        open={showOnboarding}
-        onClose={closeOnboarding}
-        onRequestTour={() => setAutoStartTour(true)}
-      />
+      <HelpWidget />
 
       {showLogs && (
         <section

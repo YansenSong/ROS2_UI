@@ -32,6 +32,12 @@ export const RuntimeConfigContext = createContext({
   config: loadRuntimeConfig(),
   updateConfig: () => {},
 });
+export const AuthContext = createContext({
+  mode: "open",
+  identity: null,
+  authReady: false,
+  setIdentity: () => {},
+});
 
 // Standard way for a panel/page to reach the shared ROS connection — see
 // docs/extending/add-a-ui-panel.md. One ROSLIB.Ros instance is created here
@@ -44,8 +50,51 @@ export const useRosStatus = () => useContext(RosStatusContext);
 export const useRuntimeConfig = () => useContext(RuntimeConfigContext);
 
 const App = () => {
+  const configuredAuthMode = import.meta.env.VITE_AUTH_MODE;
   const [ros] = useState(new window.ROSLIB.Ros());
   const [status, setStatus] = useState("disconnected");
+  const [authMode, setAuthMode] = useState(
+    configuredAuthMode === "open" ? "open" : "unknown",
+  );
+  const [identity, setIdentity] = useState(null);
+  const [authReady, setAuthReady] = useState(configuredAuthMode === "open");
+
+  useEffect(() => {
+    if (configuredAuthMode === "open") return undefined;
+    let active = true;
+    const apiBase =
+      window.location.port === "3000"
+        ? `http://${window.location.hostname}:5050`
+        : "";
+    const loadIdentity = async () => {
+      try {
+        const statusResponse = await fetch(`${apiBase}/api/auth/status`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!statusResponse.ok) throw new Error("Authentication status unavailable");
+        const auth = await statusResponse.json();
+        if (!active) return;
+        setAuthMode(auth.mode);
+        if (auth.mode === "local") {
+          const meResponse = await fetch(`${apiBase}/api/v1/auth/me`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (meResponse.ok) setIdentity(await meResponse.json());
+        }
+      } catch (error) {
+        if (active) setAuthMode("unavailable");
+        console.error("Unable to load authentication state", error);
+      } finally {
+        if (active) setAuthReady(true);
+      }
+    };
+    loadIdentity();
+    return () => {
+      active = false;
+    };
+  }, [configuredAuthMode]);
 
   const [runtimeConfig, setRuntimeConfig] = useState(() => loadRuntimeConfig());
 
@@ -90,13 +139,27 @@ const App = () => {
   const { rosbridgeHost, rosbridgePort } = runtimeConfig;
 
   const tryToConnect = useCallback(async () => {
+    if (!authReady || !["open", "local"].includes(authMode)) return;
+    if (authMode === "local" && !identity) return;
     const host = resolveRosbridgeHost({ rosbridgeHost });
     try {
-      ros.connect("ws://" + host + ":" + rosbridgePort);
+      if (authMode === "local") {
+        const localPage =
+          ["3000", "5050"].includes(window.location.port) &&
+          ["127.0.0.1", "localhost"].includes(window.location.hostname);
+        const gatewayUrl = localPage
+          ? `ws://${host}:9091`
+          : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${
+              window.location.host
+            }/rosbridge`;
+        ros.connect(gatewayUrl);
+      } else if (authMode === "open") {
+        ros.connect("ws://" + host + ":" + rosbridgePort);
+      }
     } catch (err) {
       console.log("Connecting error", err);
     }
-  }, [ros, rosbridgeHost, rosbridgePort]);
+  }, [ros, rosbridgeHost, rosbridgePort, authReady, authMode, identity]);
 
   useEffect(() => {
     let reconnectTimeout = null;
@@ -140,11 +203,15 @@ const App = () => {
   return (
     <RuntimeConfigContext.Provider value={runtimeConfigValue}>
       <ThemeContext.Provider value={themeValue}>
-        <RosContext.Provider value={ros}>
-          <RosStatusContext.Provider value={status}>
-            <Routes />
-          </RosStatusContext.Provider>
-        </RosContext.Provider>
+        <AuthContext.Provider
+          value={{ mode: authMode, identity, authReady, setIdentity }}
+        >
+          <RosContext.Provider value={ros}>
+            <RosStatusContext.Provider value={status}>
+              <Routes />
+            </RosStatusContext.Provider>
+          </RosContext.Provider>
+        </AuthContext.Provider>
       </ThemeContext.Provider>
     </RuntimeConfigContext.Provider>
   );

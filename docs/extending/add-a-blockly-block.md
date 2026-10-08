@@ -8,7 +8,7 @@
 
 ```js
 {
-  type: "openamr_beep",
+  type: "robotpilot_beep",
   message0: "beep robot",
   previousStatement: null,
   nextStatement: null,
@@ -20,7 +20,7 @@
 接着在同一文件的 `blockToAction` 中添加对应 case，将已连接的 block 转换为 Generated Plan 中的普通 action object：
 
 ```js
-case "openamr_beep":
+case "robotpilot_beep":
   return { type: "beep" };
 ```
 
@@ -31,7 +31,7 @@ case "openamr_beep":
 编辑[`web/src/features/blocks/toolbox.js`](../../web/src/features/blocks/toolbox.js)，在对应类别下添加一项（Program、Navigation、Motion、Docking 或 Robot State，见[课程 09](../lessons/09-blockly-programming.md#block-categories-at-a-glance)）：
 
 ```js
-{ kind: "block", type: "openamr_beep" }
+{ kind: "block", type: "robotpilot_beep" }
 ```
 
 如果没有这一步，block 虽然已经定义，但不会出现在左侧 sidebar 中。
@@ -56,11 +56,11 @@ case "beep":
 重新构建 frontend 并安装，确保 Flask 提供更新后的 bundle。与 `npm run dev` 不同，生产环境的 Flask server 不会对 Blockly code 执行 hot reload：
 
 ```bash
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 cd ros2
-colcon build --packages-select openamr_ui_package
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 

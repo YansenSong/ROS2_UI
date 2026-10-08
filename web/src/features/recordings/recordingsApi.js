@@ -1,16 +1,21 @@
 const API_BASE = window.location.port === "3000" ? "http://127.0.0.1:5050" : "";
+import { apiFetch } from "../../shared/api/apiFetch";
 
 const readJsonResponse = async (response) => {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || data.description || "Something went wrong talking to the robot. Try again.");
+    throw new Error(
+      data.message ||
+        data.description ||
+        "Something went wrong talking to the robot. Try again.",
+    );
   }
   return data;
 };
 
 const postJson = async (path, body) =>
   readJsonResponse(
-    await fetch(`${API_BASE}${path}`, {
+    await apiFetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body || {}),
@@ -18,10 +23,12 @@ const postJson = async (path, body) =>
   );
 
 export const fetchRecordings = async () =>
-  readJsonResponse(await fetch(`${API_BASE}/api/recordings`, { cache: "no-store" }));
+  readJsonResponse(await apiFetch("/api/recordings", { cache: "no-store" }));
 
 export const fetchRecordingsStatus = async () =>
-  readJsonResponse(await fetch(`${API_BASE}/api/recordings/status`, { cache: "no-store" }));
+  readJsonResponse(
+    await apiFetch("/api/recordings/status", { cache: "no-store" }),
+  );
 
 export const startRecording = ({ name, description, topics }) =>
   postJson("/api/recordings/start", { name, description, topics });
@@ -41,7 +48,7 @@ export const downloadRecording = (id) => {
 
 export const deleteRecording = async (id) =>
   readJsonResponse(
-    await fetch(`${API_BASE}/api/recordings/${encodeURIComponent(id)}`, {
+    await apiFetch(`/api/recordings/${encodeURIComponent(id)}`, {
       method: "DELETE",
     }),
   );

@@ -38,7 +38,7 @@ const SupportPackageButton = ({ health }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `openamr-support-${Date.now()}.json`;
+      a.download = `robotpilot-support-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(t("Support package downloaded"));

@@ -3,14 +3,11 @@ import {
   CAMERA_TOPIC_OPTIONS,
   DEFAULT_CAMERA_TOPIC,
 } from "../shared/constants/index";
-import { resolveRosbridgeHost } from "../shared/constants/runtimeConfig";
-import { useRuntimeConfig } from "../app/App";
 import { EmptyState, LoadingSkeleton } from "../shared/ui/Dashboard";
 import { useT } from "../shared/i18n/i18n";
 
 const Camera = () => {
   const { t } = useT();
-  const { config } = useRuntimeConfig();
   const [videoSrc, setVideoSrc] = useState("");
   const [topic, setTopic] = useState(DEFAULT_CAMERA_TOPIC);
   const [quality, setQuality] = useState("balanced");
@@ -23,13 +20,18 @@ const Camera = () => {
   };
 
   const tryToConnectToCamera = useCallback(async () => {
-    const ip = resolveRosbridgeHost(config);
     const profile = streamProfiles[quality] || streamProfiles.balanced;
-    const videoSrcString = `http://${ip}:${config.cameraPort}/stream?topic=${topic}&type=mjpeg&quality=${profile.quality}&width=${profile.width}&height=${profile.height}`;
+    const params = new URLSearchParams({
+      topic,
+      quality: String(profile.quality),
+      width: String(profile.width),
+      height: String(profile.height),
+    });
+    const videoSrcString = `/api/camera/stream?${params}`;
     setStatus("loading");
     setVideoSrc(videoSrcString);
     // 有意不将 streamProfiles 放入依赖项：它每次渲染都会创建新的对象字面量，但其值是静态的，因此无需作为依赖。
-  }, [quality, topic, config]);
+  }, [quality, topic]);
 
   useEffect(() => {
     setVideoSrc("");

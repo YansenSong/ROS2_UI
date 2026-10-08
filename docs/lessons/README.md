@@ -1,4 +1,4 @@
-# OpenAMRobot UI — 课程
+# RobotPilot UI — 课程
 
 本系列按顺序介绍 UI 的实际工作方式。首次使用的操作员应从课程 00 开始。安装、构建、运行和故障排查步骤请参阅
 [仓库根目录 README](../../README.md)。添加功能的实操指南请参阅 [`docs/extending/`](../extending/README.md)。

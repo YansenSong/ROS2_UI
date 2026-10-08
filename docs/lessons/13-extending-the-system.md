@@ -13,7 +13,7 @@
 - 浏览器 dashboard 通过 rosbridge 和 ROS 通信，并共用一个 connection（[课程 01](01-what-is-this-ui.md)、[课程 03](03-how-the-browser-talks-to-ros.md)）。
 - Nodes、topics、messages、services、actions 和 launch files 是 ROS 的基础组成部分（[课程 02](02-ros2-core-concepts.md)）。
 - 机器人侧 topic 的 QoS 不适合迟加入的 browser client 时，使用 robot topic → relay node → browser-safe topic 模式（[课程 04](04-data-flow-and-relays.md)）。
-- `openamr_ui_package` 除 relay 外还运行 Flask web/API server 和 Route 页的两个 backend nodes（[课程 05](05-backend-nodes-in-detail.md)）。
+- `robotpilot_ui_package` 除 relay 外还运行 Flask web/API server 和 Route 页的两个 backend nodes（[课程 05](05-backend-nodes-in-detail.md)）。
 - 了解所有页面以及它们使用的面板（[课程 06](06-the-pages.md)、[课程 07](07-ui-components.md)），并理解 Route 页背后的 group → map → route 文件层级（[课程 08](08-map-and-route-model.md)）。
 - Topic names 是 UI 和机器人之间实际生效、但 compiler 不会检查的 interface，因此应集中定义（[课程 10](10-topics-as-the-contract.md)）。
 - WiFi 断开或进程重启时，哪些内容会出错并自行恢复（[课程 11](11-failure-modes-and-reconnection.md)），以及各层调试时应使用哪些 `ros2` 命令（[课程 12](12-debugging-with-ros-cli.md)）。

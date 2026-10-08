@@ -12,7 +12,7 @@ fi
 
 cd "${WS_DIR}"
 
-INSTALLED_APP_DIR="${WS_DIR}/install/openamr_ui_package/share/openamr_ui_package/app"
+INSTALLED_APP_DIR="${WS_DIR}/install/robotpilot_ui_package/share/robotpilot_ui_package/app"
 if [ -d "${INSTALLED_APP_DIR}" ]; then
   echo "[build_ros] Cleaning stale installed frontend bundle..."
   rm -rf "${INSTALLED_APP_DIR}"

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRos } from "../../app/App";
 import { AppConfig } from "../constants";
 
-const STORAGE_KEY = "openamrMetrics";
+const STORAGE_KEY = "robotpilotMetrics";
 
 // Odometry can jump discontinuously when localization is reset or the robot is
 // teleported in sim — ignore single-step deltas larger than this (metres) so a

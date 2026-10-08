@@ -15,6 +15,7 @@ export const AppConfig = {
   PLAN_TOPIC: "/plan",
   TF_TOPIC: "/tf",
   TF_STATIC_TOPIC: "/tf_static",
+  UI_TF_STATIC_TOPIC: "/ui/tf_static",
   LOCALIZATION_POSE_TOPIC: "/liorf_localization/mapping/odometry",
   LOCALIZATION_POSE_TYPE: "nav_msgs/Odometry",
   NAVIGATION_STATE_TOPIC: "/navigation/state",
@@ -28,6 +29,9 @@ export const AppConfig = {
   UNDOCK_STATUS_TOPIC: "/ui/undock_robot/status",
   UNDOCK_TRIGGER_TOPIC: "/undock_robot",
   GOAL_POSE_TOPIC: "/goal_pose",
+  MISSION_COMMAND_TOPIC: "/mission/command",
+  MISSION_STATE_TOPIC: "/mission/state",
+  MISSION_ACK_TOPIC: "/mission/ack",
   INITIAL_POSE_TOPIC: "/initialpose",
   UI_OPERATION_TOPIC: "/ui_operation",
   UI_MESSAGE_TOPIC: "/ui_message",
@@ -41,7 +45,7 @@ export const AppConfig = {
   // 关节状态遥测（sensor_msgs/JointState），可供其他状态视图使用。
   JOINT_STATES_TOPIC: "/joint_states",
 
-  // Route editor: file/waypoint exchange with openamr_ui_package's folders_handler node
+  // Route editor: file/waypoint exchange with robotpilot_ui_package's folders_handler node
   NAV_DATA_REQ_TOPIC: "/nav_data_req",
   NAV_DATA_RESP_TOPIC: "/nav_data_resp",
   ROUTE_DATA_REQ_TOPIC: "/ackermann/routes/request",
@@ -66,12 +70,9 @@ export const CAMERA_TOPIC_OPTIONS = [
 ];
 export const DEFAULT_CAMERA_TOPIC = "/depth_camera/image_raw";
 
-// Nav2 lifecycle-managed nodes polled/controlled from the Health page.
+// Lifecycle-managed Nav2 nodes launched by the current planning stack.
 // `base` is the ROS node namespace exposing get_state/change_state services.
 export const LIFECYCLE_NODES = [
   { name: "map_server", base: "/map_server" },
-  { name: "amcl", base: "/amcl" },
-  { name: "controller", base: "/controller_server" },
   { name: "planner", base: "/planner_server" },
-  { name: "bt_navigator", base: "/bt_navigator" },
 ];

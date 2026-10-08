@@ -10,12 +10,12 @@
 
 ## 一句话说明
 
-OpenAMRobot UI 是一个浏览器控制台：它是一个 React 应用，用于查看和操作已在其他环境中运行的机器人，但它本身不负责运行机器人。
+RobotPilot UI 是一个浏览器控制台：它是一个 React 应用，用于查看和操作已在其他环境中运行的机器人，但它本身不负责运行机器人。
 
 ## 本仓库包含什么
 
 - React 前端（`web/`），在浏览器中显示地图、相机画面、摇杆、路线编辑器和状态面板。
-- 一组 ROS 2 节点（`ros2/src/openamr_ui_package/`），用于将浏览器接入 **ROS 2 graph**，也就是网络中所有正在运行的 ROS 2 节点组成的系统。节点会相互发现，并通过 topic、service 和 action 交换数据（这些术语见[课程 02](02-ros2-core-concepts.md)）。此工作区中的节点负责提供编译后的 React 应用、将 WebSocket 流量桥接到 ROS topic、通过 HTTP 串流相机图像，以及调整部分 topic，使浏览器客户端能够接收数据。
+- 一组 ROS 2 节点（`ros2/src/robotpilot_ui_package/`），用于将浏览器接入 **ROS 2 graph**，也就是网络中所有正在运行的 ROS 2 节点组成的系统。节点会相互发现，并通过 topic、service 和 action 交换数据（这些术语见[课程 02](02-ros2-core-concepts.md)）。此工作区中的节点负责提供编译后的 React 应用、将 WebSocket 流量桥接到 ROS topic、通过 HTTP 串流相机图像，以及调整部分 topic，使浏览器客户端能够接收数据。
 
 以上就是本仓库的职责。此工作区中的所有内容都是为了将机器人数据送入浏览器，并将 UI 操作传回机器人。理解下方术语后，请参阅[课程 03](03-how-the-browser-talks-to-ros.md#the-chain)中的完整 node/topic 示意图。
 
@@ -35,17 +35,17 @@ OpenAMRobot UI 是一个浏览器控制台：它是一个 React 应用，用于�
 
 | 工作区 | 示例路径 | 职责 |
 | --- | --- | --- |
-| 机器人或仿真工作区 | 例如 `~/openamr-platform-sw` | 机器人/仿真器、Nav2、定位、地图服务器、对接、传感器，以及描述实体机器人的全部 topic |
-| 本 UI 工作区 | `~/openamrobot-ui`（本仓库） | 浏览器控制台、WebSocket 桥接、相机 Web 服务器和少量中继节点 |
+| 机器人或仿真工作区 | 例如 `~/robotpilot-platform-sw` | 机器人/仿真器、Nav2、定位、地图服务器、对接、传感器，以及描述实体机器人的全部 topic |
+| 本 UI 工作区 | `~/robotpilot-ui`（本仓库） | 浏览器控制台、WebSocket 桥接、相机 Web 服务器和少量中继节点 |
 
 应在机器人/仿真工作区之后启动 UI 工作区，让 UI 连接机器人工作区已发布的 topic 和 service。停止 UI 后，机器人仍会继续运行；UI 是查看和控制界面，不是机器人软件栈的依赖项。停止机器人工作区后，UI 会显示“disconnected”或过期数据，因为已没有可观察的数据来源。
 
 ## 源码中的对应位置
 
 两层 ROS 2 launch 分别位于：
-  [`ros2/src/openamr_ui_bringup/launch/ui.launch.py`](../../ros2/src/openamr_ui_bringup/launch/ui.launch.py)
+  [`ros2/src/robotpilot_ui_bringup/launch/ui.launch.py`](../../ros2/src/robotpilot_ui_bringup/launch/ui.launch.py)
   （推荐入口）以及
-  [`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)
+  [`ros2/src/robotpilot_ui_package/launch/new_ui_launch.py`](../../ros2/src/robotpilot_ui_package/launch/new_ui_launch.py)
   （实际启动 Flask、rosbridge、相机服务器和中继节点的文件）。两者都不会启动 Nav2、地图服务器或仿真器。
 
 浏览器入口是

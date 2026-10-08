@@ -1,6 +1,6 @@
 import { AppConfig } from "./index";
 
-const STORAGE_KEY = "openamrRuntimeConfig";
+const STORAGE_KEY = "robotpilotRuntimeConfig";
 
 // Overridable at runtime from the Config page, persisted to localStorage.
 // An empty rosbridgeHost means "auto" — keep the existing behavior of

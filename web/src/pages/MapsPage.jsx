@@ -3,6 +3,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useRos, useRosStatus } from "../app/App";
+import AreaRulesEditor from "../components/AreaRulesEditor";
 import { AppConfig } from "../shared/constants";
 import {
   DashboardCard,
@@ -52,6 +53,8 @@ const MapsPage = () => {
   const [saveForm, setSaveForm] = useState({ group: "", name: "" });
   const [newGroup, setNewGroup] = useState("");
   const [renaming, setRenaming] = useState(null); // {group, map, value}
+  const [editingMap, setEditingMap] = useState(null);
+  const [pendingEdit, setPendingEdit] = useState(null);
 
   const reqRef = useRef(null);
   const respRef = useRef(null);
@@ -154,6 +157,38 @@ const MapsPage = () => {
     );
   };
 
+  const editMap = (group, map) => {
+    if (!connected) return;
+    if (active.group === group && active.map === map) {
+      setEditingMap({ group, map });
+      return;
+    }
+    setPendingEdit({ group, map });
+    switchMap(group, map);
+  };
+
+  useEffect(() => {
+    if (!pendingEdit || active.group !== pendingEdit.group || active.map !== pendingEdit.map) return;
+    setEditingMap(pendingEdit);
+    setPendingEdit(null);
+  }, [active, pendingEdit]);
+
+  useEffect(() => {
+    if (!pendingEdit) return undefined;
+    const timer = window.setTimeout(() => {
+      setPendingEdit(null);
+      toast.error("地图未能在 15 秒内加载，请检查机器人状态后重试");
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [pendingEdit]);
+
+  useEffect(() => {
+    if (editingMap && active.group &&
+      (active.group !== editingMap.group || active.map !== editingMap.map)) {
+      setEditingMap(null);
+    }
+  }, [active, editingMap]);
+
   const saveMap = () => {
     const group = saveForm.group.trim();
     const name = saveForm.name.trim();
@@ -235,6 +270,21 @@ const MapsPage = () => {
   };
 
   const groupNames = groups.map((g) => g.name);
+
+  if (editingMap) {
+    return (
+      <div className="sectionHeight space-y-4 py-4 sm:py-6">
+        <ToastContainer position="bottom-right" theme="dark" />
+        <button onClick={() => setEditingMap(null)}
+          className="rounded-lg border border-borderSubtle px-3 py-1.5 text-xs text-themeBlue hover:border-themeBlue">
+          ← 返回已保存的地图
+        </button>
+        <SectionHeader eyebrow="Map rules" title={`编辑地图：${editingMap.map}`}
+          description={`分组：${editingMap.group} · 当前加载地图的规则将在机器人侧保存。`} />
+        <DashboardCard className="p-4"><AreaRulesEditor /></DashboardCard>
+      </div>
+    );
+  }
 
   return (
     <div className="sectionHeight space-y-5 py-4 sm:py-6">
@@ -434,6 +484,14 @@ const MapsPage = () => {
                                   className="rounded-lg border border-themeBlue px-2 py-1 text-themeBlue hover:bg-themeBlue hover:text-white disabled:opacity-40"
                                 >
                                   {t(isActive ? "Loaded" : "Switch")}
+                                </button>
+                                <button
+                                  onClick={() => editMap(group.name, m.name)}
+                                  disabled={!connected || Boolean(pendingEdit)}
+                                  className="rounded-lg border border-borderSubtle px-2 py-1 text-themeBlue hover:border-themeBlue disabled:opacity-40"
+                                >
+                                  {pendingEdit?.group === group.name && pendingEdit?.map === m.name
+                                    ? "加载中…" : "编辑"}
                                 </button>
                                 <button
                                   onClick={() =>

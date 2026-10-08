@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_BUILD_DIR="${REPO_ROOT}/web/build"
 
-ROS_APP_DIR="${REPO_ROOT}/ros2/src/openamr_ui_package/openamr_ui_package/static/app"
+ROS_APP_DIR="${REPO_ROOT}/ros2/src/robotpilot_ui_package/robotpilot_ui_package/static/app"
 
 if [ ! -f "${WEB_BUILD_DIR}/index.html" ]; then
   echo "ERROR: web build not found: ${WEB_BUILD_DIR}"

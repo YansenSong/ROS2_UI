@@ -80,7 +80,7 @@ export const PAGE_HELP = {
 };
 
 export const DEFAULT_HELP = {
-  title: "OpenAMRobot",
+  title: "RobotPilot",
   summary: "No page-specific help is available here yet.",
   tips: [],
 };

@@ -3,7 +3,7 @@
 // curated set" without duplicating the starter list or the rcl_interfaces
 // value-decoding logic.
 
-export const PARAM_ROWS_STORAGE_KEY = "openamrParamRows";
+export const PARAM_ROWS_STORAGE_KEY = "robotpilotParamRows";
 
 // A starter set of commonly-tuned Nav2 parameters. Exact names depend on the
 // robot's Nav2 config, so every field is editable and the list is persisted —

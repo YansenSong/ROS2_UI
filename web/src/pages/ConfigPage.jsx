@@ -11,7 +11,6 @@ import {
 import { SectionHeader, DashboardCard } from "../shared/ui/Dashboard";
 import Button from "../shared/ui/Button";
 import Switcher from "../shared/ui/Switcher";
-import KeepoutZones from "../components/KeepoutZones";
 import SystemHealth from "../components/SystemHealth";
 import LifecycleStatus from "../components/LifecycleStatus";
 import useSystemDiagnostics, {
@@ -326,23 +325,6 @@ const ConfigPage = () => {
             />
           </Field>
         </div>
-      </DashboardCard>
-
-      <DashboardCard className="p-4">
-        <p className="font-[RobotoMono] text-[11px] font-bold uppercase tracking-[0.14em] text-themeBlue">
-          {t("Keep-out zones")}
-        </p>
-        <p className="mb-3 mt-1 text-sm font-semibold text-statusYellow">
-          {t(
-            "These zones are visual markers only. They do not stop the robot. Confirm obstacle avoidance with the integrator.",
-          )}
-        </p>
-        <p className="mb-3 text-sm text-themeTextGray">
-          {t(
-            "Rectangular no-go areas are drawn on the map. Toggle them with the Zones layer.",
-          )}
-        </p>
-        <KeepoutZones />
       </DashboardCard>
 
       <div className="grid grid-cols-2 gap-3 sm:max-w-sm">

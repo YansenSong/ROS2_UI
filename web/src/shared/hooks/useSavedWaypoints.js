@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const SAVED_WAYPOINTS_KEY = "openamrSavedWaypoints";
+export const SAVED_WAYPOINTS_KEY = "robotpilotSavedWaypoints";
 
 export const loadWaypoints = () => {
   try {

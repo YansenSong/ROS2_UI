@@ -12,7 +12,7 @@
 
 ## Blockly 是什么
 
-Blockly 是可视化编程编辑器：用户将 blocks 拖到 workspace 中并连接起来，不必编写代码。Blocks 页面（[`web/src/pages/BlocksPage.jsx`](../../web/src/pages/BlocksPage.jsx)）提供 OpenAMR 专用 blocks，例如 navigation、wait、drive 和 dock，让非程序员也能构建“去某处、等待、然后 dock”这样的机器人程序，无需编写 JavaScript 或手动发送 ROS messages。这与本 UI 的目标一致（[课程 01](01-what-is-this-ui.md)）：让用户通过友好界面完成原本需要手工发布 ROS messages 的操作。
+Blockly 是可视化编程编辑器：用户将 blocks 拖到 workspace 中并连接起来，不必编写代码。Blocks 页面（[`web/src/pages/BlocksPage.jsx`](../../web/src/pages/BlocksPage.jsx)）提供 RobotPilot 专用 blocks，例如 navigation、wait、drive 和 dock，让非程序员也能构建“去某处、等待、然后 dock”这样的机器人程序，无需编写 JavaScript 或手动发送 ROS messages。这与本 UI 的目标一致（[课程 01](01-what-is-this-ui.md)）：让用户通过友好界面完成原本需要手工发布 ROS messages 的操作。
 
 ## 页面布局
 
@@ -116,7 +116,7 @@ planToWorkspace()（blockDefinitions.js）将计划转换为实际 Blockly block
 更新 workspace：使用相同的 Generated Plan、Plan Checks 和 Run button
 ```
 
-有两点设计需要理解。Claude 只能输出现有 blocks 已定义的 action types：[`flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)中的 `/api/voice-plan` endpoint 会使用固定 schema 发起 tool call，并丢弃不匹配的内容，因此语音不能创造 executor 不认识的新 action。其次，Voice Command 只会**创建** blocks，不会自行运行；生成的 plan 仍需要手动按 `Run`，并通过与其他程序相同的 Plan Checks。
+有两点设计需要理解。Claude 只能输出现有 blocks 已定义的 action types：[`flask_app.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/flask_app.py)中的 `/api/voice-plan` endpoint 会使用固定 schema 发起 tool call，并丢弃不匹配的内容，因此语音不能创造 executor 不认识的新 action。其次，Voice Command 只会**创建** blocks，不会自行运行；生成的 plan 仍需要手动按 `Run`，并通过与其他程序相同的 Plan Checks。
 
 浏览器支持、secure-origin microphone 要求、API key、wake-word 行为和故障排查见实操指南中的[Voice Command 章节](../../web/src/features/blocks/README.md#voice-command)。
 

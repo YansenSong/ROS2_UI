@@ -13,7 +13,7 @@ const TOPIC_FRIENDLY_NAMES = {
   odom: "Odometry",
   scan: "Laser scan",
   map: "Map",
-  amcl: "Localization",
+  localization: "Localization",
   nav2: "Navigation",
   costmap: "Global costmap",
   plan: "Path plan",
@@ -32,7 +32,7 @@ const EXPECTED_TOPICS = [
   { topic: AppConfig.JOINT_STATES_TOPIC, label: "Joint states" },
 ];
 
-const CRITICAL_TOPIC_KEYS = new Set(["odom", "scan", "map", "amcl"]);
+const CRITICAL_TOPIC_KEYS = new Set(["odom", "scan", "map", "localization"]);
 
 const DIAGNOSTIC_LEVEL_LABEL = { 1: "WARN", 2: "ERROR", 3: "STALE" };
 
@@ -45,6 +45,9 @@ export const OVERALL_LABELS = {
 
 const RECONNECT_TOPICS_INTERVAL_MS = 20000;
 const FAULT_LOG_LIMIT = 30;
+const DIAGNOSTIC_STALE_MS = 5000;
+const FAULT_STARTUP_GRACE_MS = 10000;
+const FAULT_CONFIRM_MS = 3000;
 
 /**
  * Aggregates every health signal this app already computes elsewhere
@@ -71,7 +74,7 @@ export default function useSystemDiagnostics() {
   const [tfLinks, setTfLinks] = useState({});
   const [lifecycle, setLifecycle] = useState({});
   const [battery, setBattery] = useState({ pct: null, charging: false });
-  const [diagnosticsMsgs, setDiagnosticsMsgs] = useState([]);
+  const [diagnosticsByName, setDiagnosticsByName] = useState({});
   const [missingTopics, setMissingTopics] = useState([]);
   const [faultLog, setFaultLog] = useState([]);
 
@@ -116,6 +119,7 @@ export default function useSystemDiagnostics() {
   // to it — best-effort, absence just means "no diagnostic_updater sources",
   // not an error.
   useEffect(() => {
+    setDiagnosticsByName({});
     if (!ros || !window.ROSLIB) return;
 
     const topic = new window.ROSLIB.Topic({
@@ -125,19 +129,63 @@ export default function useSystemDiagnostics() {
       queue_length: 1,
     });
     topic.subscribe((msg) => {
-      setDiagnosticsMsgs(
-        (msg?.status || [])
-          .filter((entry) => entry.level >= 1)
-          .map((entry) => ({
-            name: entry.name,
-            message: entry.message,
-            level: entry.level,
-          })),
-      );
+      const now = Date.now();
+      setDiagnosticsByName((previous) => {
+        const next = { ...previous };
+        for (const entry of msg?.status || []) {
+          if (entry.level >= 1) {
+            next[entry.name] = {
+              name: entry.name,
+              message: entry.message,
+              level: entry.level,
+              lastSeen: now,
+            };
+          } else {
+            delete next[entry.name];
+          }
+        }
+        return next;
+      });
     });
 
-    return () => topic.unsubscribe();
+    const expiry = setInterval(() => {
+      const now = Date.now();
+      setDiagnosticsByName((previous) => {
+        if (
+          Object.values(previous).every(
+            (entry) => now - entry.lastSeen < DIAGNOSTIC_STALE_MS,
+          )
+        ) {
+          return previous;
+        }
+        return Object.fromEntries(
+          Object.entries(previous).filter(
+            ([, entry]) => now - entry.lastSeen < DIAGNOSTIC_STALE_MS,
+          ),
+        );
+      });
+    }, 1000);
+
+    return () => {
+      topic.unsubscribe();
+      clearInterval(expiry);
+    };
   }, [ros]);
+
+  const diagnosticsMsgs = useMemo(
+    () =>
+      Object.values(diagnosticsByName).filter(
+        (entry) =>
+          // The EKF's frequency diagnostic can report zero events while its
+          // odometry publisher is demonstrably streaming through rosbridge.
+          !(
+            health.odom === "online" &&
+            entry.name === "ekf_filter_node: odometry/filtered topic status" &&
+            entry.message === "No events recorded."
+          ),
+      ),
+    [diagnosticsByName, health.odom],
+  );
 
   // Best-effort rosapi check for whether this app's expected topics are
   // currently in the ROS graph at all. If rosapi itself isn't reachable,
@@ -257,9 +305,9 @@ export default function useSystemDiagnostics() {
       }
     });
 
-    diagnosticsMsgs.forEach((entry, index) => {
+    diagnosticsMsgs.forEach((entry) => {
       list.push({
-        id: `diagnostic-${index}-${entry.name}`,
+        id: `diagnostic-${entry.name}`,
         severity: entry.level >= 2 ? 2 : 1,
         message: `${entry.name}: ${entry.message} (${
           DIAGNOSTIC_LEVEL_LABEL[entry.level] || entry.level
@@ -295,20 +343,44 @@ export default function useSystemDiagnostics() {
     ? Math.max(...issues.map((i) => i.severity))
     : 0;
 
-  // Recent faults: log an entry the first time an issue appears that wasn't
-  // present a moment ago — a session-only record of "what newly went wrong
-  // and when", not a persisted fault database.
+  // Build a baseline while ROS subscriptions and lifecycle polls settle. Only
+  // record new faults that persist, so startup ordering and one failed poll do
+  // not become permanent entries in this session's history.
+  const faultLogStartedAt = useRef(Date.now());
   const knownIssueIds = useRef(new Set());
+  const pendingIssueSince = useRef(new Map());
   useEffect(() => {
+    const now = Date.now();
     const currentIds = new Set(issues.map((i) => i.id));
-    const newOnes = issues.filter((i) => !knownIssueIds.current.has(i.id));
-    knownIssueIds.current = currentIds;
-    if (newOnes.length === 0) return;
+    if (now - faultLogStartedAt.current < FAULT_STARTUP_GRACE_MS) {
+      knownIssueIds.current = currentIds;
+      pendingIssueSince.current.clear();
+      return;
+    }
+
+    for (const id of knownIssueIds.current) {
+      if (!currentIds.has(id)) knownIssueIds.current.delete(id);
+    }
+    for (const id of pendingIssueSince.current.keys()) {
+      if (!currentIds.has(id)) pendingIssueSince.current.delete(id);
+    }
+
+    const confirmed = issues.filter((issue) => {
+      if (knownIssueIds.current.has(issue.id)) return false;
+      const firstSeen = pendingIssueSince.current.get(issue.id) ?? now;
+      pendingIssueSince.current.set(issue.id, firstSeen);
+      if (now - firstSeen < FAULT_CONFIRM_MS) return false;
+      pendingIssueSince.current.delete(issue.id);
+      knownIssueIds.current.add(issue.id);
+      return true;
+    });
+    if (confirmed.length === 0) return;
 
     setFaultLog((prev) =>
       [
-        ...newOnes.map((issue) => ({
-          time: Date.now(),
+        ...confirmed.map((issue) => ({
+          id: issue.id,
+          time: now,
           message: issue.message,
           severity: issue.severity,
         })),

@@ -168,7 +168,7 @@ const SystemHealth = ({ compact = false, onHealthChange }) => {
     });
     const tfStaticTopic = new window.ROSLIB.Topic({
       ros,
-      name: AppConfig.TF_STATIC_TOPIC,
+      name: AppConfig.UI_TF_STATIC_TOPIC,
       messageType: "tf2_msgs/TFMessage",
       throttle_rate: 1000,
       queue_length: 1,
@@ -244,7 +244,7 @@ const SystemHealth = ({ compact = false, onHealthChange }) => {
     const compactItems = [
       ["tfChain", "Position", "Position tracking (TF)"],
       ["odom", "Motion", "Odometry"],
-      ["amcl", "Locate", "Localization (AMCL)"],
+      ["localization", "Locate", "Localization"],
       ["nav2", "Navigate", "Navigation (Nav2)"],
       ["map", "Map", "Map"],
       ["scan", "Laser", "Laser Scan"],

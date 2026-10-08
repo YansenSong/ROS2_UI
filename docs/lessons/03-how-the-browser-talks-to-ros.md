@@ -57,7 +57,7 @@ roslibjs  <---- WebSocket ----> rosbridge_websocket
 
 ## Flask 的独立职责：提供网页
 
-开始 ROS 通信前，浏览器必须先通过 HTTP 加载 React 应用的 HTML、JS 和 CSS。这项工作由 Flask 节点完成：[`ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py)。它负责提供编译后的 React build 和少量 HTTP API。Flask 负责把网页送到浏览器；网页加载后，rosbridge 才负责让它与 ROS 通信。两者是不同的服务器，使用不同端口。
+开始 ROS 通信前，浏览器必须先通过 HTTP 加载 React 应用的 HTML、JS 和 CSS。这项工作由 Flask 节点完成：[`ros2/src/robotpilot_ui_package/robotpilot_ui_package/flask_app.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/flask_app.py)。它负责提供编译后的 React build 和少量 HTTP API。Flask 负责把网页送到浏览器；网页加载后，rosbridge 才负责让它与 ROS 通信。两者是不同的服务器，使用不同端口。
 
 <a id="the-camera-stream-is-a-third-separate-path"></a>
 ## Camera stream 使用第三条独立链路

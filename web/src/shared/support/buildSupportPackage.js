@@ -2,7 +2,7 @@ import packageJson from "../../../package.json";
 import { getEvents } from "../events/eventLog";
 import { loadParamRows, readParamValue } from "../constants/navParams";
 
-const METRICS_STORAGE_KEY = "openamrMetrics";
+const METRICS_STORAGE_KEY = "robotpilotMetrics";
 const PARAM_READ_TIMEOUT_MS = 2500;
 const RECENT_EVENTS_LIMIT = 50;
 

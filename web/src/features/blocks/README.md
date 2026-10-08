@@ -1,4 +1,4 @@
-# OpenAMR Blockly Guide
+# RobotPilot Blockly Guide
 
 This guide is the practical reference for the Blockly robot programming page:
 setup, the full block-by-block reference, example programs, and
@@ -152,7 +152,7 @@ web/src/features/blocks/voicePlan.js
 | File                   | Purpose                                                                                 |
 | ---------------------- | --------------------------------------------------------------------------------------- |
 | `BlocksPage.jsx`       | Shows the Blockly workspace, toolbar, sidebar panels, Run/Stop buttons, and plan status |
-| `blockDefinitions.js`  | Defines custom OpenAMR blocks, converts blocks into plan actions, and converts a plan back into Blockly JSON via `planToWorkspace()` |
+| `blockDefinitions.js`  | Defines custom RobotPilot blocks, converts blocks into plan actions, and converts a plan back into Blockly JSON via `planToWorkspace()` |
 | `toolbox.js`           | Controls which block categories and blocks appear in the left sidebar                   |
 | `robotActions.js`      | Executes each generated action by publishing ROS messages or waiting for ROS status     |
 | `backendPrograms.js`   | Calls the backend saved-program API                                                     |
@@ -194,7 +194,7 @@ main project README or your ROS 2 distribution instructions.
 From the repository root:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm install
 ```
 
@@ -205,7 +205,7 @@ If the project already has `package-lock.json` and you want a clean reproducible
 install, use:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm ci
 ```
 
@@ -214,22 +214,22 @@ npm ci
 Use this sequence when setting up Blockly for the first time:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm install
 npm run build
 
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 bash scripts/sync_frontend_to_ros.sh
 
-cd ~/openamrobot-ui/ros2
-colcon build --packages-select openamr_ui_package
+cd ~/robotpilot-ui/ros2
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 
 Then start the UI:
 
 ```bash
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 Open:
@@ -243,7 +243,7 @@ http://127.0.0.1:5050/blocks
 Use this while editing React or Blockly code:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm run dev
 ```
 
@@ -265,7 +265,7 @@ Use development mode when you are editing code. Use Flask mode
 From the frontend folder:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm run build
 ```
 
@@ -287,18 +287,18 @@ React source files. This means editing `web/src` alone is not enough for the
 After changing Blockly code, use this full update flow:
 
 ```bash
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 cd ros2
-colcon build --packages-select openamr_ui_package
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 
 Then stop the old UI launch if it is already running, and start it again:
 
 ```bash
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 Open:
@@ -328,10 +328,10 @@ If you previously built an older frontend and the browser still loads an old
 JavaScript file, clean only the installed React app and rebuild:
 
 ```bash
-cd ~/openamrobot-ui
-rm -rf ros2/install/openamr_ui_package/share/openamr_ui_package/app
+cd ~/robotpilot-ui
+rm -rf ros2/install/robotpilot_ui_package/share/robotpilot_ui_package/app
 cd ros2
-colcon build --packages-select openamr_ui_package
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 
@@ -859,22 +859,22 @@ Use this block only if your ROS-side system listens for these mode strings on
 Use this checklist every time, especially on a real robot.
 
 1. Start the robot or simulation stack first.
-2. Start the OpenAMR UI launch in a separate terminal:
+2. Start the RobotPilot UI launch in a separate terminal:
 
 ```bash
-cd ~/openamrobot-ui/ros2
+cd ~/robotpilot-ui/ros2
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 If your workspace uses the bringup wrapper instead, this is also valid:
 
 ```bash
-cd ~/openamrobot-ui/ros2
+cd ~/robotpilot-ui/ros2
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-ros2 launch openamr_ui_bringup ui.launch.py
+ros2 launch robotpilot_ui_bringup ui.launch.py
 ```
 
 3. Open the Blockly page:
@@ -991,7 +991,7 @@ The `Named Locations` panel in the right sidebar lets you manage locations:
 Backend locations are stored here:
 
 ```text
-~/.openamr_ui/block_locations.json
+~/.robotpilot_ui/block_locations.json
 ```
 
 Backend API endpoints:
@@ -1256,17 +1256,17 @@ You must say the wake word "Monsieur" before your command (see
   **Settings -> API Keys**. Billing must be enabled on the account; API
   usage is billed separately from a claude.ai subscription.
 
-Easiest setup: copy `ros2/src/openamr_ui_package/.env.example` to `.env` in
+Easiest setup: copy `ros2/src/robotpilot_ui_package/.env.example` to `.env` in
 that same directory and fill in `ANTHROPIC_API_KEY` there. It's gitignored,
 and `new_ui_launch.py` loads it and injects it only into the `flask_app`
 node's process — no shell `export` needed. See
-[launch/README.md](../../../../ros2/src/openamr_ui_package/launch/README.md).
+[launch/README.md](../../../../ros2/src/robotpilot_ui_package/launch/README.md).
 
 Alternatively, export the key in the terminal before launching:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-your-key-here"
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 source /opt/ros/jazzy/setup.bash
 source ros2/install/setup.bash
 bash scripts/run_ui_backend.sh
@@ -1366,7 +1366,7 @@ hand afterward.
 | `/api/voice-plan`  | `POST` | Body `{ transcript, locations }`; returns `{ plan, transcript }`       |
 
 The endpoint is implemented in
-`ros2/src/openamr_ui_package/openamr_ui_package/flask_app.py`. It reads
+`ros2/src/robotpilot_ui_package/robotpilot_ui_package/flask_app.py`. It reads
 `ANTHROPIC_API_KEY` from the process environment, calls the Anthropic
 Messages API with a forced tool call constrained to the block action schema,
 sanitizes the returned actions (unknown action types are dropped, recursively,
@@ -1394,7 +1394,7 @@ the backend and `Clear` to delete the stored history.
 Run history is stored here:
 
 ```text
-~/.openamr_ui/block_run_history.json
+~/.robotpilot_ui/block_run_history.json
 ```
 
 Backend API endpoints:
@@ -1436,7 +1436,7 @@ guide).
 Backend programs are stored as JSON files here:
 
 ```text
-~/.openamr_ui/block_programs/
+~/.robotpilot_ui/block_programs/
 ```
 
 Each saved file contains:
@@ -1469,7 +1469,7 @@ in the toolbar above the workspace in the full-page screenshot near the top
 of this guide):
 
 ```text
-openamr_blockly_workspace
+robotpilot_blockly_workspace
 ```
 
 Top-right buttons:
@@ -1508,13 +1508,13 @@ Robot State
 Fix:
 
 ```bash
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 bash scripts/build_frontend.sh
 bash scripts/sync_frontend_to_ros.sh
 cd ros2
-colcon build --packages-select openamr_ui_package
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 Then hard refresh the browser:
@@ -1527,10 +1527,10 @@ If it still shows the old categories, remove the stale installed app bundle and
 rebuild:
 
 ```bash
-cd ~/openamrobot-ui
-rm -rf ros2/install/openamr_ui_package/share/openamr_ui_package/app
+cd ~/robotpilot-ui
+rm -rf ros2/install/robotpilot_ui_package/share/robotpilot_ui_package/app
 cd ros2
-colcon build --packages-select openamr_ui_package
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 
@@ -1541,14 +1541,14 @@ You are probably in the wrong folder.
 Wrong:
 
 ```bash
-cd ~/openamrobot-ui/ros2
+cd ~/robotpilot-ui/ros2
 npm run build
 ```
 
 Correct:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm run build
 ```
 
@@ -1670,7 +1670,7 @@ Check these in order:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-your-key-here"
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 source /opt/ros/jazzy/setup.bash
 source ros2/install/setup.bash
 bash scripts/run_ui_backend.sh
@@ -1705,7 +1705,7 @@ bash scripts/run_ui_backend.sh
 Frontend development:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm install
 npm run dev
 ```
@@ -1713,36 +1713,36 @@ npm run dev
 Production frontend build:
 
 ```bash
-cd ~/openamrobot-ui/web
+cd ~/robotpilot-ui/web
 npm run build
 ```
 
 Sync frontend into ROS package:
 
 ```bash
-cd ~/openamrobot-ui
+cd ~/robotpilot-ui
 bash scripts/sync_frontend_to_ros.sh
 ```
 
 Build ROS package:
 
 ```bash
-cd ~/openamrobot-ui/ros2
-colcon build --packages-select openamr_ui_package
+cd ~/robotpilot-ui/ros2
+colcon build --packages-select robotpilot_ui_package
 source install/setup.bash
 ```
 
 Run UI:
 
 ```bash
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 Run UI with Voice Command enabled:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-your-key-here"
-ros2 launch openamr_ui_package new_ui_launch.py
+ros2 launch robotpilot_ui_package new_ui_launch.py
 ```
 
 Open Blockly:

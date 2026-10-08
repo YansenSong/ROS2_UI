@@ -60,7 +60,7 @@ Route 编辑页面：为指定 map 创建和管理可复用的命名 waypoint �
 - `GROUP` / `MAP` / `CURRENT ROUTE` 标题会显示当前编辑的 route。保存前请先确认，因为 route 只适用于创建它的 map（见[课程 08](08-map-and-route-model.md)）。
 - **Create** 新建 route，点击地图即可放置 waypoints。**Edit** 重新打开当前 route 以便修改。**Switch route**（旧版称为 “Change”）选择另一条已保存的 route。**Switch map**（旧版称为 “Change map”）切换所用 map。两项操作现使用不同名称，因为切换 map 的影响远大于切换 route。**Auto-plan** 会让 Nav2 计算两点之间的路径，并自动转换为 waypoints。**Save**、**Rename** 和 **Delete** 操作当前 route；**Clear waypoints**（旧版称为 “Clear points”）只清除正在编辑的内容。
 - 它通过 `/nav_data_req`、`/nav_data_resp` 和 `/ui_operation` 与 `folders_handler` backend node 交换文件状态。只有启动可选的
-  [`physnode_launch.py`](../../ros2/src/openamr_ui_package/launch/physnode_launch.py)
+  [`physnode_launch.py`](../../ros2/src/robotpilot_ui_package/launch/physnode_launch.py)
   helper is running (see [Lesson 05](05-backend-nodes-in-detail.md)).
 
 ## Maps — `MapsPage.jsx`
@@ -96,9 +96,10 @@ Map 管理页面：从头创建新 map、保存当前加载的 map，并将已�
 
 
 - mission 是有序的 step list：前往已保存的 waypoint、回到 home、等待 N 秒、dock 或 undock。可用上下箭头调整顺序，也可移除 step。
-- **Run** 会通过 headless
-  [`MissionRunner`](../../web/src/components/MissionRunner.jsx) component
-  执行 mission，每次运行一个 step。它挂载在 `AppLayout` 中，与 Scheduler 一样需要保持浏览器标签页打开。每个 step 完成后会显示 ✓/✗。
+- **Run** 经由
+  [`MissionClient`](../../web/src/components/MissionClient.jsx) 向机器人侧 `ackermann_mission`
+  发送命令。任务定义、顺序执行和 `task_id` 记录保存在机器人侧；浏览器关闭后正在运行的任务会继续。
+  页面提供暂停、恢复、停止、重试和跳过，并显示执行事件。
 - mission 本身也可以作为 Scheduler target：在此页面创建后，即可在[Scheduler 页面](#scheduler--schedulerpagejsx)设置定时运行。
 
 ## Status — `InfoPage.jsx`
@@ -193,7 +194,7 @@ Map 管理页面：从头创建新 map、保存当前加载的 map，并将已�
   **Set** a new one.
 - This calls the same standard `rcl_interfaces` `get_parameters`/
   `set_parameters` services any ROS 2 node exposes ([Lesson 02](02-ros2-core-concepts.md#service))
-  — nothing OpenAMR-specific, just a browser front end for it.
+  — nothing RobotPilot-specific, just a browser front end for it.
 - Changes are **runtime-only**: they revert the moment the target node
   restarts, exactly like running `ros2 param set` by hand would.
 
@@ -232,7 +233,7 @@ Map 管理页面：从头创建新 map、保存当前加载的 map，并将已�
 
 上面多数页面使用相同模式：读取共享 ROS connection（见[课程 10](10-topics-as-the-contract.md)），创建绑定到共享 constants file 中名称的 `ROSLIB.Topic`/`Service` instances，进行 subscribe 或 publish，并在卸载时清理。页面不会自行创建 connection，而是共用[课程 03](03-how-the-browser-talks-to-ros.md)介绍的连接。新增页面或 panel 时请遵循[`docs/extending/add-a-ui-panel.md`](../extending/add-a-ui-panel.md)中的模式。
 
-Scheduler/Missions 通过各自的 runner components（`SchedulerRunner`/`MissionRunner`）使用共享 connection。它们挂载在 `AppLayout` 中，因此离开创建 schedule/mission 的页面后仍会运行。全应用共用一个 connection，页面和 runner 均不自行创建连接。
+`SchedulerRunner` 使用共享 ROS connection，在浏览器打开时触发定时计划；`MissionClient` 使用同一连接发送任务命令并接收机器人状态。两者挂载在 `AppLayout` 中。任务开始后由机器人端继续执行。
 
 ## 试一试
 

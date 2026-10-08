@@ -50,7 +50,7 @@ const EventsPage = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `openamr-events-${Date.now()}.json`;
+    a.download = `robotpilot-events-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -18,14 +18,6 @@ const WATCHED = [
     type: AppConfig.LOCALIZATION_POSE_TYPE,
     timeout: 8000,
   },
-  {
-    key: "plan",
-    label: "No planned path yet",
-    topic: AppConfig.PLAN_TOPIC,
-    type: "nav_msgs/Path",
-    timeout: 20000,
-    warningOnly: true,
-  },
 ];
 
 const SystemAlerts = () => {

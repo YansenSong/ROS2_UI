@@ -37,44 +37,35 @@ const EXPLANATIONS = {
 // 导出此映射，让其他引用相同节点名称的位置（如 Health 页面的问题列表）可以显示统一的易读名称。
 export const FRIENDLY_NAMES = {
   map_server: "Map data",
-  amcl: "Position tracking",
-  controller: "Driving control",
   planner: "Path planning",
-  bt_navigator: "Navigation logic",
 };
 
-// 这四个按钮会同时作用于所有导航节点（整个机器人集群，而非仅当前 UI 标签页对应的机器人）。Deactivate/Cleanup
-// 可能直接停止导航，因此执行前需要确认；Configure/Activate 用于启动或配置功能，不需要确认。
+// These controls affect the map and planner lifecycle nodes used by this stack.
 const ACTION_LABELS = {
   configure: {
     full: "Prepare",
     compact: "Prep",
-    title:
-      "Load configuration for every navigation system so it's ready to start.",
+    title: "Load configuration for the map and path planner.",
   },
   activate: {
     full: "Start",
     compact: "Start",
-    title: "Start every navigation system running.",
+    title: "Activate the map and path planner.",
   },
   deactivate: {
     full: "Pause",
     compact: "Pause",
-    title:
-      "Pause every navigation system. The robot will not respond to drive commands until it's started again.",
+    title: "Pause the map and path planner.",
   },
   cleanup: {
     full: "Reset",
     compact: "Reset",
-    title:
-      "Reset every navigation system back to unconfigured. The robot will not respond to drive commands until it's prepared and started again.",
+    title: "Reset the map and path planner to unconfigured.",
   },
 };
 const CONFIRM_BEFORE = {
-  deactivate:
-    "Pause navigation on every system? The robot will not respond to drive commands until it's started again.",
-  cleanup:
-    "Reset navigation on every system back to unconfigured? The robot will not respond to drive commands until it's prepared and started again.",
+  deactivate: "Pause the map and path planner?",
+  cleanup: "Reset the map and path planner to unconfigured?",
 };
 
 const normalizeState = (label) => (label || "unknown").toLowerCase();

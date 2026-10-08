@@ -1,6 +1,6 @@
 describe("interface language", () => {
   beforeEach(() => {
-    localStorage.removeItem("openamrLangV2");
+    localStorage.removeItem("robotpilotLangV2");
     vi.resetModules();
   });
 
@@ -10,7 +10,7 @@ describe("interface language", () => {
     expect(translate("Map")).toBe("地图");
     setLang("en");
     expect(translate("Map")).toBe("Map");
-    expect(localStorage.getItem("openamrLangV2")).toBe("en");
+    expect(localStorage.getItem("robotpilotLangV2")).toBe("en");
   });
 
   test("an unsupported language cannot replace the active locale", async () => {

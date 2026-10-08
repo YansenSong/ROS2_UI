@@ -47,7 +47,7 @@ const NotificationsWatcher = () => {
       const key = latest.goal_info?.goal_id?.uuid?.join?.("-") || latest.status;
       if (lastNavTerminalRef.current === key) return;
       lastNavTerminalRef.current = key;
-      notify("OpenAMR", NAV_TERMINAL_LABELS[latest.status]);
+      notify("RobotPilot", NAV_TERMINAL_LABELS[latest.status]);
     });
 
     const dockStatusTopic = new window.ROSLIB.Topic({
@@ -56,8 +56,8 @@ const NotificationsWatcher = () => {
       messageType: "std_msgs/String",
     });
     dockStatusTopic.subscribe((msg) => {
-      if (msg.data === "docked") notify("OpenAMR", "Docking complete");
-      else if (msg.data === "failed") notify("OpenAMR", "Docking failed — check the dock tag and logs");
+      if (msg.data === "docked") notify("RobotPilot", "Docking complete");
+      else if (msg.data === "failed") notify("RobotPilot", "Docking failed — check the dock tag and logs");
     });
 
     const batteryTopic = new window.ROSLIB.Topic({
@@ -70,7 +70,7 @@ const NotificationsWatcher = () => {
       if (data <= threshold) {
         if (!lowBatteryNotifiedRef.current) {
           lowBatteryNotifiedRef.current = true;
-          notify("OpenAMR", `Battery at ${Math.round(data)}% — below ${threshold}%`);
+          notify("RobotPilot", `Battery at ${Math.round(data)}% — below ${threshold}%`);
         }
       } else if (data > threshold + 5) {
         // 使用滞回：电量恢复到高于阈值数个百分点后才重新启用提醒，避免电量在阈值附近波动时每条消息都触发通知。

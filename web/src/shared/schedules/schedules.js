@@ -3,7 +3,7 @@
 // 日程按本地时间在浏览器端触发导航操作，只有浏览器标签页打开时才会运行。
 // 若要在机器人侧独立运行，还需要后端定时器和机器人侧执行器。
 
-const STORAGE_KEY = "openamrSchedules";
+const STORAGE_KEY = "robotpilotSchedules";
 
 let schedules = load();
 const listeners = new Set();

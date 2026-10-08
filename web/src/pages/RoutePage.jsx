@@ -233,7 +233,7 @@ const RoutePage = () => {
     const currentWaypointsTopic = new window.ROSLIB.Topic({
       ros,
       name: "/WayPoints_topic",
-      messageType: "openamr_ui_msgs/ArrayPoseStampedWithCovariance",
+      messageType: "robotpilot_ui_msgs/ArrayPoseStampedWithCovariance",
     });
     currentWaypointsTopic.subscribe((message) => {
       const points = (message?.poses || []).map((entry) => {

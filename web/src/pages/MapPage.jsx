@@ -58,6 +58,8 @@ const MapPage = () => {
   };
 
   const [queueExecuting, setQueueExecuting] = useState(false);
+  const [activeWaypointIndex, setActiveWaypointIndex] = useState(-1);
+  const [completedWaypointCount, setCompletedWaypointCount] = useState(0);
   const queueExecutingRef = useRef(false);
   const queueIdxRef = useRef(0);
   const queueGoalActiveRef = useRef(false);
@@ -77,8 +79,6 @@ const MapPage = () => {
   const previewedRouteRef = useRef("");
 
   const { waypoints, addWaypoint, removeWaypoint } = useSavedWaypoints();
-  // Zones are managed on the Config page; calling the hook here just re-pushes
-  // the stored zones onto the map overlay whenever the Map page (re)mounts.
   useKeepoutZones();
   const waypointsRef = useRef(waypoints);
   useEffect(() => {
@@ -87,8 +87,11 @@ const MapPage = () => {
 
   // Draw every queued waypoint on the map, not just the single in-flight goal.
   useEffect(() => {
-    window.NAV2D?.setQueuedWaypoints?.(waypointQueue);
-  }, [waypointQueue]);
+    window.NAV2D?.setQueuedWaypoints?.(waypointQueue, {
+      activeIndex: activeWaypointIndex,
+      completedCount: completedWaypointCount,
+    });
+  }, [waypointQueue, activeWaypointIndex, completedWaypointCount]);
 
   const goalPoseTopic = useRef(null);
   const initialPoseTopic = useRef(null);
@@ -162,7 +165,7 @@ const MapPage = () => {
     const waypointsTopic = new window.ROSLIB.Topic({
       ros,
       name: "/WayPoints_topic",
-      messageType: "openamr_ui_msgs/ArrayPoseStampedWithCovariance",
+      messageType: "robotpilot_ui_msgs/ArrayPoseStampedWithCovariance",
     });
 
     responseTopic.subscribe((message) => {
@@ -194,6 +197,8 @@ const MapPage = () => {
         if (mapChanged) {
           previewedRouteRef.current = "";
           setWaypointQueue([]);
+          setActiveWaypointIndex(-1);
+          setCompletedWaypointCount(0);
         }
         setSelectedRoute((current) =>
           !mapChanged && options.some((route) => route.value === current)
@@ -229,6 +234,8 @@ const MapPage = () => {
       if (!route.length) {
         previewedRouteRef.current = "";
         setWaypointQueue([]);
+        setActiveWaypointIndex(-1);
+        setCompletedWaypointCount(0);
         toast.warn(t("The selected route has no waypoints."));
         return;
       }
@@ -239,6 +246,8 @@ const MapPage = () => {
       queueExecutingRef.current = shouldExecute;
       queueGoalActiveRef.current = false;
       queueNearGoalSinceRef.current = 0;
+      setActiveWaypointIndex(shouldExecute ? 0 : -1);
+      setCompletedWaypointCount(0);
       setQueueExecuting(shouldExecute);
       if (shouldExecute) {
         publishGoal(route[0]);
@@ -267,6 +276,8 @@ const MapPage = () => {
       return;
     queueGoalActiveRef.current = false;
     const current = waypointQueueRef.current[queueIdxRef.current];
+    setCompletedWaypointCount(queueIdxRef.current + 1);
+    setActiveWaypointIndex(-1);
     const dwellMs = Math.max(0, Number(current?.dwellSeconds) || 0) * 1000;
     if (queueAdvanceTimerRef.current)
       window.clearTimeout(queueAdvanceTimerRef.current);
@@ -277,6 +288,7 @@ const MapPage = () => {
       if (next < waypointQueueRef.current.length) {
         queueIdxRef.current = next;
         queueNearGoalSinceRef.current = 0;
+        setActiveWaypointIndex(next);
         publishGoal(waypointQueueRef.current[next]);
         toast.info(
           `${t("Waypoint")} ${next + 1} / ${waypointQueueRef.current.length}`,
@@ -284,7 +296,8 @@ const MapPage = () => {
       } else {
         queueExecutingRef.current = false;
         setQueueExecuting(false);
-        setWaypointQueue([]);
+        setActiveWaypointIndex(-1);
+        setCompletedWaypointCount(waypointQueueRef.current.length);
         toast.success(t("All waypoints complete!"));
       }
     }, dwellMs);
@@ -327,6 +340,7 @@ const MapPage = () => {
         queueGoalActiveRef.current = false;
         queueExecutingRef.current = false;
         setQueueExecuting(false);
+        setActiveWaypointIndex(-1);
         toast.warn(t("Queue stopped: goal was canceled or failed"));
       }
     });
@@ -558,7 +572,7 @@ const MapPage = () => {
 
   // Re-install callback whenever mode changes so the closure always has the right mode
   useEffect(() => {
-    if (modeRef.current !== null) installCallback();
+    if (["goal", "pose", "waypoint"].includes(modeRef.current)) installCallback();
   }, [mode, installCallback]);
 
   const cancelGoal = useCallback(() => {
@@ -594,6 +608,8 @@ const MapPage = () => {
       window.clearTimeout(queueAdvanceTimerRef.current);
     setQueueExecuting(false);
     setWaypointQueue([]);
+    setActiveWaypointIndex(-1);
+    setCompletedWaypointCount(0);
     if (cmdVelTopic.current) {
       cmdVelTopic.current.publish(
         new window.ROSLIB.Message({
@@ -637,6 +653,8 @@ const MapPage = () => {
     queueIdxRef.current = 0;
     queueExecutingRef.current = true;
     queueGoalActiveRef.current = false;
+    setActiveWaypointIndex(0);
+    setCompletedWaypointCount(0);
     if (queueAdvanceTimerRef.current)
       window.clearTimeout(queueAdvanceTimerRef.current);
     setQueueExecuting(true);
@@ -697,6 +715,7 @@ const MapPage = () => {
       window.clearTimeout(queueAdvanceTimerRef.current);
     queueAdvanceTimerRef.current = null;
     setQueueExecuting(false);
+    setActiveWaypointIndex(-1);
     cancelGoal();
     toast.info(t("Queue stopped"));
   }, [cancelGoal]);
@@ -850,6 +869,8 @@ const MapPage = () => {
                     selectedRouteRef.current = route;
                     previewedRouteRef.current = "";
                     setWaypointQueue([]);
+                    setActiveWaypointIndex(-1);
+                    setCompletedWaypointCount(0);
                     loadSelectedRoute(route);
                   }}
                   disabled={
@@ -893,6 +914,8 @@ const MapPage = () => {
                     <button
                       onClick={() => {
                         setWaypointQueue([]);
+                        setActiveWaypointIndex(-1);
+                        setCompletedWaypointCount(0);
                         stopQueue();
                       }}
                       className="text-xs text-statusRed hover:underline"
@@ -905,7 +928,7 @@ const MapPage = () => {
                       <span
                         key={i}
                         className={`rounded border px-2 py-0.5 text-xs ${
-                          queueExecuting && i === queueIdxRef.current
+                          queueExecuting && i === activeWaypointIndex
                             ? "border-themeBlue bg-themeBlue/20 text-themeBlue"
                             : "border-borderSubtle text-themeTextGray"
                         }`}

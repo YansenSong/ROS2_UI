@@ -34,9 +34,9 @@ Nav2 节点能够正确处理 TRANSIENT_LOCAL topic。但经 rosbridge 连接的
                                          到 /ui/map
 ```
 
-具体实现见[`ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/map_relay.py)。该实现刻意保持精简，可作为新增 relay 的参考。
+具体实现见[`ros2/src/robotpilot_ui_package/robotpilot_ui_package/map_relay.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/map_relay.py)。该实现刻意保持精简，可作为新增 relay 的参考。
 
-同一模式也用于 navigation 和 docking status，由[`ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py`](../../ros2/src/openamr_ui_package/openamr_ui_package/nav_relays.py)这个节点统一处理：
+同一模式也用于 navigation 和 docking status，由[`ros2/src/robotpilot_ui_package/robotpilot_ui_package/nav_relays.py`](../../ros2/src/robotpilot_ui_package/robotpilot_ui_package/nav_relays.py)这个节点统一处理：
 
 | 机器人侧 topic（TRANSIENT_LOCAL） | UI 侧 topic（VOLATILE） |
 | --- | --- |
@@ -45,7 +45,7 @@ Nav2 节点能够正确处理 TRANSIENT_LOCAL topic。但经 rosbridge 连接的
 | `/dock_robot/_action/status` | `/ui/dock_robot/status` |
 | `/undock_robot/_action/status` | `/ui/undock_robot/status` |
 
-两个 relay 节点与 Flask 和 rosbridge 一起由[`ros2/src/openamr_ui_package/launch/new_ui_launch.py`](../../ros2/src/openamr_ui_package/launch/new_ui_launch.py)启动，并放在 `ui` namespace 下。
+两个 relay 节点与 Flask 和 rosbridge 一起由[`ros2/src/robotpilot_ui_package/launch/new_ui_launch.py`](../../ros2/src/robotpilot_ui_package/launch/new_ui_launch.py)启动，并放在 `ui` namespace 下。
 
 ## 并非每个 topic 都需要 relay
 
@@ -64,7 +64,7 @@ relay topics 使用 `/ui/` 前缀（如 `/ui/map`、`/ui/amcl_pose`）。这是�
 
 ## 下一课
 
-[课程 05——后端节点详解](05-backend-nodes-in-detail.md)会继续介绍 ROS 侧：除两个 relay 外，`openamr_ui_package` 还会运行什么。之后[课程 06——所有页面导览](06-the-pages.md)会逐页介绍界面显示内容，以及各页面依赖的 topics（无论是否经过 relay）。
+[课程 05——后端节点详解](05-backend-nodes-in-detail.md)会继续介绍 ROS 侧：除两个 relay 外，`robotpilot_ui_package` 还会运行什么。之后[课程 06——所有页面导览](06-the-pages.md)会逐页介绍界面显示内容，以及各页面依赖的 topics（无论是否经过 relay）。
 
 ---
 

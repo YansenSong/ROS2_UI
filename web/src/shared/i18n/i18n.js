@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // New key makes Chinese the default even for browsers that stored the old
 // English default; choices made after this change remain persistent.
-const STORAGE_KEY = "openamrLangV2";
+const STORAGE_KEY = "robotpilotLangV2";
 
 const ZH = {
   Map: "地图",
@@ -25,6 +25,8 @@ const ZH = {
   Connected: "已连接",
   Offline: "离线",
   Error: "错误",
+  "Still active": "仍存在",
+  Recovered: "已恢复",
   Batt: "电池",
   "E-STOP": "急停",
   Language: "语言",
@@ -43,8 +45,24 @@ const ZH = {
   Create: "创建",
   steps: "个步骤",
   "Run (moves robot)": "运行（机器人将移动）",
-  "Chain waypoints, waits, and dock/undock into one sequence. Runs while a browser tab is open — not robot-side autonomy — and can be triggered from the Scheduler page too.":
-    "将航点、等待和停靠动作排成任务。此旧版任务仅在浏览器页面打开时运行，不属于机器人端自主执行。",
+  "Mission definitions and execution records live on the robot. Running tasks continue when this browser closes.":
+    "任务定义和执行记录保存在机器人端。关闭浏览器后，运行中的任务仍会继续。",
+  "Mission manager online": "任务管理器已连接",
+  "Mission manager offline": "任务管理器离线",
+  "Import browser mission drafts": "导入浏览器中的旧任务草稿",
+  "Recent task executions": "最近的任务执行记录",
+  "remaining steps": "个剩余步骤",
+  "Current step": "当前步骤",
+  "Mission drive hold is active after the task ended.":
+    "任务结束后仍保持车辆速度锁定。",
+  "Release mission drive hold? Confirm the vehicle is safe to move.":
+    "确认车辆可以安全移动后，解除任务速度锁定？",
+  "Release drive hold": "解除速度锁定",
+  Retry: "重试",
+  running: "运行中",
+  succeeded: "已完成",
+  failed: "失败",
+  cancelled: "已取消",
   "Create one below, then add steps — e.g. go to the loading bay, wait 10s, then dock.":
     "在下方新建任务并添加步骤。",
   "Go to waypoint": "前往巡检点",
@@ -56,7 +74,6 @@ const ZH = {
     "暂无巡检点，请先在地图页面添加。",
   "e.g. Evening patrol": "例如：夜间巡检",
   "No missions yet": "暂无任务",
-  "Run unavailable": "暂不可运行",
   "No steps yet — add one below.": "暂无步骤，请在下方添加。",
   "Choose a waypoint…": "选择巡检点…",
   "+ Add step": "+ 添加步骤",
@@ -66,8 +83,6 @@ const ZH = {
   "Waiting for pose…": "等待位置数据…",
   "No saved waypoints yet — drive somewhere and save it, or right-click the map.":
     "暂无巡检点。可在地图上右键保存位置。",
-  "Robot-side mission interface not configured. Existing mission drafts cannot be executed in this profile.":
-    "机器人端任务接口尚未配置。当前任务草稿无法在此模式下执行。",
   Settings: "设置",
   Configuration: "配置",
   Audit: "审计",
@@ -189,7 +204,7 @@ const ZH = {
   "Every checked signal is nominal.": "所有已检查信号均正常。",
   Online: "在线",
   "No status topic": "无状态 topic",
-  "OpenAMR map dashboard": "OpenAMR 地图控制台",
+  "RobotPilot map dashboard": "RobotPilot 地图控制台",
   "Robot workspace": "机器人工作台",
   "Connection diagnostics": "连接诊断",
   "Open full Health Centre →": "打开系统健康页面 →",
@@ -408,35 +423,10 @@ const ZH = {
   "Primary navigation": "主导航",
   "Mobile navigation": "移动端导航",
   Navigation: "导航",
-  Welcome: "欢迎",
-  "Welcome to OpenAMRobot": "欢迎使用 OpenAMRobot",
-  "This is a browser-based control and monitoring interface for a real ROS 2 mobile robot — driving, mapping, route planning, diagnostics, and more, all from here. Let's get you oriented.":
-    "这是用于 ROS 2 移动机器人的浏览器控制与监控界面，可进行驾驶、建图、路线规划和诊断。先来了解界面。",
   Skip: "跳过",
-  "Get started": "开始使用",
-  "How do you want to start?": "请选择开始方式",
-  "Take the guided Map tour": "查看地图页面引导",
-  "Learn where to find navigation, connection status, map layers, goals, and manual drive.":
-    "了解导航、连接状态、地图图层、目标点和手动驾驶的位置。",
-  "Connect a robot": "连接机器人",
-  "Point this UI at a real robot's connection.": "配置真实机器人的连接地址。",
-  "Connect to a simulation": "连接仿真环境",
-  "Point this UI at a simulated ROS 2 stack (e.g. Gazebo) the same way you would a real robot.":
-    "按连接真实机器人的方式连接仿真 ROS 2 环境，例如 Gazebo。",
-  "Three steps": "三个步骤",
-  "1. Configure the connection —": "1. 配置连接 —",
-  "set the host and port on the Config page.": "在配置页面填写主机和端口。",
-  "2. Test the connection —": "2. 检查连接 —",
-  "watch the status dot in the sidebar, or check the Health page for a full rollup.":
-    "查看侧边栏的状态点，或在系统健康页面查看详细状态。",
-  "3. Detect available devices —": "3. 检测可用设备 —",
-  "the Devices page can find real serial ports if you have USB hardware attached.":
-    "接入 USB 硬件后，设备页面可以检测此计算机上的串口。",
-  "Go to Config": "前往配置页面",
   "Close help": "关闭帮助",
   Help: "帮助",
   "Take the tour": "查看引导",
-  "Replay welcome guide": "重新打开欢迎引导",
   "Replay mode": "回放模式",
   "— you're viewing recorded telemetry, not a live robot.":
     "— 当前显示的是录制数据，并非机器人实时状态。",

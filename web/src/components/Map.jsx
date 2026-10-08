@@ -35,7 +35,9 @@ const getScene = () => {
 };
 
 const Map = forwardRef(
-  ({ onContextGoal, onContextSavePose, onContextSetPose }, ref) => {
+  ({ onContextGoal, onContextSavePose, onContextSetPose,
+    drawingArea = false, areaDrawType = "keepout", areaWallWidth = 0.1,
+    onAreaDraw }, ref) => {
     const { t } = useT();
     const ros = useRos();
 
@@ -43,6 +45,8 @@ const Map = forwardRef(
     const mapItem = useRef(null);
 
     const viewerRef = useRef(null);
+    const onAreaDrawRef = useRef(onAreaDraw);
+    onAreaDrawRef.current = onAreaDraw;
 
     const [canvasWidth, setCanvasWidth] = useState(undefined);
     const [canvasHeight, setCanvasHeight] = useState(undefined);
@@ -299,7 +303,8 @@ const Map = forwardRef(
           event.pointerType === "mouse" &&
           event.button === 0 &&
           event.target === scene?.canvas &&
-          !window.NAV2D?.arePointsSettable
+          !window.NAV2D?.arePointsSettable &&
+          !drawingArea
         ) {
           panGesture = {
             pointerId: event.pointerId,
@@ -389,7 +394,123 @@ const Map = forwardRef(
         container.removeEventListener("pointerup", onPointerEnd);
         container.removeEventListener("pointercancel", onPointerEnd);
       };
-    }, [zoomMap]);
+    }, [zoomMap, drawingArea]);
+
+    useEffect(() => {
+      if (!drawingArea) return undefined;
+      let attachedCanvas = null;
+      let activePointer = null;
+      let start = null;
+      let preview = null;
+
+      const clearPreview = () => {
+        if (preview?.parent) preview.parent.removeChild(preview);
+        preview = null;
+        start = null;
+        activePointer = null;
+      };
+      const pointOnMap = (event) => {
+        const scene = viewerRef.current?.scene;
+        const canvas = scene?.canvas;
+        const rect = canvas?.getBoundingClientRect();
+        if (!scene || !rect?.width || !rect?.height) return null;
+        const stageX = ((event.clientX - rect.left) / rect.width) * canvas.width;
+        const stageY = ((event.clientY - rect.top) / rect.height) * canvas.height;
+        return scene.globalToRos(stageX, stageY);
+      };
+      const onPointerDown = (event) => {
+        if (event.button !== 0 || (event.pointerType !== "mouse" && event.pointerType !== "pen")) return;
+        const point = pointOnMap(event);
+        const scene = viewerRef.current?.scene;
+        if (!point || !scene) return;
+        event.preventDefault();
+        event.stopPropagation();
+        clearPreview();
+        activePointer = event.pointerId;
+        start = point;
+        preview = new window.createjs.Shape();
+        preview.mouseEnabled = false;
+        scene.addChild(preview);
+        try {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        } catch {
+          // Drawing continues while the pointer remains inside the canvas.
+        }
+      };
+      const onPointerMove = (event) => {
+        if (event.pointerId !== activePointer || !start || !preview) return;
+        const point = pointOnMap(event);
+        if (!point) return;
+        event.preventDefault();
+        const graphics = preview.graphics;
+        graphics.clear();
+        if (areaDrawType === "wall") {
+          graphics.beginStroke("#a855f7")
+            .setStrokeStyle(Math.max(0.04, areaWallWidth))
+            .moveTo(start.x, -start.y).lineTo(point.x, -point.y);
+        } else {
+          const colors = {
+            keepout: ["rgba(239,68,68,0.20)", "#ef4444"],
+            speed: ["rgba(234,179,8,0.20)", "#eab308"],
+            closure: ["rgba(249,115,22,0.24)", "#f97316"],
+          };
+          const [fill, stroke] = colors[areaDrawType] || colors.keepout;
+          graphics.beginFill(fill).beginStroke(stroke).setStrokeStyle(0.04)
+            .drawRect(Math.min(start.x, point.x), -Math.max(start.y, point.y),
+              Math.abs(point.x - start.x), Math.abs(point.y - start.y));
+        }
+      };
+      const onPointerUp = (event) => {
+        if (event.pointerId !== activePointer || !start) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const point = pointOnMap(event);
+        if (point) {
+          const dx = point.x - start.x;
+          const dy = point.y - start.y;
+          const valid = areaDrawType === "wall"
+            ? Math.hypot(dx, dy) >= 0.05
+            : Math.abs(dx) >= 0.05 && Math.abs(dy) >= 0.05;
+          const geometry = areaDrawType === "wall"
+            ? { x1: start.x, y1: start.y, x2: point.x, y2: point.y,
+                width: areaWallWidth }
+            : { cx: (start.x + point.x) / 2, cy: (start.y + point.y) / 2,
+                w: Math.abs(dx), h: Math.abs(dy) };
+          onAreaDrawRef.current?.(valid ? geometry : null);
+        }
+        clearPreview();
+      };
+      const onPointerCancel = (event) => {
+        if (event.pointerId === activePointer) clearPreview();
+      };
+      const attach = () => {
+        const canvas = viewerRef.current?.scene?.canvas;
+        if (!canvas || canvas === attachedCanvas) return;
+        if (attachedCanvas) {
+          attachedCanvas.removeEventListener("pointerdown", onPointerDown);
+          attachedCanvas.removeEventListener("pointermove", onPointerMove);
+          attachedCanvas.removeEventListener("pointerup", onPointerUp);
+          attachedCanvas.removeEventListener("pointercancel", onPointerCancel);
+        }
+        attachedCanvas = canvas;
+        canvas.addEventListener("pointerdown", onPointerDown);
+        canvas.addEventListener("pointermove", onPointerMove);
+        canvas.addEventListener("pointerup", onPointerUp);
+        canvas.addEventListener("pointercancel", onPointerCancel);
+      };
+      attach();
+      const pollId = window.setInterval(attach, 200);
+      return () => {
+        window.clearInterval(pollId);
+        clearPreview();
+        if (attachedCanvas) {
+          attachedCanvas.removeEventListener("pointerdown", onPointerDown);
+          attachedCanvas.removeEventListener("pointermove", onPointerMove);
+          attachedCanvas.removeEventListener("pointerup", onPointerUp);
+          attachedCanvas.removeEventListener("pointercancel", onPointerCancel);
+        }
+      };
+    }, [drawingArea, areaDrawType, areaWallWidth]);
 
     /**
      * 全屏模式：canvas 的像素宽高在构造时固定（ROS2D.Viewer 不会自动调整），因此进入/退出全屏时需要直接调整
@@ -608,6 +729,7 @@ const Map = forwardRef(
         className={`dashboard-card dashboard-card--recessed flex h-full w-full items-center justify-center overflow-hidden p-2 ${
           isPanning ? "map-is-panning" : ""
         }`}
+        style={{ cursor: drawingArea ? "crosshair" : undefined }}
       >
         <div
           className="relative"
